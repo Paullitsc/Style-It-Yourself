@@ -1,0 +1,53 @@
+%%{init: {'theme': 'dark', 'themeVariables': { 'background': '#000000', 'primaryColor': '#1f1f1f', 'primaryTextColor': '#fff', 'primaryBorderColor': '#333', 'lineColor': '#666', 'secondaryColor': '#1a1a2e', 'tertiaryColor': '#16213e'}}}%%
+sequenceDiagram
+    autonumber
+    title Auth & My Closet Flow (MVP)
+
+    participant U as User
+    participant FE as Frontend
+    participant BE as Backend
+    participant SB as Supabase
+
+    %% Authentication
+    rect rgba(40, 40, 80, 0.3)
+        Note over U,SB: Authentication
+        U->>FE: Clicks "Log In"
+        FE-->>U: Display auth modal
+        alt OAuth (Google/GitHub)
+            U->>FE: Clicks provider button
+            FE->>SB: OAuth flow
+            SB-->>FE: {access_token, user}
+        else Email/Password
+            U->>FE: Enters credentials
+            FE->>SB: POST /auth/login
+            SB-->>FE: {access_token, user}
+        end
+        FE->>FE: Store token
+        FE-->>U: Logged in
+    end
+
+    %% View Closet
+    rect rgba(40, 80, 40, 0.3)
+        Note over U,SB: View My Closet
+        U->>FE: Clicks "My Closet"
+        FE->>BE: GET /api/closet + Bearer token
+        BE->>SB: Verify JWT
+        SB-->>BE: {valid, user_id}
+        BE->>SB: SELECT outfits, clothing_items, generated_images WHERE user_id
+        SB-->>BE: {outfits[], items[], generatedImages[]}
+        BE-->>FE: {outfits[], items[], generatedImages[]}
+        FE-->>U: Display closet grid (outfits, items, AI images)
+    end
+
+    %% View Outfit Detail
+    rect rgba(80, 40, 40, 0.3)
+        Note over U,SB: View Outfit Detail
+        U->>FE: Clicks on an outfit
+        FE->>BE: GET /api/outfits/{outfitId} + Bearer token
+        BE->>SB: Verify JWT
+        SB-->>BE: {valid, user_id}
+        BE->>SB: SELECT outfit + items + generated_image WHERE outfit_id
+        SB-->>BE: {outfit, items[], generatedImageUrl}
+        BE-->>FE: {outfit: {id, name, themeId}, items[]: {imageUrl, color, category, formality, aesthetics[], brand, price, sourceUrl}, generatedImageUrl}
+        FE-->>U: Display outfit detail (all items with metadata + AI try-on image)
+    end
