@@ -1,0 +1,64 @@
+%%{init: {'theme': 'dark', 'themeVariables': { 'background': '#000000', 'primaryColor': '#1f1f1f', 'primaryTextColor': '#fff', 'primaryBorderColor': '#333', 'lineColor': '#666', 'secondaryColor': '#1a1a2e', 'tertiaryColor': '#16213e'}}}%%
+sequenceDiagram
+    autonumber
+    title AI Virtual Try-On Flow (MVP)
+
+    participant U as User
+    participant FE as Frontend
+    participant BE as Backend
+    participant SB as Supabase
+    participant AI as Gemini Nano Banana
+
+    %% Case 1: Single Item Try-On
+    rect rgba(40, 40, 80, 0.3)
+        Note over U,AI: Case 1: Try-On Single Item (after upload)
+        U->>FE: Uploads clothing item
+        FE->>SB: Upload item image
+        SB-->>FE: {itemImageUrl}
+        U->>FE: Clicks "Try it on me"
+        FE->>SB: Check session
+        alt Not authenticated
+            SB-->>FE: No session
+            FE-->>U: Show auth modal
+            U->>FE: Authenticates
+            FE->>SB: Auth request
+            SB-->>FE: {session, user}
+        end
+        U->>FE: Uploads full-body photo
+        FE->>SB: Upload photo
+        SB-->>FE: {userPhotoUrl}
+        FE-->>U: Show loading state
+        FE->>BE: POST /api/try-on {userPhotoUrl, item: {imageUrl, category}} + Bearer token
+        BE->>SB: Verify JWT
+        SB-->>BE: {valid, user_id}
+        BE->>AI: Generate image {userPhoto, itemImage, prompt}
+        AI-->>BE: {generatedImageUrl}
+        BE-->>FE: {success, generatedImageUrl}
+        FE-->>U: Display result + download button
+    end
+
+    %% Case 2: Full Outfit Try-On
+    rect rgba(80, 40, 40, 0.3)
+        Note over U,AI: Case 2: Try-On Full Outfit (from outfit page)
+        U->>FE: Views completed outfit
+        U->>FE: Clicks "Try outfit on me"
+        FE->>SB: Check session
+        alt Not authenticated
+            SB-->>FE: No session
+            FE-->>U: Show auth modal
+            U->>FE: Authenticates
+            FE->>SB: Auth request
+            SB-->>FE: {session, user}
+        end
+        U->>FE: Uploads full-body photo
+        FE->>SB: Upload photo
+        SB-->>FE: {userPhotoUrl}
+        FE-->>U: Show loading state
+        FE->>BE: POST /api/try-on {userPhotoUrl, outfit: {items[]}} + Bearer token
+        BE->>SB: Verify JWT
+        SB-->>BE: {valid, user_id}
+        BE->>AI: Generate image {userPhoto, outfitImages[], prompt}
+        AI-->>BE: {generatedImageUrl}
+        BE-->>FE: {success, generatedImageUrl}
+        FE-->>U: Display result + download button
+    end
