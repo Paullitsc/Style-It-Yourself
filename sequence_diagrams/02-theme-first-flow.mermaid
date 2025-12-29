@@ -1,241 +1,75 @@
+%%{init: {'theme': 'dark', 'themeVariables': { 'background': '#000000', 'primaryColor': '#1f1f1f', 'primaryTextColor': '#fff', 'primaryBorderColor': '#333', 'lineColor': '#666', 'secondaryColor': '#1a1a2e', 'tertiaryColor': '#16213e'}}}%%
 sequenceDiagram
     autonumber
     title Theme-First Styling Flow
 
     participant U as User
-    participant FE as Frontend (React/Next.js)
-    participant CE as Color Engine (Client)
-    participant BE as Backend API
-    participant DB as Supabase DB
-    participant Auth as Supabase Auth
-    participant Store as Image Storage
+    participant FE as Frontend
+    participant BE as Backend
+    participant SB as Supabase
 
-    %% ===== THEME SELECTION =====
-    rect rgb(240, 248, 255)
-        Note over U,Store: Phase 1: Theme Selection & Guidance
+    %% Phase 1: Theme Selection
+    rect rgba(40, 40, 80, 0.3)
+        Note over U,SB: Phase 1: Theme Selection
         U->>FE: Clicks "Style for an event"
-        FE->>U: Display theme grid
-        Note right of FE: Themes:<br/>• Job Interview<br/>• First Date<br/>• Wedding Guest<br/>• Night Out<br/>• Casual Weekend
-        
+        FE-->>U: Display theme grid
         U->>FE: Selects theme (e.g., "Job Interview")
-        
         FE->>BE: GET /api/themes/{themeId}
-        BE->>BE: Load theme profile
-        Note right of BE: ThemeProfile = {<br/>  name: "Job Interview",<br/>  formalityMin: 3, // Business Casual<br/>  formalityMax: 5, // Formal<br/>  allowedColors: [navy, gray, white, black, beige],<br/>  bannedColors: [neon*, bright red],<br/>  suggestedAesthetics: [Classic, Minimalist],<br/>  notes: "Clean lines, minimal accessories"<br/>}
-        BE-->>FE: Returns theme profile
-        
-        FE->>U: Display theme guidance screen
-        Note right of FE: Shows:<br/>• Formality range badge<br/>• Color palette swatches<br/>• Style notes<br/>• Do's and Don'ts
+        BE-->>FE: {id, name, formalityRange, recommendedColors[], suggestedAesthetics[], guidance, warnings[]}
+        FE-->>U: Display theme guidance screen
     end
 
-    %% ===== OPTIONAL SEED ITEM =====
-    rect rgb(255, 250, 240)
-        Note over U,Store: Phase 2: Seed Item (Optional)
-        FE->>U: "Do you have a starting piece?"
-        
-        alt User has a seed item
-            U->>FE: Clicks "Yes, I have a piece"
-            U->>FE: Uploads seed item image
-            FE->>Store: Upload to temp storage
-            Store-->>FE: Returns temp URL
-            FE->>CE: Extract dominant color
-            CE-->>FE: Returns color data
-            
-            FE->>U: Show item description form
-            U->>FE: Fills category, formality, aesthetics
-            
-            FE->>BE: POST /api/validate-seed-for-theme
-            Note right of FE: Payload: {seedItem, themeId}
-            
-            BE->>BE: Check seed against theme rules
-            
-            alt Seed formality in theme range
-                BE->>BE: Formality OK
-            else Seed too casual/formal
-                BE->>BE: Warning: "This piece is [too casual/too formal] for {theme}"
+    %% Phase 2: Theme-Based Recommendations
+    rect rgba(80, 40, 40, 0.3)
+        Note over U,SB: Phase 2: Theme-Based Recommendations
+        FE->>BE: POST /api/recommendations {themeId}
+        BE-->>FE: {recommendations[]: {slot, colors[], formalityRange, aesthetics[], suggestedCategories[], example}}
+        FE-->>U: Display outfit builder with recommendations
+    end
+
+    %% Phase 3: Build Outfit
+    rect rgba(80, 60, 40, 0.3)
+        Note over U,SB: Phase 3: Build Outfit
+        loop For each slot
+            U->>FE: Uploads item
+            FE->>SB: Upload image
+            SB-->>FE: {tempImageUrl}
+            FE->>FE: Extract color
+            U->>FE: Fills metadata
+            FE->>BE: POST /api/validate-item-for-theme {newItem, themeId, currentOutfit}
+            BE-->>FE: {colorStatus, formalityStatus, aestheticStatus, warnings[]}
+            alt Has warnings
+                FE-->>U: Show warning + "Continue anyway?"
             end
-            
-            alt Seed color in theme palette
-                BE->>BE: Color OK
-            else Seed color banned
-                BE->>BE: Warning: "This color may not suit {theme}"
-            else Seed color neutral
-                BE->>BE: Color OK (neutral always works)
-            end
-            
-            BE-->>FE: Returns seed validation
-            FE->>U: Show any theme-specific warnings
-            U->>FE: Proceeds or picks different seed
-            
-            FE->>FE: Set context = {theme + seedItem}
-            
-        else User has no seed item
-            U->>FE: Clicks "No, help me start"
-            FE->>BE: GET /api/themes/{themeId}/archetypes
-            BE-->>FE: Returns archetypal suggestions
-            Note left of BE: e.g., "Start with a navy blazer<br/>or a crisp white dress shirt"
-            FE->>U: Display suggested starting points
-            FE->>FE: Set context = {theme only, no seed}
+            FE->>FE: Add item to session
         end
     end
 
-    %% ===== THEME-FILTERED RECOMMENDATIONS =====
-    rect rgb(240, 255, 240)
-        Note over U,Store: Phase 3: Theme-Filtered Recommendations
-        FE->>FE: Navigate to Outfit Builder
-        FE->>BE: POST /api/recommendations
-        Note right of FE: Payload: {<br/>  themeId,<br/>  seedItem (optional),<br/>  filledSlots: []<br/>}
-        
-        BE->>BE: Load theme constraints
-        
-        BE->>BE: Filter categories by theme
-        Note right of BE: For "Job Interview":<br/>Emphasize: Dress Shirts, Blazers,<br/>Dress Pants, Oxfords, Loafers<br/>De-emphasize: Hoodies, Joggers,<br/>Sneakers, Streetwear items
-        
-        loop For each relevant slot
-            BE->>BE: Generate recommendation with theme overlay
-            
-            BE->>BE: Color filtering
-            Note right of BE: recommendedColors = <br/>themeAllowedColors ∩ harmoniousColors<br/>- bannedColors
-            
-            BE->>BE: Formality filtering
-            Note right of BE: allowedFormality = <br/>[themeMin, themeMax] ∩ [seedFormality ± 1]
-            
-            BE->>BE: Aesthetic preference
-            Note right of BE: preferAesthetics = <br/>themeSuggestedAesthetics ∪ seedAesthetics
-            
-            BE->>BE: Category pairing (theme-aware)
-            Note right of BE: For formal themes: suggest<br/>Oxfords over Sneakers,<br/>Dress Pants over Jeans
-        end
-        
-        BE-->>FE: Returns theme-filtered recommendations
-        FE->>U: Display outfit builder with filtered nav
-        Note right of FE: Relevant subcategories highlighted<br/>Less appropriate ones grayed/hidden
+    %% Phase 4: Theme-Aware Summary
+    rect rgba(60, 40, 80, 0.3)
+        Note over U,SB: Phase 4: Outfit Summary
+        FE->>BE: POST /api/validate-outfit-for-theme {outfit[], themeId}
+        BE-->>FE: {isComplete, cohesionScore, themeCompliance: {score, verdict}, whyThisWorks}
+        FE-->>U: Display summary + "Why this works" section
     end
 
-    %% ===== BUILD OUTFIT (THEME VALIDATION) =====
-    rect rgb(255, 245, 238)
-        Note over U,Store: Phase 4: Build Outfit with Theme Checks
-        
-        loop For each slot user fills
-            U->>FE: Clicks category → uploads item
-            FE->>Store: Upload to temp storage
-            Store-->>FE: Returns temp URL
-            FE->>CE: Extract color
-            CE-->>FE: Returns color data
-            U->>FE: Fills item metadata
-            
-            FE->>BE: POST /api/validate-item-for-theme
-            Note right of FE: Payload: {newItem, themeId, seedItem, currentOutfit}
-            
-            %% Standard compatibility checks
-            BE->>BE: Color compatibility (vs seed if exists)
-            BE->>BE: Formality compatibility (vs seed)
-            BE->>BE: Aesthetic compatibility (vs seed)
-            BE->>BE: Category pairing check
-            
-            %% Theme-specific checks (additional layer)
-            BE->>BE: Theme color check
-            alt Item color in theme bannedColors
-                BE->>BE: Theme warning: "Not appropriate for {theme}"
-            else Item color in theme allowedColors
-                BE->>BE: Theme color OK
-            else Item color neutral
-                BE->>BE: Theme color OK
-            else Item color outside theme palette
-                BE->>BE: Theme soft warning: "Unconventional for {theme}"
-            end
-            
-            BE->>BE: Theme formality check
-            alt Item formality < theme.formalityMin
-                BE->>BE: Theme warning: "Too casual for {theme}"
-            else Item formality > theme.formalityMax
-                BE->>BE: Theme warning: "May be overdressed for {theme}"
-            else Within theme range
-                BE->>BE: Theme formality OK
-            end
-            
-            BE->>BE: Theme aesthetic check
-            alt Item aesthetics ∩ theme.suggestedAesthetics ≠ ∅
-                BE->>BE: Theme aesthetic OK
-            else No overlap but not conflicting
-                BE->>BE: Theme soft warning: "Different style than typical"
-            end
-            
-            BE-->>FE: Returns combined validation
-            Note left of BE: {<br/>  standardChecks: {...},<br/>  themeChecks: {<br/>    colorStatus, formalityStatus,<br/>    aestheticStatus, themeWarnings[]<br/>  }<br/>}
-            
-            FE->>U: Display validation results
-            Note right of FE: Shows both:<br/>• Match with seed item<br/>• Fit with theme guidelines
-            
-            alt Theme violations
-                FE->>U: "This doesn't fit {theme} guidelines"
-                FE->>U: Offer to continue anyway
-                U->>FE: Confirms or re-uploads
-            end
-            
-            FE->>FE: Add item to session outfit
-        end
-    end
-
-    %% ===== THEME-SPECIFIC SUMMARY =====
-    rect rgb(245, 245, 255)
-        Note over U,Store: Phase 5: Theme-Aware Outfit Summary
-        U->>FE: Completes required slots
-        FE->>BE: POST /api/validate-outfit-for-theme
-        Note right of FE: Payload: {outfit, themeId, seedItem}
-        
-        BE->>BE: Standard outfit composition check
-        
-        BE->>BE: Theme compliance scoring
-        BE->>BE: themeFormalityScore = avg distance from theme midpoint
-        BE->>BE: themeColorScore = % items in theme palette
-        BE->>BE: themeAestheticScore = % items with theme aesthetics
-        
-        BE->>BE: Generate theme verdict
-        alt All theme metrics pass
-            BE->>BE: Verdict = "This outfit fits '{theme}' guidelines perfectly"
-        else Minor deviations
-            BE->>BE: Verdict = "Mostly appropriate for '{theme}' with some personal flair"
-            BE->>BE: Add specific notes (e.g., "shoes slightly casual")
-        else Significant deviations
-            BE->>BE: Verdict = "This outfit departs from typical '{theme}' style"
-        end
-        
-        BE-->>FE: Returns theme-aware summary
-        Note left of BE: {<br/>  isComplete, cohesionScore,<br/>  themeCompliance: {<br/>    score, verdict, notes[]<br/>  },<br/>  whyThisWorks: "explanation"<br/>}
-        
-        FE->>U: Display outfit summary
-        FE->>U: Show "Why this works" educational section
-        Note right of FE: "This outfit works for Job Interview<br/>because:<br/>• All pieces are Business Casual-Formal<br/>• Colors are neutral and professional<br/>• Clean, classic aesthetic throughout"
-    end
-
-    %% ===== SAVE (AUTH REQUIRED) =====
-    rect rgb(255, 240, 245)
-        Note over U,Store: Phase 6: Save Outfit (Requires Auth)
+    %% Phase 5: Save (Auth Required)
+    rect rgba(80, 40, 60, 0.3)
+        Note over U,SB: Phase 5: Save Outfit (Auth Required)
         U->>FE: Clicks "Save Outfit"
-        FE->>Auth: Check session
-        
+        FE->>SB: Check session
         alt Not authenticated
-            Auth-->>FE: No session
-            FE->>U: Show auth modal
-            U->>FE: Authenticates (OAuth/email)
-            FE->>Auth: Complete auth flow
-            Auth->>DB: Upsert user
-            Auth-->>FE: Session + user
+            SB-->>FE: No session
+            FE-->>U: Show auth modal
+            U->>FE: Authenticates
+            FE->>SB: Auth request
+            SB-->>FE: {session, user}
         end
-        
-        FE->>BE: POST /api/outfits (authenticated)
-        Note right of FE: Payload includes themeId for reference
-        
-        BE->>Auth: Verify token
-        Auth-->>BE: Valid
-        
-        BE->>DB: Save items + outfit
-        Note right of BE: Outfit record includes:<br/>theme_id for future filtering
-        
-        BE->>DB: INSERT INTO outfit_themes (join table)
-        Note right of BE: Links outfit to theme for<br/>"Show my interview outfits" queries
-        
-        BE-->>FE: Saved successfully
-        FE->>U: Success + My Closet link
+        FE->>BE: POST /api/outfits {name, notes, items[], themeId} + Bearer token
+        BE->>SB: Verify JWT
+        SB-->>BE: {valid, user_id}
+        BE->>SB: Save items + outfit + outfit_themes
+        SB-->>BE: {outfit_id}
+        BE-->>FE: {savedOutfit}
+        FE-->>U: Success + My Closet link
     end
