@@ -1,6 +1,7 @@
 # SIY-Style-It-Yourself-
 You dress like a bum? You got no girls? This app allows you to style like a stylist, leveling up your fashion game and boosting up your aura!
 
+USECASES NEEDED FOR THE HACK: check sequence diagrams 1,2,4
 
 For the presenation, 
 - Team/Project Intro/Inspiration ( 30 SECS )
