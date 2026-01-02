@@ -3,6 +3,8 @@ You dress like a bum? You got no girls? This app allows you to style like a styl
 
 USECASES NEEDED FOR THE HACK: check sequence diagrams 1,2,4
 
+RULES TO FOLLOW: https://mchacks.ca/live/ (plz keep this thing a secret, we cant have anyone know what we building until after the hack:)) 
+
 For the presenation, 
 - Team/Project Intro/Inspiration ( 30 SECS )
 - Upload a piece, see how it looks on user with AI, then build an outfit (with 2 more items) and see whole fit preview ( 2 MINS )
