@@ -5,8 +5,25 @@ USECASES NEEDED FOR THE HACK: check sequence diagrams 1,2,4
 
 RULES TO FOLLOW: https://mchacks.ca/live/ (plz keep this thing a secret, we cant have anyone know what we building until after the hack:)) 
 
-For the presenation, 
+## Presentation
+
 - Team/Project Intro/Inspiration ( 30 SECS )
 - Upload a piece, see how it looks on user with AI, then build an outfit (with 2 more items) and see whole fit preview ( 2 MINS )
 - Challenges we faced, what happen when we scale up ( 2 MINS )
 - Optional: save outfit to closet at step 2 and 3, then go to closet and browse all the fits ( 30 SECS OF BUFFER TIME)
+
+## Features
+
+- **Outfit Recommendations**: Get color-coordinated outfit suggestions based on color harmony rules
+- **Item Validation**: Check compatibility of clothing items (color, formality, aesthetics)
+- **Outfit Validation**: Validate complete outfits with cohesion scoring
+- **Closet Management**: Save and retrieve outfits and clothing items
+- **AI Try-On**: Generate virtual try-on images (requires Gemini API)
+
+## Tech Stack
+
+- **Framework**: FastAPI (Python 3.11+)
+- **Database**: Supabase (PostgreSQL)
+- **Auth**: Supabase Auth (JWT)
+- **Storage**: Supabase Storage
+- **AI**: Google Gemini API
