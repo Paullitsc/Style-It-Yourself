@@ -1,7 +1,7 @@
 """Pydantic schemas for request/response DTOs."""
 
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, Tuple
 from datetime import datetime
 
 
@@ -16,6 +16,8 @@ class HSL(BaseModel):
     s: int = Field(..., ge=0, le=100, description="Saturation (0-100)")
     l: int = Field(..., ge=0, le=100, description="Lightness (0-100)")
 
+    def get_hsl(self) -> Tuple[int, int, int]:
+        return self.h, self.s, self.l
 
 class Color(BaseModel):
     """Complete color representation."""
@@ -63,7 +65,7 @@ class ClothingItemResponse(ClothingItemCreate):
 class RecommendationRequest(BaseModel):
     """Request body for POST /api/recommendations"""
     base_color: Color
-    base_formality: int = Field(..., ge=1, le=5)
+    base_formality: float = Field(..., ge=1.0, le=5.0)
     base_aesthetics: list[str] = Field(default_factory=list)
     base_category: Category
 
@@ -77,8 +79,8 @@ class RecommendedColor(BaseModel):
 
 class FormalityRange(BaseModel):
     """Min/max formality range."""
-    min: int = Field(..., ge=1, le=5)
-    max: int = Field(..., ge=1, le=5)
+    min: float = Field(..., ge=1.0, le=5.0)
+    max: float = Field(..., ge=1.0, le=5.0)
 
 
 class CategoryRecommendation(BaseModel):
