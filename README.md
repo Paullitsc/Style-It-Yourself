@@ -5,6 +5,12 @@ USECASES NEEDED FOR THE HACK: check sequence diagrams 1,2,4
 
 RULES TO FOLLOW: https://mchacks.ca/live/ (plz keep this thing a secret, we cant have anyone know what we building until after the hack:)) 
 
+## DEV SETUP
+1. After cloning, cp env.example to .env
+2. Checkout to your own branch name/feature_name. Then, Create venv and activate it to avoid commit the whole codebase, then pip install -r requirements.txt
+3. Make changes and meaning full commit messages for each file
+4. Git push to your own remote branch and make a PR, tag your issue, assign Thai as reviewer:) (do not need to make PR for README.md changes)
+
 ## Presentation
 
 - Team/Project Intro/Inspiration ( 30 SECS )
