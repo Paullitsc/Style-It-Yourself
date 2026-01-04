@@ -12,12 +12,13 @@ from datetime import datetime
 
 class HSL(BaseModel):
     """HSL color representation."""
-    h: int = Field(..., ge=0, lt=360, description="Hue (0-360)") #i.e pigment of the color (red, blue, etc). Look this up on color wheel, for example, red is 0, green is 120, blue is 240
+    h: int = Field(..., ge=0, lt=360, description="Hue (0-359)")
     s: int = Field(..., ge=0, le=100, description="Saturation (0-100)")
     l: int = Field(..., ge=0, le=100, description="Lightness (0-100)")
 
     def get_hsl(self) -> Tuple[int, int, int]:
         return self.h, self.s, self.l
+
 
 class Color(BaseModel):
     """Complete color representation."""
@@ -37,23 +38,28 @@ class ClothingItemBase(BaseModel):
     """Base clothing item fields - used in validation endpoints."""
     color: Color
     category: Category
-    formality: float = Field(..., ge=1.0, le=5.0, description="Formality level 1-5")
+    formality: float = Field(..., ge=1.0, le=5.0, description="Formality level 1.0-5.0")
     aesthetics: list[str] = Field(default_factory=list, description="Aesthetic tags")
 
 
 class ClothingItemCreate(ClothingItemBase):
-    """Clothing item with full metadata - used when saving outfits."""
-    image_url: str
+    """Clothing item with full metadata - used when saving to closet."""
+    image_url: Optional[str] = None  # Optional - set after upload
     brand: Optional[str] = None
     price: Optional[float] = Field(None, ge=0)
     source_url: Optional[str] = None
-    ownership: Optional[str] = Field(default="owned", pattern=r"^(owned|wishlist)$")
+    ownership: str = Field(default="owned", pattern=r"^(owned|wishlist)$")
 
 
-class ClothingItemResponse(ClothingItemCreate):
+class ClothingItemResponse(ClothingItemBase):
     """Clothing item response with database fields."""
     id: str
-    user_id: Optional[str] = None
+    user_id: str
+    image_url: str
+    brand: Optional[str] = None
+    price: Optional[float] = None
+    source_url: Optional[str] = None
+    ownership: str = "owned"
     created_at: datetime
 
 
@@ -74,7 +80,7 @@ class RecommendedColor(BaseModel):
     """A recommended color option."""
     hex: str
     name: str
-    harmony_type: str = Field(..., description="Type of harmony: analogous, complementary, neutral")
+    harmony_type: str = Field(..., description="Type of harmony: analogous, complementary, triadic, neutral")
 
 
 class FormalityRange(BaseModel):
@@ -147,12 +153,13 @@ class ValidateOutfitResponse(BaseModel):
 class OutfitCreate(BaseModel):
     """Request body for POST /api/outfits"""
     name: str = Field(..., min_length=1, max_length=100)
-    items: list[ClothingItemCreate]
+    item_ids: list[str] = Field(..., min_length=1, description="List of clothing item IDs")
 
 
 class OutfitResponse(BaseModel):
     """Response body for POST /api/outfits and GET /api/outfits/{id}"""
     id: str
+    user_id: str
     name: str
     items: list[ClothingItemResponse]
     generated_image_url: Optional[str] = None
@@ -168,15 +175,17 @@ class OutfitSummary(BaseModel):
     """Brief outfit summary - used in closet listing."""
     id: str
     name: str
-    thumbnail_urls: list[str] = Field(default_factory=list, description="First 4 item thumbnails")
+    item_count: int
+    thumbnail_url: Optional[str] = None  # First item's image or generated image
     created_at: datetime
 
 
 class ClosetResponse(BaseModel):
     """Response body for GET /api/closet"""
+    items_by_category: dict[str, list[ClothingItemResponse]]
     outfits: list[OutfitSummary]
-    items: list[ClothingItemResponse]
-    generated_images: list[dict] = Field(default_factory=list)
+    total_items: int
+    total_outfits: int
 
 
 # ==============================================================================
@@ -185,22 +194,40 @@ class ClosetResponse(BaseModel):
 # ==============================================================================
 
 class TryOnSingleRequest(BaseModel):
-    """Request body for POST /api/try-on (single item)"""
+    """Request body for POST /api/try-on/single"""
     user_photo_url: str
-    item: ClothingItemCreate
+    item_image_url: str
+    item: ClothingItemBase  # Just need base fields for prompt
 
 
 class TryOnOutfitRequest(BaseModel):
-    """Request body for POST /api/try-on (full outfit)"""
+    """Request body for POST /api/try-on/outfit"""
     user_photo_url: str
-    outfit: OutfitCreate
+    item_images: list[tuple[str, ClothingItemBase]]  # [(image_url, item), ...]
 
 
 class TryOnResponse(BaseModel):
     """Response body for POST /api/try-on"""
-    success: bool
-    generated_image_url: Optional[str] = None
-    error: Optional[str] = None
+    generated_image_url: str  # Base64 data URL or storage URL
+    processing_time: float = Field(..., description="Time in seconds")
+
+
+# ==============================================================================
+# POST /api/clothing-items (Auth required)
+# Add item to closet
+# ==============================================================================
+
+class ClothingItemCreateRequest(BaseModel):
+    """Request body for POST /api/clothing-items (multipart form)"""
+    color: Color
+    category: Category
+    formality: float = Field(..., ge=1.0, le=5.0)
+    aesthetics: list[str] = Field(default_factory=list)
+    brand: Optional[str] = None
+    price: Optional[float] = Field(None, ge=0)
+    source_url: Optional[str] = None
+    ownership: str = Field(default="owned", pattern=r"^(owned|wishlist)$")
+    # Note: image file is uploaded separately via multipart form
 
 
 # ==============================================================================
@@ -211,7 +238,7 @@ class TryOnResponse(BaseModel):
 class User(BaseModel):
     """Authenticated user - populated by auth middleware."""
     id: str
-    email: str
+    email: Optional[str] = None
     name: Optional[str] = None
     avatar_url: Optional[str] = None
 
