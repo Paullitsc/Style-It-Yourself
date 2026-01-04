@@ -1,0 +1,19 @@
+{
+  "base_color": {
+    "hex": "#1a237e",
+    "hsl": {
+      "h": 231,
+      "s": 69,
+      "l": 29
+    },
+    "name": "navy",
+    "is_neutral": true
+  },
+  "base_formality": 3,
+  "base_aesthetics": ["Classic", "Minimalist"],
+  "base_category": {
+    "l1": "Tops",
+    "l2": "Blazers"
+  }
+}
+
