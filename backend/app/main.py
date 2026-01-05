@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from app.config import get_settings
-from app.routers import recommendations, outfits, tryon
+from app.routers import recommendations, outfits, tryon, validation
 
 settings = get_settings()
 
@@ -38,6 +38,7 @@ app.add_middleware(
 )
 
 # Include routers
+app.include_router(validation.router)
 app.include_router(recommendations.router)
 app.include_router(outfits.router)
 app.include_router(tryon.router)
