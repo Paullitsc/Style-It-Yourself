@@ -21,3 +21,5 @@ PyJWT>=2.9.0
 
 # Google Generative AI (Gemini)
 google-genai>=1.51.0
+
+Pillow>=10.0.0
