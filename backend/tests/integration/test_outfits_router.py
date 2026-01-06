@@ -50,13 +50,15 @@ def mock_auth_user():
 
 # Create Outfit Tests
 
-@patch("app.services.outfit_service.create_outfit")
-def test_create_outfit_success(mock_create_outfit, mock_auth_user):
+@patch("app.services.supabase.create_outfit")
+@pytest.mark.asyncio
+async def test_create_outfit_success(mock_create_outfit, mock_auth_user):
     """Test successful outfit creation via API."""
     # Mock service response
     from app.models.schemas import OutfitResponse, ClothingItemResponse, Color, HSL, Category
     mock_response = OutfitResponse(
         id="outfit-123",
+        user_id=mock_auth_user.id,
         name="Test Outfit",
         items=[
             ClothingItemResponse(
@@ -79,23 +81,7 @@ def test_create_outfit_success(mock_create_outfit, mock_auth_user):
     
     request_data = {
         "name": "Test Outfit",
-        "items": [
-            {
-                "image_url": "https://example.com/image.jpg",
-                "color": {
-                    "hex": "#123456",
-                    "hsl": {"h": 0, "s": 50, "l": 50},
-                    "name": "navy",
-                    "is_neutral": False
-                },
-                "category": {"l1": "Tops", "l2": "T-Shirts"},
-                "formality": 3.0,
-                "aesthetics": ["Minimalist"],
-                "brand": "Test Brand",
-                "price": 50.0,
-                "ownership": "owned"
-            }
-        ]
+        "item_ids": ["item-1"]
     }
     
     response = client.post(
@@ -117,7 +103,7 @@ def test_create_outfit_unauthorized():
     
     request_data = {
         "name": "Test Outfit",
-        "items": []
+        "item_ids": []
     }
     
     # Endpoint should return 401
@@ -130,14 +116,14 @@ def test_create_outfit_unauthorized():
     assert response.status_code in [401, 403]
 
 
-@patch("app.services.outfit_service.create_outfit")
+@patch("app.services.supabase.create_outfit")
 def test_create_outfit_service_error(mock_create_outfit, mock_auth_user):
     """Test outfit creation when service raises error."""
     mock_create_outfit.side_effect = Exception("Database error")
     
     request_data = {
         "name": "Test Outfit",
-        "items": []
+        "item_ids": []
     }
     
     response = client.post(
@@ -152,22 +138,24 @@ def test_create_outfit_service_error(mock_create_outfit, mock_auth_user):
 
 # Get Outfits Tests
 
-@patch("app.services.outfit_service.get_outfits")
+@patch("app.services.supabase.get_user_outfits")
 def test_get_outfits_success(mock_get_outfits, mock_auth_user):
     """Test successful retrieval of all outfits."""
     
-    from app.models.schemas import OutfitResponse, ClothingItemResponse, Color, HSL, Category
+    from app.models.schemas import OutfitSummary
     mock_response = [
-        OutfitResponse(
+        OutfitSummary(
             id="outfit-1",
             name="Outfit 1",
-            items=[],
+            item_count=2,
+            thumbnail_url=None,
             created_at="2024-01-01T00:00:00Z"
         ),
-        OutfitResponse(
+        OutfitSummary(
             id="outfit-2",
             name="Outfit 2",
-            items=[],
+            item_count=3,
+            thumbnail_url=None,
             created_at="2024-01-02T00:00:00Z"
         )
     ]
@@ -185,7 +173,7 @@ def test_get_outfits_success(mock_get_outfits, mock_auth_user):
     assert data[1]["id"] == "outfit-2"
 
 
-@patch("app.services.outfit_service.get_outfits")
+@patch("app.services.supabase.get_user_outfits")
 def test_get_outfits_empty(mock_get_outfits, mock_auth_user):
     """Test retrieval when user has no outfits."""
     mock_get_outfits.return_value = []
@@ -201,13 +189,14 @@ def test_get_outfits_empty(mock_get_outfits, mock_auth_user):
 
 # Get Single Outfit Tests
 
-@patch("app.services.outfit_service.get_outfit")
+@patch("app.services.supabase.get_outfit")
 def test_get_outfit_success(mock_get_outfit, mock_auth_user):
     """Test successful retrieval of single outfit."""
     
     from app.models.schemas import OutfitResponse
     mock_response = OutfitResponse(
         id="outfit-123",
+        user_id=mock_auth_user.id,
         name="Test Outfit",
         items=[],
         created_at="2024-01-01T00:00:00Z"
@@ -225,10 +214,10 @@ def test_get_outfit_success(mock_get_outfit, mock_auth_user):
     assert data["name"] == "Test Outfit"
 
 
-@patch("app.services.outfit_service.get_outfit")
+@patch("app.services.supabase.get_outfit")
 def test_get_outfit_not_found(mock_get_outfit, mock_auth_user):
     """Test retrieval of non-existent outfit."""
-    mock_get_outfit.side_effect = ValueError("Outfit not found")
+    mock_get_outfit.return_value = None
     
     response = client.get(
         "/api/outfits/nonexistent-id",
@@ -239,7 +228,7 @@ def test_get_outfit_not_found(mock_get_outfit, mock_auth_user):
     assert "not found" in response.json()["detail"].lower()
 
 
-@patch("app.services.outfit_service.get_outfit")
+@patch("app.services.supabase.get_outfit")
 def test_get_outfit_permission_denied(mock_get_outfit, mock_auth_user):
     """Test retrieval of outfit belonging to another user."""
     mock_get_outfit.side_effect = ValueError("You do not have permission to delete this outfit")
@@ -255,10 +244,10 @@ def test_get_outfit_permission_denied(mock_get_outfit, mock_auth_user):
 
 # Delete Outfit Tests
 
-@patch("app.services.outfit_service.delete_outfit")
+@patch("app.services.supabase.delete_outfit")
 def test_delete_outfit_success(mock_delete_outfit, mock_auth_user):
     """Test successful outfit deletion."""
-    mock_delete_outfit.return_value = None
+    mock_delete_outfit.return_value = True
     
     response = client.delete(
         "/api/outfits/outfit-123",
@@ -269,10 +258,10 @@ def test_delete_outfit_success(mock_delete_outfit, mock_auth_user):
     assert response.content == b""  # No content
 
 
-@patch("app.services.outfit_service.delete_outfit")
+@patch("app.services.supabase.delete_outfit")
 def test_delete_outfit_not_found(mock_delete_outfit, mock_auth_user):
     """Test deletion of non-existent outfit."""
-    mock_delete_outfit.side_effect = ValueError("Outfit not found")
+    mock_delete_outfit.return_value = False
     
     response = client.delete(
         "/api/outfits/nonexistent-id",
@@ -283,7 +272,7 @@ def test_delete_outfit_not_found(mock_delete_outfit, mock_auth_user):
     assert "not found" in response.json()["detail"].lower()
 
 
-@patch("app.services.outfit_service.delete_outfit")
+@patch("app.services.supabase.delete_outfit")
 def test_delete_outfit_permission_denied(mock_delete_outfit, mock_auth_user):
     """Test deletion of outfit belonging to another user."""
     mock_delete_outfit.side_effect = ValueError("You do not have permission to delete this outfit")
