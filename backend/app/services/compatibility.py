@@ -60,7 +60,7 @@ def check_formality_compatibility(formality1: float, formality2: float) -> tuple
     Logic:
     - Calculate absolute distance between formality levels
     - Distance <= 1: return ("ok", None)
-    - Distance = 2: return ("warning", "Formality gap is 2 levels")
+    - Distance <= 2: return ("warning", "Formality gap is 2 levels")
     - Distance >= 3: return ("mismatch", "Formality mismatch: X levels apart")
     
     Returns:
