@@ -60,7 +60,7 @@ def check_formality_compatibility(formality1: float, formality2: float) -> tuple
     Logic:
     - Calculate absolute distance between formality levels
     - Distance <= 1: return ("ok", None)
-    - Distance == 2: return ("warning", "Formality gap is 2 levels")
+    - Distance = 2: return ("warning", "Formality gap is 2 levels")
     - Distance >= 3: return ("mismatch", "Formality mismatch: X levels apart")
     
     Returns:
@@ -73,7 +73,7 @@ def check_formality_compatibility(formality1: float, formality2: float) -> tuple
     
     if distance <= 1.0:
         return ("ok", None)
-    elif distance == 2.0:
+    elif distance <= 2.0:
         return ("warning", f"Formality gap is 2 levels ({formality1} vs {formality2})")
     else:  # distance >= 3.0
         return ("mismatch", f"Formality mismatch: {distance:.1f} levels apart ({formality1} vs {formality2})")
@@ -128,7 +128,6 @@ def check_category_pairing(item1: ClothingItemBase, item2: ClothingItemBase) -> 
     Returns:
         tuple: (status, warning_message)
     """
-    from app.utils.constants import SHOE_BOTTOM_PAIRINGS
 
     shoe_item, bottom_item = None, None
 
