@@ -1,11 +1,17 @@
-from fastapi import HTTPException, Security, Depends
+"""Authentication middleware for JWT verification.
+
+Uses Supabase Auth to verify JWT tokens and extract user info.
+"""
+
+from fastapi import HTTPException, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from app.config import get_settings
-from app.services import get_supabase
+
+from app.config import settings
+from app.services.supabase import get_supabase_client_anon
 from app.models.schemas import User
 
+
 security = HTTPBearer()
-settings = get_settings()
 
 
 async def get_current_user(
@@ -15,15 +21,17 @@ async def get_current_user(
     Verify JWT token from Supabase Auth and return the current user.
     
     The token is expected in the Authorization header as: Bearer <token>
+    
+    Usage in router:
+        @router.get("/protected")
+        async def protected_route(user: User = Depends(get_current_user)):
+            return {"user_id": user.id}
     """
     token = credentials.credentials
     
     try:
-        # Supabase uses the SUPABASE_URL/auth/v1 for JWT verification
-        # The JWT secret is derived from the project's JWT secret
-        # For Supabase, we verify the token by calling their API
-        
-        supabase = get_supabase()
+        # Use anon client to verify token via Supabase Auth
+        supabase = get_supabase_client_anon()
         
         # Get user from Supabase using the access token
         response = supabase.auth.get_user(token)
@@ -37,13 +45,14 @@ async def get_current_user(
         user_data = response.user
         
         return User(
-            id=user_data.id,
+            id=str(user_data.id),
             email=user_data.email,
             name=user_data.user_metadata.get("full_name") or user_data.user_metadata.get("name"),
             avatar_url=user_data.user_metadata.get("avatar_url"),
-            created_at=user_data.created_at
         )
         
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=401,
@@ -57,6 +66,13 @@ async def get_optional_user(
     """
     Optionally get the current user if a valid token is provided.
     Returns None if no token or invalid token.
+    
+    Usage in router:
+        @router.get("/public-or-private")
+        async def mixed_route(user: User | None = Depends(get_optional_user)):
+            if user:
+                return {"message": f"Hello {user.name}"}
+            return {"message": "Hello anonymous"}
     """
     if credentials is None:
         return None
@@ -65,3 +81,8 @@ async def get_optional_user(
         return await get_current_user(credentials)
     except HTTPException:
         return None
+
+
+def get_user_id(user: User) -> str:
+    """Extract user ID as string (helper for database operations)."""
+    return str(user.id)
