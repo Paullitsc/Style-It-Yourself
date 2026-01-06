@@ -31,10 +31,10 @@ async def get_current_user(
     
     try:
         # Use anon client to verify token via Supabase Auth
-        supabase = get_supabase_client_anon()
+        supabase = await get_supabase_client_anon()
         
         # Get user from Supabase using the access token
-        response = supabase.auth.get_user(token)
+        response = await supabase.auth.get_user(token)
         
         if response.user is None:
             raise HTTPException(
