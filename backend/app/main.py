@@ -3,6 +3,7 @@ Entry point for the FastAPI application.
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.services.supabase import close_supabase_clients
 from contextlib import asynccontextmanager
 
 from app.config import get_settings
@@ -18,6 +19,7 @@ async def lifespan(app: FastAPI):
     print(f"Starting {settings.app_name}...")
     yield
     # Shutdown
+    await close_supabase_clients()
     print(f"Shutting down {settings.app_name}...")
 
 
