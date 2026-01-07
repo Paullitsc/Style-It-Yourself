@@ -198,13 +198,14 @@ class TryOnSingleRequest(BaseModel):
     user_photo_url: str
     item_image_url: str
     item: ClothingItemBase  # Just need base fields for prompt
+    high_quality: bool
 
 
 class TryOnOutfitRequest(BaseModel):
     """Request body for POST /api/try-on/outfit"""
     user_photo_url: str
     item_images: list[tuple[str, ClothingItemBase]]  # [(image_url, item), ...]
-
+    high_quality: bool
 
 class TryOnResponse(BaseModel):
     """Response body for POST /api/try-on"""
