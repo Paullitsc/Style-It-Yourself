@@ -19,7 +19,7 @@ from google.genai import types
 from google.genai.errors import APIError
 
 from app.config import settings
-from app.models.schemas import ClothingItemCreate, TryOnResponse
+from app.models.schemas import ClothingItemBase, TryOnResponse
 
 
 # Initialize client - picks up GEMINI_API_KEY from environment
@@ -48,7 +48,7 @@ async def fetch_image_as_pil(image_url: str) -> Image.Image:
         return Image.open(BytesIO(response.content))
 
 
-def build_tryon_prompt(items: list[ClothingItemCreate], single_item: bool = False) -> str:
+def build_tryon_prompt(items: list[ClothingItemBase], single_item: bool = False) -> str:
     """Build the prompt for virtual try-on.
     
     Args:
@@ -105,7 +105,7 @@ def build_tryon_prompt(items: list[ClothingItemCreate], single_item: bool = Fals
 async def generate_tryon_single(
     user_image_url: str,
     item_image_url: str,
-    item: ClothingItemCreate,
+    item: ClothingItemBase,
     high_quality: bool = False
 ) -> TryOnResponse:
     """Generate a try-on image with a single clothing item.
@@ -173,7 +173,7 @@ async def generate_tryon_single(
 
 async def generate_tryon_outfit(
     user_image_url: str,
-    item_images: list[tuple[str, ClothingItemCreate]],
+    item_images: list[tuple[str, ClothingItemBase]],
     high_quality: bool = False
 ) -> TryOnResponse:
     """Generate a try-on image with multiple clothing items (full outfit).
