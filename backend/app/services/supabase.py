@@ -14,7 +14,7 @@ NOTE: Uses async client (acreate_client) for non-blocking operations.
 import time
 from typing import Optional
 
-from supabase._async.client import AsyncClient, acreate_client
+from supabase import acreate_client, AsyncClient
 
 from app.config import settings
 from app.models.schemas import (

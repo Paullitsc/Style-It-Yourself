@@ -1,15 +1,19 @@
 """
 Entry point for the FastAPI application.
 """
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from app.services.supabase import close_supabase_clients
 from contextlib import asynccontextmanager
 
-from app.config import get_settings
-from app.routers import recommendations, outfits, tryon, validation
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
-settings = get_settings()
+from app.config import settings
+from app.services.supabase import close_supabase_clients
+
+# Import routers that exist
+from app.routers import validation, tryon, closet
+
+# TODO: Uncomment when implemented
+# from app.routers import recommendations, outfits
 
 
 @asynccontextmanager
@@ -27,13 +31,13 @@ app = FastAPI(
     title=settings.app_name,
     description="Personal styling API with color-based recommendations and AI try-on",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins,
+    allow_origins=settings.cors_origins_list,  # ← Use list property
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -41,9 +45,12 @@ app.add_middleware(
 
 # Include routers
 app.include_router(validation.router)
-app.include_router(recommendations.router)
-app.include_router(outfits.router)
 app.include_router(tryon.router)
+app.include_router(closet.router)
+
+# TODO: Uncomment when implemented
+# app.include_router(recommendations.router)
+# app.include_router(outfits.router)
 
 
 @app.get("/")
@@ -52,7 +59,7 @@ async def root():
     return {
         "name": settings.app_name,
         "version": "1.0.0",
-        "status": "healthy"
+        "status": "healthy",
     }
 
 
@@ -68,5 +75,5 @@ if __name__ == "__main__":
         "app.main:app",
         host="0.0.0.0",
         port=8000,
-        reload=settings.debug
+        reload=settings.debug,
     )
