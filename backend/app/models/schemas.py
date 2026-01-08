@@ -193,23 +193,28 @@ class ClosetResponse(BaseModel):
 # Generate AI try-on image
 # ==============================================================================
 
+class TryOnItemWithImage(BaseModel):
+    """A clothing item with its image URL for try-on."""
+    image_url: str
+    item: ClothingItemBase
+
+
 class TryOnSingleRequest(BaseModel):
     """Request body for POST /api/try-on/single"""
     user_photo_url: str
     item_image_url: str
-    item: ClothingItemBase  # Just need base fields for prompt
-    high_quality: bool
+    item: ClothingItemBase
 
 
 class TryOnOutfitRequest(BaseModel):
     """Request body for POST /api/try-on/outfit"""
     user_photo_url: str
-    item_images: list[tuple[str, ClothingItemBase]]  # [(image_url, item), ...]
-    high_quality: bool
+    items: list[TryOnItemWithImage]
+
 
 class TryOnResponse(BaseModel):
     """Response body for POST /api/try-on"""
-    generated_image_url: str  # Base64 data URL or storage URL
+    generated_image_url: str
     processing_time: float = Field(..., description="Time in seconds")
 
 
