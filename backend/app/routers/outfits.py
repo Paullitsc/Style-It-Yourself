@@ -1,21 +1,33 @@
 """
 Outfits router - CRUD operations for saved outfits.
 """
-from fastapi import APIRouter, HTTPException, status, Depends
-from typing import List
+import logging
+
+import httpx
+from fastapi import APIRouter, Depends, HTTPException, status
+
+from app.middleware.auth import get_current_user
 from app.models.schemas import (
     OutfitCreate,
     OutfitResponse,
     OutfitSummary,
     User,
 )
-from app.middleware.auth import get_current_user
 from app.services import supabase
 
-router = APIRouter(
-    prefix="/api/outfits",
-    tags=["outfits"]
-)
+logger = logging.getLogger(__name__)
+
+router = APIRouter(prefix="/api/outfits", tags=["outfits"])
+
+
+class OutfitNotFoundError(Exception):
+    """Raised when outfit doesn't exist."""
+    pass
+
+
+class OutfitPermissionError(Exception):
+    """Raised when user doesn't have permission."""
+    pass
 
 
 @router.post(
@@ -23,62 +35,59 @@ router = APIRouter(
     response_model=OutfitResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Save a new outfit",
-    description="Save a new outfit with associated clothing items"
 )
 async def create_outfit(
     outfit: OutfitCreate,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ) -> OutfitResponse:
-    """
-    Save a new outfit with associated clothing items
-    
-    Args:
-        outfit: Outfit data including name & items
-        current_user: Authenticated user (from dependency)
-    
-    Returns:
-        OutfitResponse with created outfit data
-    
-    Raises:
-        HTTPException: 401 if unauthenticated, 500 for database errors
-    """
+    """Save a new outfit with associated clothing items."""
     try:
         return await supabase.create_outfit(current_user.id, outfit)
+
+    except httpx.TimeoutException:
+        logger.error(f"Timeout creating outfit for user {current_user.id}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Service temporarily unavailable.",
+        )
+    except ValueError as e:
+        logger.warning(f"Validation error creating outfit: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
     except Exception as e:
+        logger.error(f"Failed to create outfit for user {current_user.id}: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to create outfit: {str(e)}"
+            detail="Failed to create outfit.",
         )
 
 
 @router.get(
     "",
-    response_model=List[OutfitSummary],
+    response_model=list[OutfitSummary],
     status_code=status.HTTP_200_OK,
     summary="Get all outfits",
-    description="Retrieve a summary list of all outfits belonging to the authenticated user"
 )
 async def get_outfits(
-    current_user: User = Depends(get_current_user)
-) -> List[OutfitSummary]:
-    """
-    Retrieve all outfits for the authenticated user.
-    
-    Args:
-        current_user: Authenticated user (from dependency)
-    
-    Returns:
-        List of OutfitSummary objects
-    
-    Raises:
-        HTTPException: 401 if unauthenticated, 500 for database errors
-    """
+    current_user: User = Depends(get_current_user),
+) -> list[OutfitSummary]:
+    """Retrieve all outfits for the authenticated user."""
     try:
         return await supabase.get_user_outfits(current_user.id)
+
+    except httpx.TimeoutException:
+        logger.error(f"Timeout getting outfits for user {current_user.id}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Service temporarily unavailable.",
+        )
     except Exception as e:
+        logger.error(f"Failed to get outfits for user {current_user.id}: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to retrieve outfits: {str(e)}"
+            detail="Failed to retrieve outfits.",
         )
 
 
@@ -87,42 +96,39 @@ async def get_outfits(
     response_model=OutfitResponse,
     status_code=status.HTTP_200_OK,
     summary="Get outfit by ID",
-    description="Retrieve detailed information for a single outfit"
 )
 async def get_outfit(
     outfit_id: str,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ) -> OutfitResponse:
-    """
-    Retrieve a single outfit by ID.
-    
-    Args:
-        outfit_id: UUID of the outfit
-        current_user: Authenticated user (from dependency)
-    
-    Returns:
-        OutfitResponse with outfit data
-    
-    Raises:
-        HTTPException: 
-            - 401 if unauthenticated
-            - 404 if outfit doesn't exist or belongs to another user
-            - 500 for database errors
-    """
+    """Retrieve a single outfit by ID."""
     try:
         outfit = await supabase.get_outfit(outfit_id, current_user.id)
         if not outfit:
-            raise ValueError("Outfit not found")
+            raise OutfitNotFoundError()
         return outfit
-    except ValueError as e:
+
+    except OutfitNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
+            detail="Outfit not found.",
+        )
+    except OutfitPermissionError:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to access this outfit.",
+        )
+    except httpx.TimeoutException:
+        logger.error(f"Timeout getting outfit {outfit_id}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Service temporarily unavailable.",
         )
     except Exception as e:
+        logger.error(f"Failed to get outfit {outfit_id}: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to retrieve outfit: {str(e)}"
+            detail="Failed to retrieve outfit.",
         )
 
 
@@ -130,40 +136,36 @@ async def get_outfit(
     "/{outfit_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete outfit",
-    description="Delete an outfit and all associated clothing items"
 )
 async def delete_outfit(
     outfit_id: str,
-    current_user: User = Depends(get_current_user)
-):
-    """
-    Delete an outfit by ID.
-    
-    Note: This deletes the outfit and cascade deletes outfit_items.
-    Clothing items are preserved as they may be used in other outfits.
-    
-    Args:
-        outfit_id: UUID of the outfit
-        current_user: Authenticated user (from dependency)
-    
-    Raises:
-        HTTPException:
-            - 401 if unauthenticated
-            - 404 if outfit doesn't exist
-            - 403 if outfit belongs to another user
-            - 500 for database errors
-    """
+    current_user: User = Depends(get_current_user),
+) -> None:
+    """Delete an outfit by ID."""
     try:
         deleted = await supabase.delete_outfit(outfit_id, current_user.id)
         if not deleted:
-            raise ValueError("Outfit not found")
-    except ValueError as e:
+            raise OutfitNotFoundError()
+
+    except OutfitNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
+            detail="Outfit not found.",
+        )
+    except OutfitPermissionError:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to delete this outfit.",
+        )
+    except httpx.TimeoutException:
+        logger.error(f"Timeout deleting outfit {outfit_id}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Service temporarily unavailable.",
         )
     except Exception as e:
+        logger.error(f"Failed to delete outfit {outfit_id}: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to delete outfit: {str(e)}"
+            detail="Failed to delete outfit.",
         )
