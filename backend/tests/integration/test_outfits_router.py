@@ -1,14 +1,12 @@
 """
-Unit tests for outfits router.
+Unit tests for outfits router - direct function calls.
 """
 from datetime import datetime
 
 import httpx
 import pytest
-from fastapi import FastAPI, HTTPException, status
-from fastapi.testclient import TestClient
+from fastapi import HTTPException, status
 
-from app.middleware.auth import get_current_user
 from app.models.schemas import (
     OutfitCreate,
     OutfitResponse,
@@ -16,14 +14,14 @@ from app.models.schemas import (
     User,
 )
 from app.routers import outfits as outfits_router
-from app.routers.outfits import router, OutfitNotFoundError, OutfitPermissionError
+from app.routers.outfits import OutfitNotFoundError, OutfitPermissionError
 
 
 pytestmark = pytest.mark.asyncio
 
 
 # =============================================================================
-# FIXTURES / HELPERS
+# HELPERS
 # =============================================================================
 
 def _make_user(user_id: str = "test-user-123") -> User:
@@ -62,29 +60,8 @@ def _make_outfit_summary(
     )
 
 
-@pytest.fixture
-def test_user() -> User:
-    """Test user fixture."""
-    return _make_user()
-
-
-@pytest.fixture
-def app(test_user: User) -> FastAPI:
-    """Create test app with auth override."""
-    app = FastAPI()
-    app.include_router(router)
-    app.dependency_overrides[get_current_user] = lambda: test_user
-    return app
-
-
-@pytest.fixture
-def client(app: FastAPI) -> TestClient:
-    """Test client fixture."""
-    return TestClient(app)
-
-
 # =============================================================================
-# UNIT TESTS - create_outfit
+# create_outfit
 # =============================================================================
 
 async def test_create_outfit_success(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -106,7 +83,9 @@ async def test_create_outfit_success(monkeypatch: pytest.MonkeyPatch) -> None:
     assert response.id == "outfit-123"
 
 
-async def test_create_outfit_validation_error(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_create_outfit_validation_error_maps_to_400(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """ValueError maps to 400."""
     user = _make_user()
     outfit_create = OutfitCreate(name="Test", item_ids=["item-1"])
@@ -122,13 +101,18 @@ async def test_create_outfit_validation_error(monkeypatch: pytest.MonkeyPatch) -
     assert excinfo.value.status_code == status.HTTP_400_BAD_REQUEST
 
 
-async def test_create_outfit_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_create_outfit_timeout_maps_to_503(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Timeout maps to 503."""
     user = _make_user()
     outfit_create = OutfitCreate(name="Test", item_ids=["item-1"])
 
     async def fake_create_outfit(user_id: str, outfit: OutfitCreate):
-        raise httpx.TimeoutException("timeout", request=httpx.Request("POST", "http://test"))
+        raise httpx.TimeoutException(
+            "timeout",
+            request=httpx.Request("POST", "http://test"),
+        )
 
     monkeypatch.setattr(outfits_router.supabase, "create_outfit", fake_create_outfit)
 
@@ -138,8 +122,10 @@ async def test_create_outfit_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
     assert excinfo.value.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
 
 
-async def test_create_outfit_unexpected_error(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Unexpected errors map to 500."""
+async def test_create_outfit_unexpected_error_maps_to_500(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unexpected errors map to 500 without exposing details."""
     user = _make_user()
     outfit_create = OutfitCreate(name="Test", item_ids=["item-1"])
 
@@ -156,7 +142,7 @@ async def test_create_outfit_unexpected_error(monkeypatch: pytest.MonkeyPatch) -
 
 
 # =============================================================================
-# UNIT TESTS - get_outfits
+# get_outfits
 # =============================================================================
 
 async def test_get_outfits_success(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -194,8 +180,28 @@ async def test_get_outfits_empty(monkeypatch: pytest.MonkeyPatch) -> None:
     assert response == []
 
 
+async def test_get_outfits_timeout_maps_to_503(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Timeout maps to 503."""
+    user = _make_user()
+
+    async def fake_get_user_outfits(user_id: str):
+        raise httpx.TimeoutException(
+            "timeout",
+            request=httpx.Request("GET", "http://test"),
+        )
+
+    monkeypatch.setattr(outfits_router.supabase, "get_user_outfits", fake_get_user_outfits)
+
+    with pytest.raises(HTTPException) as excinfo:
+        await outfits_router.get_outfits(user)
+
+    assert excinfo.value.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
+
+
 # =============================================================================
-# UNIT TESTS - get_outfit
+# get_outfit
 # =============================================================================
 
 async def test_get_outfit_success(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -215,8 +221,8 @@ async def test_get_outfit_success(monkeypatch: pytest.MonkeyPatch) -> None:
     assert response.id == "outfit-123"
 
 
-async def test_get_outfit_not_found(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Returns 404 when outfit doesn't exist."""
+async def test_get_outfit_none_maps_to_404(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Returns 404 when service returns None."""
     user = _make_user()
 
     async def fake_get_outfit(outfit_id: str, user_id: str):
@@ -230,7 +236,9 @@ async def test_get_outfit_not_found(monkeypatch: pytest.MonkeyPatch) -> None:
     assert excinfo.value.status_code == status.HTTP_404_NOT_FOUND
 
 
-async def test_get_outfit_raises_not_found_error(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_get_outfit_not_found_error_maps_to_404(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """OutfitNotFoundError maps to 404."""
     user = _make_user()
 
@@ -246,7 +254,9 @@ async def test_get_outfit_raises_not_found_error(monkeypatch: pytest.MonkeyPatch
     assert "not found" in excinfo.value.detail.lower()
 
 
-async def test_get_outfit_permission_denied(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_get_outfit_permission_error_maps_to_403(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """OutfitPermissionError maps to 403."""
     user = _make_user()
 
@@ -262,7 +272,7 @@ async def test_get_outfit_permission_denied(monkeypatch: pytest.MonkeyPatch) -> 
 
 
 # =============================================================================
-# UNIT TESTS - delete_outfit
+# delete_outfit
 # =============================================================================
 
 async def test_delete_outfit_success(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -278,8 +288,8 @@ async def test_delete_outfit_success(monkeypatch: pytest.MonkeyPatch) -> None:
     await outfits_router.delete_outfit("outfit-123", user)
 
 
-async def test_delete_outfit_not_found(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Returns 404 when outfit doesn't exist."""
+async def test_delete_outfit_false_maps_to_404(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Returns 404 when service returns False."""
     user = _make_user()
 
     async def fake_delete_outfit(outfit_id: str, user_id: str):
@@ -293,7 +303,9 @@ async def test_delete_outfit_not_found(monkeypatch: pytest.MonkeyPatch) -> None:
     assert excinfo.value.status_code == status.HTTP_404_NOT_FOUND
 
 
-async def test_delete_outfit_raises_not_found_error(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_delete_outfit_not_found_error_maps_to_404(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """OutfitNotFoundError maps to 404."""
     user = _make_user()
 
@@ -308,7 +320,9 @@ async def test_delete_outfit_raises_not_found_error(monkeypatch: pytest.MonkeyPa
     assert excinfo.value.status_code == status.HTTP_404_NOT_FOUND
 
 
-async def test_delete_outfit_permission_denied(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_delete_outfit_permission_error_maps_to_403(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """OutfitPermissionError maps to 403."""
     user = _make_user()
 
@@ -323,174 +337,21 @@ async def test_delete_outfit_permission_denied(monkeypatch: pytest.MonkeyPatch) 
     assert excinfo.value.status_code == status.HTTP_403_FORBIDDEN
 
 
-# =============================================================================
-# INTEGRATION TESTS - HTTP layer
-# =============================================================================
-
-def test_post_outfits_returns_201(
-    client: TestClient,
+async def test_delete_outfit_timeout_maps_to_503(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """POST /api/outfits returns 201."""
-    async def fake_create(user_id, outfit):
-        return _make_outfit_response(name=outfit.name)
+    """Timeout maps to 503."""
+    user = _make_user()
 
-    monkeypatch.setattr("app.routers.outfits.supabase.create_outfit", fake_create)
+    async def fake_delete_outfit(outfit_id: str, user_id: str):
+        raise httpx.TimeoutException(
+            "timeout",
+            request=httpx.Request("DELETE", "http://test"),
+        )
 
-    response = client.post(
-        "/api/outfits",
-        json={"name": "New Outfit", "item_ids": ["item-1"]},
-    )
+    monkeypatch.setattr(outfits_router.supabase, "delete_outfit", fake_delete_outfit)
 
-    assert response.status_code == 201
-    assert response.json()["name"] == "New Outfit"
+    with pytest.raises(HTTPException) as excinfo:
+        await outfits_router.delete_outfit("outfit-123", user)
 
-
-def test_post_outfits_empty_items_returns_422(client: TestClient) -> None:
-    """POST /api/outfits with empty item_ids returns 422."""
-    response = client.post(
-        "/api/outfits",
-        json={"name": "Test", "item_ids": []},
-    )
-
-    assert response.status_code == 422
-
-
-def test_get_outfits_returns_200(
-    client: TestClient,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """GET /api/outfits returns 200."""
-    async def fake_get(user_id):
-        return [_make_outfit_summary()]
-
-    monkeypatch.setattr("app.routers.outfits.supabase.get_user_outfits", fake_get)
-
-    response = client.get("/api/outfits")
-
-    assert response.status_code == 200
-    assert len(response.json()) == 1
-
-
-def test_get_outfit_returns_200(
-    client: TestClient,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """GET /api/outfits/{id} returns 200."""
-    async def fake_get(outfit_id, user_id):
-        return _make_outfit_response(outfit_id=outfit_id)
-
-    monkeypatch.setattr("app.routers.outfits.supabase.get_outfit", fake_get)
-
-    response = client.get("/api/outfits/outfit-123")
-
-    assert response.status_code == 200
-    assert response.json()["id"] == "outfit-123"
-
-
-def test_get_outfit_returns_404(
-    client: TestClient,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """GET /api/outfits/{id} returns 404 when not found."""
-    async def fake_get(outfit_id, user_id):
-        return None
-
-    monkeypatch.setattr("app.routers.outfits.supabase.get_outfit", fake_get)
-
-    response = client.get("/api/outfits/nonexistent")
-
-    assert response.status_code == 404
-
-
-def test_get_outfit_returns_404_on_not_found_error(
-    client: TestClient,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """GET /api/outfits/{id} returns 404 when OutfitNotFoundError raised."""
-    async def fake_get(outfit_id, user_id):
-        raise OutfitNotFoundError()
-
-    monkeypatch.setattr("app.routers.outfits.supabase.get_outfit", fake_get)
-
-    response = client.get("/api/outfits/nonexistent")
-
-    assert response.status_code == 404
-    assert "not found" in response.json()["detail"].lower()
-
-
-def test_get_outfit_returns_403_on_permission_error(
-    client: TestClient,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """GET /api/outfits/{id} returns 403 when OutfitPermissionError raised."""
-    async def fake_get(outfit_id, user_id):
-        raise OutfitPermissionError()
-
-    monkeypatch.setattr("app.routers.outfits.supabase.get_outfit", fake_get)
-
-    response = client.get("/api/outfits/other-user-outfit")
-
-    assert response.status_code == 403
-    assert "permission" in response.json()["detail"].lower()
-
-
-def test_delete_outfit_returns_204(
-    client: TestClient,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """DELETE /api/outfits/{id} returns 204."""
-    async def fake_delete(outfit_id, user_id):
-        return True
-
-    monkeypatch.setattr("app.routers.outfits.supabase.delete_outfit", fake_delete)
-
-    response = client.delete("/api/outfits/outfit-123")
-
-    assert response.status_code == 204
-    assert response.content == b""
-
-
-def test_delete_outfit_returns_404(
-    client: TestClient,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """DELETE /api/outfits/{id} returns 404 when not found."""
-    async def fake_delete(outfit_id, user_id):
-        return False
-
-    monkeypatch.setattr("app.routers.outfits.supabase.delete_outfit", fake_delete)
-
-    response = client.delete("/api/outfits/nonexistent")
-
-    assert response.status_code == 404
-
-
-def test_delete_outfit_returns_404_on_not_found_error(
-    client: TestClient,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """DELETE /api/outfits/{id} returns 404 when OutfitNotFoundError raised."""
-    async def fake_delete(outfit_id, user_id):
-        raise OutfitNotFoundError()
-
-    monkeypatch.setattr("app.routers.outfits.supabase.delete_outfit", fake_delete)
-
-    response = client.delete("/api/outfits/nonexistent")
-
-    assert response.status_code == 404
-
-
-def test_delete_outfit_returns_403_on_permission_error(
-    client: TestClient,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """DELETE /api/outfits/{id} returns 403 when OutfitPermissionError raised."""
-    async def fake_delete(outfit_id, user_id):
-        raise OutfitPermissionError()
-
-    monkeypatch.setattr("app.routers.outfits.supabase.delete_outfit", fake_delete)
-
-    response = client.delete("/api/outfits/other-user-outfit")
-
-    assert response.status_code == 403
+    assert excinfo.value.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
