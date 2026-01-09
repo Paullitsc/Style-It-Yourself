@@ -10,7 +10,7 @@ from app.config import settings
 from app.services.supabase import close_supabase_clients
 
 # Import routers that exist
-from app.routers import validation, tryon, closet
+from app.routers import validation, tryon, closet, recommendations, outfits
 
 # TODO: Uncomment when implemented
 # from app.routers import recommendations, outfits
@@ -48,9 +48,9 @@ app.include_router(validation.router)
 app.include_router(tryon.router)
 app.include_router(closet.router)
 
-# TODO: Uncomment when implemented
-# app.include_router(recommendations.router)
-# app.include_router(outfits.router)
+
+app.include_router(recommendations.router)
+app.include_router(outfits.router)
 
 
 @app.get("/")
