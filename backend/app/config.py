@@ -1,6 +1,8 @@
 """Application configuration."""
-from pydantic_settings import BaseSettings
+import os
 
+from pydantic_settings import BaseSettings
+from dotenv import load_dotenv
 
 class Settings(BaseSettings):
     # App
@@ -31,5 +33,10 @@ class Settings(BaseSettings):
         env_file = ".env"
         case_sensitive = False
 
+load_dotenv()
+supUrl = os.getenv("SUPABASE_URL")
+supKey = os.getenv("SUPABASE_KEY")
+supServiceKey = os.getenv("SUPABASE_SERVICE_KEY")
+supJwtSecret = os.getenv("SUPABASE_JWT_SECRET")
 
-settings = Settings()
+settings = Settings(SUPABASE_URL=supUrl, SUPABASE_KEY=supKey, SUPABASE_SERVICE_KEY=supServiceKey, SUPABASE_JWT_SECRET=supJwtSecret)

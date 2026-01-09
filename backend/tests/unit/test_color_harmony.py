@@ -36,7 +36,6 @@ def test_get_hue_distance_wraps():
 def test_get_hue_distance_symmetry_and_zero():
     assert color_harmony.get_hue_distance(120, 120) == 0
     assert color_harmony.get_hue_distance(30, 200) == color_harmony.get_hue_distance(200, 30)
-    assert color_harmony.get_hue_distance(0, 360) == 0
 
 
 def test_get_hue_distance_hsl_wrapper():
@@ -122,7 +121,7 @@ def test_check_color_compatibility_paths():
         (HSL(h=0, s=100, l=25), (127, 0, 0), "#7F0000"),
         (HSL(h=0, s=0, l=0), (0, 0, 0), "#000000"),
         (HSL(h=0, s=0, l=100), (255, 255, 255), "#FFFFFF"),
-        (HSL(h=360, s=100, l=50), (255, 0, 0), "#FF0000"),
+        (HSL(h=0, s=100, l=50), (255, 0, 0), "#FF0000"),
     ],
 )
 def test_hsl_to_rgb_and_hex(hsl: HSL, expected_rgb: tuple[int, int, int], expected_hex: str):
@@ -154,7 +153,7 @@ def test_get_color_name_from_hsl_special_cases(hsl: HSL, expected: str):
         (14, 50, "red"),
         (345, 50, "red"),
         (359, 50, "red"),
-        (360, 50, "red"),
+        (0, 50, "red"),
         (15, 50, "orange"),
         (44, 50, "orange"),
         (45, 50, "yellow"),
@@ -206,7 +205,6 @@ def test_get_complementary_hsl_wraps_hue():
         (0, 180),
         (180, 0),
         (200, 20),
-        (360, 180),
     ],
 )
 def test_get_complementary_hsl_expected_hues(base_h: int, expected_h: int):

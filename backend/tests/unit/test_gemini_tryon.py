@@ -3,6 +3,8 @@ import sys
 import os
 import base64
 
+import pytest
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.services.gemini import generate_tryon_single
@@ -18,6 +20,8 @@ TOP_IMAGE_URL = "https://estudioniksen.com/cdn/shop/files/New_arrivals_August1-8
 BOTTOM_IMAGE_URL = "https://estudioniksen.com/cdn/shop/files/TYRONE_CATALOG_FW25_ecom_Jan_20-032.jpg?v=1747324864" 
 JACKET_IMAGE_URL = "https://estudioniksen.com/cdn/shop/files/Uma_Raw_Denim_In-stitch_Jacket_Brown_Pose_01.jpg?v=1752681680" 
 
+
+@pytest.mark.asyncio
 async def test_single_tryon():
     print("🧪 Starting Single Item Try-On Test...")
 
@@ -51,6 +55,7 @@ async def test_single_tryon():
     else:
         print(f"   ❌ Failed: {response.error}")
 
+@pytest.mark.asyncio
 async def test_outfit_tryon():
     print("🧪 Starting 3-Piece Outfit Try-On Test...")
 
