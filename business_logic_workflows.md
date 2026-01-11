@@ -9,8 +9,7 @@ At a business-logic level, every flow operates on the same basic objects (in mem
   - Derived: dominant color (HEX/HSL), simplified color name (e.g., “navy”), “neutral vs non-neutral” flag.  
 
 - **Context:**  
-  - Either **piece-first** (base item) or **theme-first** (event) or **experiment mode** (color focus).  
-  - Optional theme: Job Interview, First Date, Wedding Guest, Night Out, Casual Weekend.  
+  - Either **piece-first** (base item) or **experiment mode** (color focus).  
 
 - **Outfit (session-only):**  
   - Up to 6 items, with category slots enforced: 1 top, 1 bottom or 1 full-body, 1 shoes, optional outerwear/accessories.  
@@ -105,48 +104,7 @@ Once required slots are filled:
 
 ***
 
-## 3. Theme-first business logic workflow
-
-**Goal:** Use event rules to drive recommendations instead of a base item.
-
-### Step A: Establish theme constraints
-
-1. User selects theme (e.g., Wedding Guest).  
-2. System loads a theme profile:  
-   - Allowed formality band (e.g., Formal–Semi-Formal).  
-   - Encouraged/blocked colors (e.g., avoid white/cream).  
-   - Suggested aesthetics (e.g., Classic, Elegant, maybe Minimalist).  
-
-3. Theme becomes the **primary context** instead of a base item.  
-
-### Step B: Guide user to seed item (can be optional)
-
-4. System asks: “Do you have a starting piece?”  
-   - If **yes**, treat it as a base item with theme constraints layered on top.  
-   - If **no**, system generates archetypal suggestions (e.g., “long dress in jewel tones” for Wedding Guest) but still expects user to upload items later.  
-
-### Step C: Apply theme rules to recommendations and validation
-
-5. All category recommendations must satisfy:  
-   - Formality is in theme’s allowed band.  
-   - Colors is in theme palette, minus banned colors.  
-   - Aesthetics ∩ theme aesthetics != null if possible.  
-
-6. When user uploads items:  
-   - Same color/formality/aesthetic checks as piece-first.  
-   - Additional theme-specific checks:  
-     - If item color in banned list → “Not appropriate for this event” warning.  
-     - If formality below theme’s minimum → “Too casual for X theme.”  
-
-7. Outfit summary now includes:  
-   - “This outfit fits the ‘Wedding Guest’ guidelines.” or  
-   - “This outfit is slightly under-formal for ‘Job Interview’ (see shoes).”  
-
-The theme acts like a **global rule-set** on top of item-level logic.  
-
-***
-
-## 4. Experiment / color-play business logic workflow
+## 3. Experiment / color-play business logic workflow
 
 **Goal:** Let users learn what colors and aesthetics work together without caring about events or saving outfits.
 
@@ -178,7 +136,7 @@ Outfit validation focuses on **teaching color logic**, not enforcing dress-code 
 
 ***
 
-## 5. Try-on triggering & guardrails (business rules)
+## 4. Try-on triggering & guardrails (business rules)
 
 Regardless of flow, the try-on feature has its own gating rules:
 
@@ -197,6 +155,6 @@ Regardless of flow, the try-on feature has its own gating rules:
 
 This business-logic workflow gives a clear separation:  
 
-- **Inputs:** Items, themes, and user choices.  
-- **Core engines:** Color harmony, formality/aesthetic compatibility, theme constraints.  
+- **Inputs:** Items and user choices.  
+- **Core engines:** Color harmony, formality/aesthetic compatibility.  
 - **Outputs:** Category recommendations, warnings, scores, and try-on eligibility.  
