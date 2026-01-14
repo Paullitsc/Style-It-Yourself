@@ -1,8 +1,8 @@
 'use client'
 
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import { useStyleStore } from '@/store/styleStore'
-import { ArrowLeft, ArrowRight, Check } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, ChevronDown, DollarSign, Tag, Link as LinkIcon } from 'lucide-react'
 import { CATEGORY_TAXONOMY, FORMALITY_LEVELS, AESTHETIC_TAGS } from '@/types'
 
 export default function MetadataStep() {
@@ -12,14 +12,22 @@ export default function MetadataStep() {
     formality,
     aesthetics,
     ownership,
+    brand,
+    price,
+    sourceUrl,
     setCategory,
     clearCategory,
     setFormality,
     toggleAesthetic,
     setOwnership,
+    setBrand,
+    setPrice,
+    setSourceUrl,
     setStep,
     isMetadataValid,
   } = useStyleStore()
+
+  const [showOptional, setShowOptional] = useState(false)
 
   const categoryL1Options = Object.keys(CATEGORY_TAXONOMY)
   const categoryL2Options = category?.l1 ? CATEGORY_TAXONOMY[category.l1] || [] : []
@@ -244,6 +252,93 @@ export default function MetadataStep() {
                 Wishlist
               </button>
             </div>
+          </div>
+
+          {/* Optional Details Toggle */}
+          <div className="border-t border-primary-800 pt-6">
+            <button
+              onClick={() => setShowOptional(!showOptional)}
+              className="flex items-center gap-2 text-neutral-400 hover:text-white transition-colors"
+            >
+              <ChevronDown 
+                size={16} 
+                className={`transition-transform duration-200 ${showOptional ? 'rotate-180' : ''}`}
+              />
+              <span className="text-xs font-bold uppercase tracking-widest">
+                Optional Details
+              </span>
+              {(brand || price || sourceUrl) && (
+                <span className="ml-2 px-2 py-0.5 bg-accent-500/20 text-accent-500 text-[9px] uppercase rounded-full">
+                  {[brand, price, sourceUrl].filter(Boolean).length} added
+                </span>
+              )}
+            </button>
+
+            {/* Optional Fields */}
+            {showOptional && (
+              <div className="mt-6 space-y-5 animate-in fade-in slide-in-from-top-2 duration-300">
+                
+                {/* Brand */}
+                <div>
+                  <label className="block text-[10px] uppercase font-bold tracking-widest text-neutral-500 mb-2">
+                    Brand
+                  </label>
+                  <div className="relative">
+                    <Tag size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-600" />
+                    <input
+                      type="text"
+                      value={brand}
+                      onChange={(e) => setBrand(e.target.value)}
+                      placeholder="e.g. Nike, Zara, Uniqlo"
+                      className="w-full pl-11 pr-4 py-3 bg-primary-800 border border-primary-700 text-white text-sm
+                        placeholder-neutral-600 focus:outline-none focus:border-accent-500 transition-colors"
+                    />
+                  </div>
+                </div>
+
+                {/* Price */}
+                <div>
+                  <label className="block text-[10px] uppercase font-bold tracking-widest text-neutral-500 mb-2">
+                    Price
+                  </label>
+                  <div className="relative">
+                    <DollarSign size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-600" />
+                    <input
+                      type="number"
+                      value={price}
+                      onChange={(e) => setPrice(e.target.value)}
+                      placeholder="0.00"
+                      min="0"
+                      step="0.01"
+                      className="w-full pl-11 pr-4 py-3 bg-primary-800 border border-primary-700 text-white text-sm
+                        placeholder-neutral-600 focus:outline-none focus:border-accent-500 transition-colors
+                        [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Source URL */}
+                <div>
+                  <label className="block text-[10px] uppercase font-bold tracking-widest text-neutral-500 mb-2">
+                    Source URL
+                  </label>
+                  <div className="relative">
+                    <LinkIcon size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-600" />
+                    <input
+                      type="url"
+                      value={sourceUrl}
+                      onChange={(e) => setSourceUrl(e.target.value)}
+                      placeholder="https://..."
+                      className="w-full pl-11 pr-4 py-3 bg-primary-800 border border-primary-700 text-white text-sm
+                        placeholder-neutral-600 focus:outline-none focus:border-accent-500 transition-colors"
+                    />
+                  </div>
+                  <p className="mt-1.5 text-[10px] text-neutral-600">
+                    Link to where you bought it or found it online
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
