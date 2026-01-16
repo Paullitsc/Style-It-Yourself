@@ -33,16 +33,21 @@ export interface ClothingItemBase {
 }
 
 export interface ClothingItemCreate extends ClothingItemBase {
-  image_url: string
+  image_url?: string  // Optional - set after upload
   brand?: string
   price?: number
   source_url?: string
   ownership?: 'owned' | 'wishlist'
 }
 
-export interface ClothingItemResponse extends ClothingItemCreate {
+export interface ClothingItemResponse extends ClothingItemBase {
   id: string
-  user_id?: string
+  user_id: string
+  image_url: string
+  brand?: string
+  price?: number
+  source_url?: string
+  ownership: string
   created_at: string
 }
 
@@ -56,6 +61,7 @@ export interface RecommendationRequest {
   base_formality: number
   base_aesthetics: string[]
   base_category: Category
+  filled_categories?: string[] // l1 categories already filled in the outfit
 }
 
 export interface RecommendedColor {
@@ -126,11 +132,12 @@ export interface ValidateOutfitResponse {
 
 export interface OutfitCreate {
   name: string
-  items: ClothingItemCreate[]
+  item_ids: string[]  // List of clothing item IDs (items must be saved first)
 }
 
 export interface OutfitResponse {
   id: string
+  user_id: string
   name: string
   items: ClothingItemResponse[]
   generated_image_url?: string
@@ -163,23 +170,45 @@ export interface GeneratedImage {
 
 
 // ==============================================================================
-// POST /api/try-on
+// POST /api/try-on/single
 // ==============================================================================
 
 export interface TryOnSingleRequest {
   user_photo_url: string
-  item: ClothingItemCreate
+  item_image_url: string
+  item: ClothingItemBase  // Just need base fields for prompt
 }
+
+
+// ==============================================================================
+// POST /api/try-on/outfit
+// ==============================================================================
 
 export interface TryOnOutfitRequest {
   user_photo_url: string
-  outfit: OutfitCreate
+  item_images: [string, ClothingItemBase][]
 }
 
 export interface TryOnResponse {
-  success: boolean
-  generated_image_url?: string
-  error?: string
+  generated_image_url: string  // Base64 data URL or storage URL
+  processing_time: number      // Time in seconds
+}
+
+
+// ==============================================================================
+// POST /api/clothing-items (Auth required)
+// ==============================================================================
+
+export interface ClothingItemCreateRequest {
+  color: Color
+  category: Category
+  formality: number
+  aesthetics: string[]
+  brand?: string
+  price?: number
+  source_url?: string
+  ownership?: 'owned' | 'wishlist'
+  // Note: image file is uploaded separately via multipart form
 }
 
 
