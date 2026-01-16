@@ -5,12 +5,14 @@ import { useStyleStore } from '@/store/styleStore'
 import { useAuth } from '@/components/AuthProvider'
 import { ArrowLeft, ArrowRight, Sparkles, Plus, Copy, Check } from 'lucide-react'
 import { extractDominantColors } from '@/lib/colorExtractor'
-import { buildColorFromHex, hslToHex, hexToHsl } from '@/lib/colorUtils'
+import { buildColorFromHex, hslToHex } from '@/lib/colorUtils'
 import { getRecommendations } from '@/lib/api'
 import ColorPickerModal from './ColorPickerModal'
+import TryOnModal from './TryOnModal'
+import AuthModal from '@/components/AuthModal'
 
 export default function ColorStep() {
-  const { user } = useAuth()
+  const { user, session } = useAuth()
   
   const {
     croppedImage,
@@ -20,6 +22,8 @@ export default function ColorStep() {
     category,
     formality,
     aesthetics,
+    isLoadingRecommendations,
+    error,
     setDetectedColors,
     selectColor,
     setAdjustedColor,
@@ -31,6 +35,8 @@ export default function ColorStep() {
 
   const [isExtracting, setIsExtracting] = useState(false)
   const [showColorPicker, setShowColorPicker] = useState(false)
+  const [showTryOnModal, setShowTryOnModal] = useState(false)
+  const [showAuthModal, setShowAuthModal] = useState(false)
   const [hexInputValue, setHexInputValue] = useState('')
   const [copied, setCopied] = useState(false)
 
@@ -104,6 +110,15 @@ export default function ColorStep() {
     setShowColorPicker(false)
   }, [setAdjustedColor])
 
+  // Handle Try On Me click
+  const handleTryOnClick = useCallback(() => {
+    if (!user) {
+      setShowAuthModal(true)
+      return
+    }
+    setShowTryOnModal(true)
+  }, [user])
+
   // Navigation
   const handleBack = useCallback(() => {
     setStep('metadata')
@@ -112,6 +127,7 @@ export default function ColorStep() {
   const handleConfirm = useCallback(async () => {
     if (!adjustedColor || !category) return
 
+    setError(null)
     setLoadingRecommendations(true)
     
     try {
@@ -121,6 +137,7 @@ export default function ColorStep() {
         base_formality: formality,
         base_aesthetics: aesthetics,
         base_category: category,
+        filled_categories: [category.l1], // Base item category is already filled
       })
       
       setRecommendations(response.recommendations)
@@ -303,49 +320,57 @@ export default function ColorStep() {
         </div>
       </div>
 
+      {/* Error Display */}
+      {error && (
+        <div className="max-w-md mx-auto mt-6 p-4 bg-error-500/10 border border-error-500/30 rounded-lg">
+          <p className="text-sm text-error-400 text-center">{error}</p>
+        </div>
+      )}
+
       {/* Navigation Buttons */}
       <div className="flex justify-center items-center gap-4 mt-12">
         <button
           onClick={handleBack}
-          className="flex items-center gap-2 px-6 py-3 text-neutral-400 hover:text-white text-xs font-bold uppercase tracking-widest transition-colors"
+          disabled={isLoadingRecommendations}
+          className="flex items-center gap-2 px-6 py-3 text-neutral-400 hover:text-white disabled:opacity-50 text-xs font-bold uppercase tracking-widest transition-colors"
         >
           <ArrowLeft size={14} />
           Back
         </button>
 
-        {/* Try On Me Button - Disabled if not logged in */}
-        <div className="relative group">
-          <button
-            disabled={!user}
-            className={`
-              flex items-center gap-2 px-6 py-3 text-xs font-bold uppercase tracking-widest
-              border transition-all duration-200
-              ${user 
-                ? 'bg-transparent text-accent-500 border-accent-500 hover:bg-accent-500 hover:text-primary-900' 
-                : 'bg-transparent text-neutral-600 border-primary-700 cursor-not-allowed'
-              }
-            `}
-          >
-            <Sparkles size={14} />
-            Try On Me
-          </button>
-          
-          {/* Tooltip when disabled */}
-          {!user && (
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-primary-800 border border-primary-700 text-neutral-400 text-[10px] uppercase tracking-wider whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-              Login required for AI Try-On
-              <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-primary-700" />
-            </div>
-          )}
-        </div>
+        {/* Try On Me Button */}
+        <button
+          onClick={handleTryOnClick}
+          disabled={isLoadingRecommendations || !adjustedColor || !croppedImage}
+          className={`
+            flex items-center gap-2 px-6 py-3 text-xs font-bold uppercase tracking-widest
+            border transition-all duration-200
+            ${!isLoadingRecommendations && adjustedColor && croppedImage
+              ? 'bg-transparent text-accent-500 border-accent-500 hover:bg-accent-500 hover:text-primary-900' 
+              : 'bg-transparent text-neutral-600 border-primary-700 cursor-not-allowed'
+            }
+          `}
+        >
+          <Sparkles size={14} />
+          Try On Me
+        </button>
         
         <button
           onClick={handleConfirm}
-          disabled={!adjustedColor}
-          className="group flex items-center gap-3 px-8 py-3 bg-white text-primary-900 hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed text-xs font-bold uppercase tracking-widest transition-all"
+          disabled={!adjustedColor || isLoadingRecommendations}
+          className="group flex items-center gap-3 px-8 py-3 bg-white text-primary-900 hover:bg-neutral-200 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-bold uppercase tracking-widest transition-all"
         >
-          Confirm & Continue
-          <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+          {isLoadingRecommendations ? (
+            <>
+              <div className="w-4 h-4 border-2 border-primary-900 border-t-transparent rounded-full animate-spin" />
+              Loading...
+            </>
+          ) : (
+            <>
+              Confirm & Continue
+              <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+            </>
+          )}
         </button>
       </div>
 
@@ -357,6 +382,28 @@ export default function ColorStep() {
           onClose={() => setShowColorPicker(false)}
         />
       )}
+
+      {/* Try On Modal */}
+      {showTryOnModal && adjustedColor && category && croppedImage && session?.access_token && (
+        <TryOnModal
+          item={{
+            color: adjustedColor,
+            category: category,
+            formality: formality,
+            aesthetics: aesthetics,
+          }}
+          itemImageUrl={croppedImage.croppedUrl}
+          itemImageBlob={croppedImage.croppedBlob}
+          token={session.access_token}
+          onClose={() => setShowTryOnModal(false)}
+        />
+      )}
+
+      {/* Auth Modal */}
+      <AuthModal 
+        isOpen={showAuthModal} 
+        onClose={() => setShowAuthModal(false)} 
+      />
     </div>
   )
 }
