@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, s
 
 from app.middleware.auth import get_current_user
 from app.models.schemas import (
+    ClothingItemCreate,
     ClothingItemCreateRequest,
     ClothingItemResponse,
     User,
@@ -42,11 +43,38 @@ async def create_clothing_item(
         # Parse the JSON metadata
         item_data = ClothingItemCreateRequest(**json.loads(data))
         
-        # Upload image and create item
+        # Read image file content
+        image_content = await image.read()
+        
+        # Determine content type
+        content_type = image.content_type or "image/jpeg"
+        
+        # Upload image to storage first
+        image_url = await supabase.upload_image(
+            user_id=current_user.id,
+            file_data=image_content,
+            file_name=image.filename or "item.jpg",
+            bucket="clothing-images",
+            content_type=content_type,
+        )
+        
+        # Convert ClothingItemCreateRequest to ClothingItemCreate
+        item = ClothingItemCreate(
+            color=item_data.color,
+            category=item_data.category,
+            formality=item_data.formality,
+            aesthetics=item_data.aesthetics,
+            brand=item_data.brand,
+            price=item_data.price,
+            source_url=item_data.source_url,
+            ownership=item_data.ownership,
+        )
+        
+        # Create item in database with the uploaded image URL
         return await supabase.create_clothing_item(
             user_id=current_user.id,
-            item_data=item_data,
-            image_file=image,
+            item=item,
+            image_url=image_url,
         )
         
     except json.JSONDecodeError:
