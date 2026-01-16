@@ -209,8 +209,10 @@ class TryOnOutfitRequest(BaseModel):
 
 class TryOnResponse(BaseModel):
     """Response body for POST /api/try-on"""
-    generated_image_url: str  # Base64 data URL or storage URL
-    processing_time: float = Field(..., description="Time in seconds")
+    success: bool = True
+    error: Optional[str] = None
+    generated_image_url: Optional[str] = None  # Made optional for error cases
+    processing_time: Optional[float] = Field(None, description="Time in seconds") # Made optional
 
 
 # ==============================================================================

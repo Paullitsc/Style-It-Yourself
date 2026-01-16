@@ -153,6 +153,34 @@ export async function tryOnOutfit(
   })
 }
 
+/**
+ * Upload a user photo for try-on
+ * Returns the public URL of the uploaded image
+ */
+export async function uploadUserPhoto(
+  imageFile: File,
+  token: string
+): Promise<string> {
+  const formData = new FormData()
+  formData.append('image', imageFile)
+  
+  const response = await fetch(`${API_BASE_URL}/api/try-on/upload-photo`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+    body: formData,
+  })
+  
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Unknown error' }))
+    throw new Error(error.detail || `API error: ${response.status}`)
+  }
+  
+  const data = await response.json()
+  return data.url
+}
+
 // =============================================================================
 // CLOSET (Auth Required)
 // =============================================================================
