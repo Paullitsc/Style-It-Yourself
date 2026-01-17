@@ -1,0 +1,85 @@
+%%{init: {'theme': 'dark', 'themeVariables': { 'background': '#000000', 'primaryColor': '#1f1f1f', 'primaryTextColor': '#fff', 'primaryBorderColor': '#333', 'lineColor': '#666', 'secondaryColor': '#1a1a2e', 'tertiaryColor': '#16213e'}}}%%
+sequenceDiagram
+    autonumber
+    title Piece-First Styling Flow
+
+    participant U as User
+    participant FE as Frontend
+    participant BE as Backend
+    participant SB as Supabase
+
+    %% Phase 1: Upload & Color Extraction
+    rect rgba(40, 40, 80, 0.3)
+        Note over U,SB: Phase 1: Upload & Color Extraction
+        U->>FE: Uploads clothing image
+        FE->>SB: Upload image to storage
+        SB-->>FE: {tempImageUrl}
+        FE->>FE: Extract color (ColorThief.js)
+        FE-->>U: Display color swatch for confirmation
+        U->>FE: Confirms/adjusts color
+    end
+
+    %% Phase 2: Item Metadata
+    rect rgba(40, 80, 40, 0.3)
+        Note over U,SB: Phase 2: Item Description
+        U->>FE: Selects category (L1 → L2)
+        U->>FE: Selects formality tag
+        U->>FE: Selects aesthetic tags
+        U->>FE: Selects ownership (Owned/Wishlist)
+        U->>FE: (Optional) brand, price, source URL
+        FE->>FE: Store as BaseItem in session
+    end
+
+    %% Phase 3: Generate Recommendations
+    rect rgba(80, 40, 40, 0.3)
+        Note over U,SB: Phase 3: Generate Recommendations
+        FE->>BE: POST /api/recommendations {baseColor, baseFormality, baseAesthetics}
+        BE-->>FE: {recommendations[]: {slot, colors[], formalityRange, aesthetics[], example}}
+        FE-->>U: Display category nav + recommendation cards
+    end
+
+    %% Phase 4: Add Items
+    rect rgba(80, 60, 40, 0.3)
+        Note over U,SB: Phase 4: Add Items (repeat per slot)
+        U->>FE: Clicks category → uploads item
+        FE->>SB: Upload image
+        SB-->>FE: {tempImageUrl}
+        FE->>FE: Extract color
+        U->>FE: Fills item metadata
+        FE->>BE: POST /api/validate-item {newItem, baseItem, currentOutfit}
+        BE-->>FE: {colorStatus, formalityStatus, aestheticStatus, pairingStatus, warnings[]}
+        alt Has warnings
+            FE-->>U: Show warnings + "Add anyway?"
+        end
+        FE->>FE: Add item to session outfit
+    end
+
+    %% Phase 5: Outfit Summary
+    rect rgba(60, 40, 80, 0.3)
+        Note over U,SB: Phase 5: Outfit Summary
+        FE->>BE: POST /api/validate-outfit {outfit[], baseItem}
+        BE-->>FE: {isComplete, cohesionScore, verdict, warnings[], colorStrip[]}
+        FE-->>U: Display summary + color harmony strip
+    end
+
+    %% Phase 6: Save (Auth Required)
+    rect rgba(80, 40, 60, 0.3)
+        Note over U,SB: Phase 6: Save Outfit (Auth Required)
+        U->>FE: Clicks "Save Outfit"
+        FE->>SB: Check session
+        alt Not authenticated
+            SB-->>FE: No session
+            FE-->>U: Show login modal
+            U->>FE: Authenticates (OAuth/email)
+            FE->>SB: Auth request
+            SB-->>FE: {session, user}
+        end
+        FE->>BE: POST /api/outfits {name, notes, items[]} + Bearer token
+        BE->>SB: Verify JWT
+        SB-->>BE: {valid, user_id}
+        BE->>SB: Move images to permanent storage
+        BE->>SB: INSERT clothing_items, outfit, outfit_items
+        SB-->>BE: {outfit_id}
+        BE-->>FE: {savedOutfit}
+        FE-->>U: Success + link to My Closet
+    end
