@@ -121,54 +121,38 @@ async def generate_tryon_single(
     """
     start_time = time.time()
     
-    try:
-        # Fetch images as PIL
-        user_image = await fetch_image_as_pil(user_image_url)
-        item_image = await fetch_image_as_pil(item_image_url)
-        
-        # Build prompt
-        prompt = build_tryon_prompt([item], single_item=True)
-        
-        # Select model
-        model = MODEL_HIGH_QUALITY if high_quality else TRYON_MODEL
-        
-        # Generate image
-        response = await client.aio.models.generate_content(
-            model=model,
-            contents=[prompt, user_image, item_image],
-            config=types.GenerateContentConfig(
-                response_modalities=["IMAGE"],
-            )
+
+    # Fetch images as PIL
+    user_image = await fetch_image_as_pil(user_image_url)
+    item_image = await fetch_image_as_pil(item_image_url)
+
+    # Build prompt
+    prompt = build_tryon_prompt([item], single_item=True)
+
+    # Select model
+    model = MODEL_HIGH_QUALITY if high_quality else TRYON_MODEL
+
+    # Generate image
+    response = await client.aio.models.generate_content(
+        model=model,
+        contents=[prompt, user_image, item_image],
+        config=types.GenerateContentConfig(
+            response_modalities=["IMAGE"],
         )
+    )
+
+    # Calculate time (useful for logging, even if not returned)
+    processing_time = time.time() - start_time
+    print(f"Gemini generation took: {processing_time:.2f}s")
+
+    # Extract generated image
+    generated_image_data = _extract_image_from_response(response)
+
+    return TryOnResponse(
+        generated_image_url=generated_image_data
+    )
         
-        # Calculate time (useful for logging, even if not returned)
-        processing_time = time.time() - start_time
-        print(f"Gemini generation took: {processing_time:.2f}s")
-        
-        # Extract generated image
-        generated_image_data = _extract_image_from_response(response)
-        
-        return TryOnResponse(
-            success=True,
-            generated_image_url=generated_image_data
-            # processing_time removed to match Schema
-        )
-        
-    except APIError as e:
-        return TryOnResponse(
-            success=False,
-            error=f"Gemini API error: {str(e)}"
-        )
-    except httpx.HTTPError as e:
-        return TryOnResponse(
-            success=False,
-            error=f"Failed to fetch image: {str(e)}"
-        )
-    except Exception as e:
-        return TryOnResponse(
-            success=False,
-            error=f"Unexpected error: {str(e)}"
-        )
+
 
 
 async def generate_tryon_outfit(
@@ -188,63 +172,47 @@ async def generate_tryon_outfit(
     """
     start_time = time.time()
     
-    try:
-        # Fetch user image
-        user_image = await fetch_image_as_pil(user_image_url)
-        
-        # Fetch all item images
-        clothing_images = []
-        items = []
-        for image_url, item in item_images:
-            img = await fetch_image_as_pil(image_url)
-            clothing_images.append(img)
-            items.append(item)
-        
-        # Build prompt
-        prompt = build_tryon_prompt(items, single_item=False)
-        
-        # Build contents: prompt + user image + all clothing images
-        contents = [prompt, user_image] + clothing_images
-        
-        # Select model
-        model = MODEL_HIGH_QUALITY if high_quality else TRYON_MODEL
-        
-        # Generate image
-        response = await client.aio.models.generate_content(
-            model=model,
-            contents=contents,
-            config=types.GenerateContentConfig(
-                response_modalities=["IMAGE"],
-            )
+    # Fetch user image
+    user_image = await fetch_image_as_pil(user_image_url)
+
+    # Fetch all item images
+    clothing_images = []
+    items = []
+    for image_url, item in item_images:
+        img = await fetch_image_as_pil(image_url)
+        clothing_images.append(img)
+        items.append(item)
+
+    # Build prompt
+    prompt = build_tryon_prompt(items, single_item=False)
+
+    # Build contents: prompt + user image + all clothing images
+    contents = [prompt, user_image] + clothing_images
+
+    # Select model
+    model = MODEL_HIGH_QUALITY if high_quality else TRYON_MODEL
+
+    # Generate image
+    response = await client.aio.models.generate_content(
+        model=model,
+        contents=contents,
+        config=types.GenerateContentConfig(
+            response_modalities=["IMAGE"],
         )
-        
-        processing_time = time.time() - start_time
-        print(f"Gemini generation took: {processing_time:.2f}s")
-        
-        # Extract generated image
-        generated_image_data = _extract_image_from_response(response)
-        
-        return TryOnResponse(
-            success=True,
-            generated_image_url=generated_image_data
-            # processing_time removed to match Schema
-        )
-        
-    except APIError as e:
-        return TryOnResponse(
-            success=False,
-            error=f"Gemini API error: {str(e)}"
-        )
-    except httpx.HTTPError as e:
-        return TryOnResponse(
-            success=False,
-            error=f"Failed to fetch image: {str(e)}"
-        )
-    except Exception as e:
-        return TryOnResponse(
-            success=False,
-            error=f"Unexpected error: {str(e)}"
-        )
+    )
+
+    processing_time = time.time() - start_time
+    print(f"Gemini generation took: {processing_time:.2f}s")
+
+    # Extract generated image
+    generated_image_data = _extract_image_from_response(response)
+
+    return TryOnResponse(
+        generated_image_url=generated_image_data
+        # processing_time removed to match Schema
+    )
+
+
 
 
 def _extract_image_from_response(response) -> str:

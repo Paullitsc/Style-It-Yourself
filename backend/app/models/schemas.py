@@ -214,8 +214,11 @@ class TryOnOutfitRequest(BaseModel):
 
 class TryOnResponse(BaseModel):
     """Response body for POST /api/try-on"""
-    generated_image_url: str
-    processing_time: float = Field(..., description="Time in seconds")
+    generated_image_url: str | None = None
+    processing_time: float | None = Field(
+        default=None,
+        description="Time in seconds"
+    )
 
 
 # ==============================================================================

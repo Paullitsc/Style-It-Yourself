@@ -12,7 +12,7 @@ from app.models.schemas import (
     User,
     TryOnResponse,
     TryOnSingleRequest,
-    TryOnOutfitRequest,
+    TryOnOutfitRequest, ClothingItemCreate, ClothingItemBase,
 )
 from app.services.gemini import generate_tryon_single, generate_tryon_outfit
 from app.services.supabase import upload_generated_image
@@ -52,7 +52,7 @@ async def try_on_single(
         result = await generate_tryon_single(
             user_image_url=request.user_photo_url,
             item_image_url=request.item_image_url,
-            item=request.item,
+            item=ClothingItemCreate.model_validate(ClothingItemBase.model_dump(request.item)),
             high_quality=True,
         )
         
@@ -85,7 +85,9 @@ async def try_on_outfit(
         await validate_image_url(item.image_url)
     
     try:
-        item_images = [(item.image_url, item.item) for item in request.items]
+        item_images = [(item.image_url,
+                        ClothingItemCreate.model_validate(ClothingItemBase.model_dump(item.item))
+                        ) for item in request.items]
         
         result = await generate_tryon_outfit(
             user_image_url=request.user_photo_url,
