@@ -10,10 +10,8 @@ from app.config import settings
 from app.services.supabase import close_supabase_clients
 
 # Import routers that exist
-from app.routers import validation, tryon, closet, recommendations, outfits
+from app.routers import validation, tryon, closet, recommendations, outfits, clothing_items
 
-# TODO: Uncomment when implemented
-# from app.routers import recommendations, outfits
 
 
 @asynccontextmanager
@@ -47,7 +45,7 @@ app.add_middleware(
 app.include_router(validation.router)
 app.include_router(tryon.router)
 app.include_router(closet.router)
-
+app.include_router(clothing_items.router)
 
 app.include_router(recommendations.router)
 app.include_router(outfits.router)
