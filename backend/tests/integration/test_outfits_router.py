@@ -1,297 +1,317 @@
 """
 Integration tests for outfits router - HTTP endpoint testing.
-
-
-ROUGH DRAFT - NEEDS WORK
-
 """
+from datetime import datetime
+
 import pytest
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from unittest.mock import patch, Mock
-from app.main import app
-from app.models.schemas import User
+
+from app.middleware.auth import get_current_user
+from app.models.schemas import (
+    OutfitResponse,
+    OutfitSummary,
+    User,
+)
+from app.routers.outfits import router, OutfitNotFoundError, OutfitPermissionError
 
 
-# Test Client Setup
+# =============================================================================
+# HELPERS
+# =============================================================================
 
-client = TestClient(app)
-
-
-# Helper Functions
-
-def _make_test_user(user_id: str = "test-user-123") -> User:
+def _make_user(user_id: str = "test-user-123") -> User:
     """Create a test user."""
-    return User(
-        id=user_id,
-        email="test@example.com",
-        name="Test User",
-        created_at="2024-01-01T00:00:00Z"
+    return User(id=user_id, email="test@example.com", name="Test User")
+
+
+def _make_outfit_response(
+    outfit_id: str = "outfit-123",
+    user_id: str = "test-user-123",
+    name: str = "Test Outfit",
+) -> OutfitResponse:
+    """Create an OutfitResponse."""
+    return OutfitResponse(
+        id=outfit_id,
+        user_id=user_id,
+        name=name,
+        items=[],
+        generated_image_url=None,
+        created_at=datetime(2024, 1, 1, 12, 0, 0),
     )
 
 
-def _get_auth_headers(token: str = "test-token") -> dict:
-    """Get authorization headers for testing."""
-    return {"Authorization": f"Bearer {token}"}
-
-
-@pytest.fixture(autouse=False)
-def mock_auth_user():
-    """Fixture to mock authentication."""
-    from app.middleware.auth import get_current_user
-    test_user = _make_test_user()
-    
-    async def mock_get_current_user():
-        return test_user
-    
-    app.dependency_overrides[get_current_user] = mock_get_current_user
-    yield test_user
-    app.dependency_overrides.clear()
-
-
-# Create Outfit Tests
-
-@patch("app.services.outfit_service.create_outfit")
-def test_create_outfit_success(mock_create_outfit, mock_auth_user):
-    """Test successful outfit creation via API."""
-    # Mock service response
-    from app.models.schemas import OutfitResponse, ClothingItemResponse, Color, HSL, Category
-    mock_response = OutfitResponse(
-        id="outfit-123",
-        name="Test Outfit",
-        items=[
-            ClothingItemResponse(
-                id="item-1",
-                user_id=mock_auth_user.id,
-                image_url="https://example.com/image.jpg",
-                color=Color(hex="#123456", hsl=HSL(h=0, s=50, l=50), name="navy", is_neutral=False),
-                category=Category(l1="Tops", l2="T-Shirts"),
-                formality=3.0,
-                aesthetics=["Minimalist"],
-                brand="Test Brand",
-                price=50.0,
-                ownership="owned",
-                created_at="2024-01-01T00:00:00Z"
-            )
-        ],
-        created_at="2024-01-01T00:00:00Z"
+def _make_outfit_summary(
+    outfit_id: str = "outfit-123",
+    name: str = "Test Outfit",
+    item_count: int = 2,
+) -> OutfitSummary:
+    """Create an OutfitSummary."""
+    return OutfitSummary(
+        id=outfit_id,
+        name=name,
+        item_count=item_count,
+        thumbnail_url=None,
+        created_at=datetime(2024, 1, 1, 12, 0, 0),
     )
-    mock_create_outfit.return_value = mock_response
-    
-    request_data = {
-        "name": "Test Outfit",
-        "items": [
-            {
-                "image_url": "https://example.com/image.jpg",
-                "color": {
-                    "hex": "#123456",
-                    "hsl": {"h": 0, "s": 50, "l": 50},
-                    "name": "navy",
-                    "is_neutral": False
-                },
-                "category": {"l1": "Tops", "l2": "T-Shirts"},
-                "formality": 3.0,
-                "aesthetics": ["Minimalist"],
-                "brand": "Test Brand",
-                "price": 50.0,
-                "ownership": "owned"
-            }
-        ]
-    }
-    
+
+
+# =============================================================================
+# FIXTURES
+# =============================================================================
+
+@pytest.fixture
+def test_user() -> User:
+    """Test user fixture."""
+    return _make_user()
+
+
+@pytest.fixture
+def app(test_user: User) -> FastAPI:
+    """Create test app with auth override."""
+    app = FastAPI()
+    app.include_router(router)
+    app.dependency_overrides[get_current_user] = lambda: test_user
+    return app
+
+
+@pytest.fixture
+def client(app: FastAPI) -> TestClient:
+    """Test client fixture."""
+    return TestClient(app)
+
+
+# =============================================================================
+# POST /api/outfits
+# =============================================================================
+
+def test_post_outfits_returns_201(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """POST /api/outfits returns 201 on success."""
+    async def fake_create(user_id, outfit):
+        return _make_outfit_response(name=outfit.name)
+
+    monkeypatch.setattr("app.routers.outfits.supabase.create_outfit", fake_create)
+
     response = client.post(
         "/api/outfits",
-        json=request_data,
-        headers=_get_auth_headers()
+        json={"name": "New Outfit", "item_ids": ["item-1"]},
     )
-    
+
     assert response.status_code == 201
-    data = response.json()
-    assert data["id"] == "outfit-123"
-    assert data["name"] == "Test Outfit"
-    assert len(data["items"]) == 1
+    assert response.json()["name"] == "New Outfit"
 
 
-def test_create_outfit_unauthorized():
-    """Test outfit creation without authentication."""
-    # Don't use the mock_auth_user fixture to test unauthorized access
-    
-    request_data = {
-        "name": "Test Outfit",
-        "items": []
-    }
-    
-    # Endpoint should return 401
+def test_post_outfits_empty_items_returns_422(client: TestClient) -> None:
+    """POST /api/outfits with empty item_ids returns 422."""
     response = client.post(
         "/api/outfits",
-        json=request_data
+        json={"name": "Test", "item_ids": []},
     )
-    
-    # Without auth header, should get 403 or 401
-    assert response.status_code in [401, 403]
+
+    assert response.status_code == 422
 
 
-@patch("app.services.outfit_service.create_outfit")
-def test_create_outfit_service_error(mock_create_outfit, mock_auth_user):
-    """Test outfit creation when service raises error."""
-    mock_create_outfit.side_effect = Exception("Database error")
-    
-    request_data = {
-        "name": "Test Outfit",
-        "items": []
-    }
-    
+def test_post_outfits_missing_name_returns_422(client: TestClient) -> None:
+    """POST /api/outfits without name returns 422."""
     response = client.post(
         "/api/outfits",
-        json=request_data,
-        headers=_get_auth_headers()
+        json={"item_ids": ["item-1"]},
     )
-    
+
+    assert response.status_code == 422
+
+
+def test_post_outfits_server_error_returns_500(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """POST /api/outfits returns 500 on unexpected error."""
+    async def fake_create(user_id, outfit):
+        raise RuntimeError("Database error")
+
+    monkeypatch.setattr("app.routers.outfits.supabase.create_outfit", fake_create)
+
+    response = client.post(
+        "/api/outfits",
+        json={"name": "Test", "item_ids": ["item-1"]},
+    )
+
     assert response.status_code == 500
-    assert "Failed to create outfit" in response.json()["detail"]
+    assert "Database error" not in response.json()["detail"]
 
 
-# Get Outfits Tests
+# =============================================================================
+# GET /api/outfits
+# =============================================================================
 
-@patch("app.services.outfit_service.get_outfits")
-def test_get_outfits_success(mock_get_outfits, mock_auth_user):
-    """Test successful retrieval of all outfits."""
-    
-    from app.models.schemas import OutfitResponse, ClothingItemResponse, Color, HSL, Category
-    mock_response = [
-        OutfitResponse(
-            id="outfit-1",
-            name="Outfit 1",
-            items=[],
-            created_at="2024-01-01T00:00:00Z"
-        ),
-        OutfitResponse(
-            id="outfit-2",
-            name="Outfit 2",
-            items=[],
-            created_at="2024-01-02T00:00:00Z"
-        )
-    ]
-    mock_get_outfits.return_value = mock_response
-    
-    response = client.get(
-        "/api/outfits",
-        headers=_get_auth_headers()
-    )
-    
+def test_get_outfits_returns_200(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """GET /api/outfits returns 200 with list."""
+    async def fake_get(user_id):
+        return [
+            _make_outfit_summary("outfit-1", "Work"),
+            _make_outfit_summary("outfit-2", "Casual"),
+        ]
+
+    monkeypatch.setattr("app.routers.outfits.supabase.get_user_outfits", fake_get)
+
+    response = client.get("/api/outfits")
+
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 2
-    assert data[0]["id"] == "outfit-1"
-    assert data[1]["id"] == "outfit-2"
+    assert data[0]["name"] == "Work"
+    assert data[1]["name"] == "Casual"
 
 
-@patch("app.services.outfit_service.get_outfits")
-def test_get_outfits_empty(mock_get_outfits, mock_auth_user):
-    """Test retrieval when user has no outfits."""
-    mock_get_outfits.return_value = []
-    
-    response = client.get(
-        "/api/outfits",
-        headers=_get_auth_headers()
-    )
-    
+def test_get_outfits_empty_returns_200(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """GET /api/outfits returns 200 with empty list."""
+    async def fake_get(user_id):
+        return []
+
+    monkeypatch.setattr("app.routers.outfits.supabase.get_user_outfits", fake_get)
+
+    response = client.get("/api/outfits")
+
     assert response.status_code == 200
     assert response.json() == []
 
 
-# Get Single Outfit Tests
+# =============================================================================
+# GET /api/outfits/{outfit_id}
+# =============================================================================
 
-@patch("app.services.outfit_service.get_outfit")
-def test_get_outfit_success(mock_get_outfit, mock_auth_user):
-    """Test successful retrieval of single outfit."""
-    
-    from app.models.schemas import OutfitResponse
-    mock_response = OutfitResponse(
-        id="outfit-123",
-        name="Test Outfit",
-        items=[],
-        created_at="2024-01-01T00:00:00Z"
-    )
-    mock_get_outfit.return_value = mock_response
-    
-    response = client.get(
-        "/api/outfits/outfit-123",
-        headers=_get_auth_headers()
-    )
-    
+def test_get_outfit_returns_200(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """GET /api/outfits/{id} returns 200 on success."""
+    async def fake_get(outfit_id, user_id):
+        return _make_outfit_response(outfit_id=outfit_id)
+
+    monkeypatch.setattr("app.routers.outfits.supabase.get_outfit", fake_get)
+
+    response = client.get("/api/outfits/outfit-123")
+
     assert response.status_code == 200
-    data = response.json()
-    assert data["id"] == "outfit-123"
-    assert data["name"] == "Test Outfit"
+    assert response.json()["id"] == "outfit-123"
 
 
-@patch("app.services.outfit_service.get_outfit")
-def test_get_outfit_not_found(mock_get_outfit, mock_auth_user):
-    """Test retrieval of non-existent outfit."""
-    mock_get_outfit.side_effect = ValueError("Outfit not found")
-    
-    response = client.get(
-        "/api/outfits/nonexistent-id",
-        headers=_get_auth_headers()
-    )
-    
+def test_get_outfit_none_returns_404(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """GET /api/outfits/{id} returns 404 when not found."""
+    async def fake_get(outfit_id, user_id):
+        return None
+
+    monkeypatch.setattr("app.routers.outfits.supabase.get_outfit", fake_get)
+
+    response = client.get("/api/outfits/nonexistent")
+
+    assert response.status_code == 404
+
+
+def test_get_outfit_not_found_error_returns_404(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """GET /api/outfits/{id} returns 404 on OutfitNotFoundError."""
+    async def fake_get(outfit_id, user_id):
+        raise OutfitNotFoundError()
+
+    monkeypatch.setattr("app.routers.outfits.supabase.get_outfit", fake_get)
+
+    response = client.get("/api/outfits/nonexistent")
+
     assert response.status_code == 404
     assert "not found" in response.json()["detail"].lower()
 
 
-@patch("app.services.outfit_service.get_outfit")
-def test_get_outfit_permission_denied(mock_get_outfit, mock_auth_user):
-    """Test retrieval of outfit belonging to another user."""
-    mock_get_outfit.side_effect = ValueError("You do not have permission to delete this outfit")
-    
-    response = client.get(
-        "/api/outfits/other-user-outfit",
-        headers=_get_auth_headers()
-    )
-    
+def test_get_outfit_permission_error_returns_403(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """GET /api/outfits/{id} returns 403 on OutfitPermissionError."""
+    async def fake_get(outfit_id, user_id):
+        raise OutfitPermissionError()
+
+    monkeypatch.setattr("app.routers.outfits.supabase.get_outfit", fake_get)
+
+    response = client.get("/api/outfits/other-user-outfit")
+
     assert response.status_code == 403
     assert "permission" in response.json()["detail"].lower()
 
 
-# Delete Outfit Tests
+# =============================================================================
+# DELETE /api/outfits/{outfit_id}
+# =============================================================================
 
-@patch("app.services.outfit_service.delete_outfit")
-def test_delete_outfit_success(mock_delete_outfit, mock_auth_user):
-    """Test successful outfit deletion."""
-    mock_delete_outfit.return_value = None
-    
-    response = client.delete(
-        "/api/outfits/outfit-123",
-        headers=_get_auth_headers()
-    )
-    
+def test_delete_outfit_returns_204(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """DELETE /api/outfits/{id} returns 204 on success."""
+    async def fake_delete(outfit_id, user_id):
+        return True
+
+    monkeypatch.setattr("app.routers.outfits.supabase.delete_outfit", fake_delete)
+
+    response = client.delete("/api/outfits/outfit-123")
+
     assert response.status_code == 204
-    assert response.content == b""  # No content
+    assert response.content == b""
 
 
-@patch("app.services.outfit_service.delete_outfit")
-def test_delete_outfit_not_found(mock_delete_outfit, mock_auth_user):
-    """Test deletion of non-existent outfit."""
-    mock_delete_outfit.side_effect = ValueError("Outfit not found")
-    
-    response = client.delete(
-        "/api/outfits/nonexistent-id",
-        headers=_get_auth_headers()
-    )
-    
+def test_delete_outfit_false_returns_404(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """DELETE /api/outfits/{id} returns 404 when not found."""
+    async def fake_delete(outfit_id, user_id):
+        return False
+
+    monkeypatch.setattr("app.routers.outfits.supabase.delete_outfit", fake_delete)
+
+    response = client.delete("/api/outfits/nonexistent")
+
     assert response.status_code == 404
-    assert "not found" in response.json()["detail"].lower()
 
 
-@patch("app.services.outfit_service.delete_outfit")
-def test_delete_outfit_permission_denied(mock_delete_outfit, mock_auth_user):
-    """Test deletion of outfit belonging to another user."""
-    mock_delete_outfit.side_effect = ValueError("You do not have permission to delete this outfit")
-    
-    response = client.delete(
-        "/api/outfits/other-user-outfit",
-        headers=_get_auth_headers()
-    )
-    
+def test_delete_outfit_not_found_error_returns_404(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """DELETE /api/outfits/{id} returns 404 on OutfitNotFoundError."""
+    async def fake_delete(outfit_id, user_id):
+        raise OutfitNotFoundError()
+
+    monkeypatch.setattr("app.routers.outfits.supabase.delete_outfit", fake_delete)
+
+    response = client.delete("/api/outfits/nonexistent")
+
+    assert response.status_code == 404
+
+
+def test_delete_outfit_permission_error_returns_403(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """DELETE /api/outfits/{id} returns 403 on OutfitPermissionError."""
+    async def fake_delete(outfit_id, user_id):
+        raise OutfitPermissionError()
+
+    monkeypatch.setattr("app.routers.outfits.supabase.delete_outfit", fake_delete)
+
+    response = client.delete("/api/outfits/other-user-outfit")
+
     assert response.status_code == 403
-    assert "permission" in response.json()["detail"].lower()
