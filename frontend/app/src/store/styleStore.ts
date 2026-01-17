@@ -54,6 +54,9 @@ interface StyleState {
   formality: number
   aesthetics: string[]
   ownership: 'owned' | 'wishlist'
+  brand: string
+  price: string  // Store as string for input, convert to number when needed
+  sourceUrl: string
   
   // Step 2B: Colors
   detectedColors: DetectedColor[]
@@ -84,6 +87,9 @@ interface StyleState {
   setFormality: (value: number) => void
   toggleAesthetic: (tag: string) => void
   setOwnership: (value: 'owned' | 'wishlist') => void
+  setBrand: (value: string) => void
+  setPrice: (value: string) => void
+  setSourceUrl: (value: string) => void
   setDetectedColors: (colors: DetectedColor[]) => void
   selectColor: (index: number) => void
   setAdjustedColor: (color: Color) => void
@@ -105,6 +111,9 @@ const initialState = {
   formality: 2,
   aesthetics: [] as string[],
   ownership: 'owned' as const,
+  brand: '',
+  price: '',
+  sourceUrl: '',
   detectedColors: [] as DetectedColor[],
   selectedColorIndex: 0,
   adjustedColor: null,
@@ -131,7 +140,7 @@ export const useStyleStore = create<StyleState>((set, get) => ({
       return null
     }
     
-    return {
+    const item: ClothingItemCreate = {
       image_url: state.croppedImage.croppedUrl,
       color: state.adjustedColor,
       category: state.category,
@@ -139,6 +148,22 @@ export const useStyleStore = create<StyleState>((set, get) => ({
       aesthetics: state.aesthetics,
       ownership: state.ownership,
     }
+    
+    // Add optional fields if provided
+    if (state.brand.trim()) {
+      item.brand = state.brand.trim()
+    }
+    if (state.price.trim()) {
+      const priceNum = parseFloat(state.price)
+      if (!isNaN(priceNum) && priceNum >= 0) {
+        item.price = priceNum
+      }
+    }
+    if (state.sourceUrl.trim()) {
+      item.source_url = state.sourceUrl.trim()
+    }
+    
+    return item
   },
 
   isMetadataValid: (): boolean => {
@@ -229,6 +254,12 @@ export const useStyleStore = create<StyleState>((set, get) => ({
   }),
   
   setOwnership: (ownership) => set({ ownership }),
+  
+  setBrand: (brand) => set({ brand }),
+  
+  setPrice: (price) => set({ price }),
+  
+  setSourceUrl: (sourceUrl) => set({ sourceUrl }),
 
   // ---------------------------------------------------------------------------
   // STEP 2B: COLORS
