@@ -1,6 +1,7 @@
 """
 Validation endpoints for outfit and item compatibility checking.
 """
+import logging
 from fastapi import APIRouter
 from app.models.schemas import (
     ValidateItemRequest,
@@ -9,6 +10,8 @@ from app.models.schemas import (
     ValidateOutfitResponse,
 )
 from app.services.compatibility import validate_item, validate_outfit
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["validation"])
 
@@ -45,7 +48,14 @@ async def validate_outfit_endpoint(request: ValidateOutfitRequest) -> ValidateOu
     - Generates a human-readable verdict
     - Returns color strip for visualization
     """
-    return validate_outfit(
-        items=request.outfit,
-        base_item=request.base_item,
-    )
+    try:
+        logger.info(f"Validating outfit with {len(request.outfit)} items + base item")
+        result = validate_outfit(
+            items=request.outfit,
+            base_item=request.base_item,
+        )
+        logger.info(f"Outfit validation successful: cohesion_score={result.cohesion_score}")
+        return result
+    except Exception as e:
+        logger.error(f"Outfit validation failed: {e}", exc_info=True)
+        raise

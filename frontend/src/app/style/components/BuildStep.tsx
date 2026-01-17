@@ -197,6 +197,10 @@ export default function BuildStep() {
               const isSelected = addingCategory === categoryL1
               const tryOn = getTryOnForCategory(categoryL1)
               
+              if (isBase) {
+                console.log(`[BuildStep] Base item [${categoryL1}] tryOn:`, tryOn)
+              }
+              
               return (
                 <OutfitSlot
                   key={categoryL1}

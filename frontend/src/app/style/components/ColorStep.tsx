@@ -3,11 +3,12 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useStyleStore } from '@/store/styleStore'
 import { useAuth } from '@/components/AuthProvider'
-import { ArrowLeft, ArrowRight, Sparkles, Plus, Copy, Check } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Sparkles } from 'lucide-react'
 import { extractDominantColors } from '@/lib/colorExtractor'
-import { buildColorFromHex, hslToHex } from '@/lib/colorUtils'
+import { buildColorFromHex } from '@/lib/colorUtils'
 import { getRecommendations } from '@/lib/api'
-import ColorPickerModal from './ColorPickerModal'
+import ColorSelector from './shared/ColorSelector'
+import ColorPickerModal from './shared/ColorPickerModal' // Ensure you moved this file
 import TryOnModal from './TryOnModal'
 import AuthModal from '@/components/AuthModal'
 
@@ -31,14 +32,13 @@ export default function ColorStep() {
     setLoadingRecommendations,
     setStep,
     setError,
+    setTryOnResult,
   } = useStyleStore()
 
   const [isExtracting, setIsExtracting] = useState(false)
   const [showColorPicker, setShowColorPicker] = useState(false)
   const [showTryOnModal, setShowTryOnModal] = useState(false)
   const [showAuthModal, setShowAuthModal] = useState(false)
-  const [hexInputValue, setHexInputValue] = useState('')
-  const [copied, setCopied] = useState(false)
 
   // Extract colors on mount
   useEffect(() => {
@@ -46,13 +46,6 @@ export default function ColorStep() {
       extractColors()
     }
   }, [croppedImage])
-
-  // Sync hex input with adjusted color
-  useEffect(() => {
-    if (adjustedColor) {
-      setHexInputValue(adjustedColor.hex)
-    }
-  }, [adjustedColor])
 
   const extractColors = async () => {
     if (!croppedImage) return
@@ -69,47 +62,6 @@ export default function ColorStep() {
     }
   }
 
-  // Handle color selection
-  const handleColorSelect = useCallback((index: number) => {
-    selectColor(index)
-  }, [selectColor])
-
-  // Handle brightness adjustment
-  const handleBrightnessChange = useCallback((lightness: number) => {
-    if (!adjustedColor) return
-    
-    const newHex = hslToHex(adjustedColor.hsl.h, adjustedColor.hsl.s, lightness)
-    const newColor = buildColorFromHex(newHex)
-    setAdjustedColor(newColor)
-  }, [adjustedColor, setAdjustedColor])
-
-  // Handle hex input
-  const handleHexChange = useCallback((value: string) => {
-    setHexInputValue(value)
-    
-    // Validate and update if valid hex
-    if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
-      const newColor = buildColorFromHex(value)
-      setAdjustedColor(newColor)
-    }
-  }, [setAdjustedColor])
-
-  // Handle copy hex
-  const handleCopyHex = useCallback(() => {
-    if (adjustedColor) {
-      navigator.clipboard.writeText(adjustedColor.hex)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    }
-  }, [adjustedColor])
-
-  // Handle custom color from picker
-  const handleCustomColor = useCallback((hex: string) => {
-    const newColor = buildColorFromHex(hex)
-    setAdjustedColor(newColor)
-    setShowColorPicker(false)
-  }, [setAdjustedColor])
-
   // Handle Try On Me click
   const handleTryOnClick = useCallback(() => {
     if (!user) {
@@ -118,6 +70,14 @@ export default function ColorStep() {
     }
     setShowTryOnModal(true)
   }, [user])
+
+  // Handle try-on completion - save result to store
+  const handleTryOnComplete = useCallback((resultUrl: string) => {
+    if (category?.l1) {
+      console.log('[ColorStep] Try-on completed, saving result for category:', category.l1)
+      setTryOnResult(category.l1, resultUrl)
+    }
+  }, [category, setTryOnResult])
 
   // Navigation
   const handleBack = useCallback(() => {
@@ -187,136 +147,21 @@ export default function ColorStep() {
         </div>
 
         {/* Right: Color Controls */}
-        <div className="w-full lg:w-[400px] space-y-8">
-          
-          {/* Detected Colors */}
-          <div>
-            <label className="block text-[10px] uppercase font-bold tracking-widest text-neutral-500 mb-4">
-              Detected Colors
-            </label>
-            
-            {isExtracting ? (
-              <div className="flex items-center gap-3 text-neutral-400">
-                <div className="w-5 h-5 border-2 border-accent-500 border-t-transparent rounded-full animate-spin" />
-                <span className="text-sm">Analyzing image...</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-4">
-                {detectedColors.map((color, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleColorSelect(index)}
-                    className="group flex flex-col items-center gap-2"
-                  >
-                    <div
-                      className={`
-                        w-16 h-16 rounded-full transition-all duration-200
-                        ${selectedColorIndex === index 
-                          ? 'ring-2 ring-white ring-offset-2 ring-offset-primary-900 scale-110' 
-                          : 'hover:scale-105'
-                        }
-                      `}
-                      style={{ backgroundColor: color.hex }}
-                    />
-                    <span className={`
-                      text-[10px] uppercase tracking-wider transition-colors
-                      ${selectedColorIndex === index ? 'text-white' : 'text-neutral-500'}
-                    `}>
-                      {color.name}
-                    </span>
-                    {selectedColorIndex === index && (
-                      <Check size={12} className="text-accent-500" />
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Divider */}
-          <div className="border-t border-primary-700" />
-
-          {/* Brightness Adjustment */}
-          {adjustedColor && (
-            <div>
-              <label className="block text-[10px] uppercase font-bold tracking-widest text-neutral-500 mb-4">
-                Adjust Brightness
-              </label>
-              <div className="flex items-center gap-4">
-                <span className="text-[10px] uppercase text-neutral-600">Darker</span>
-                <input
-                  type="range"
-                  min={5}
-                  max={95}
-                  value={adjustedColor.hsl.l}
-                  onChange={(e) => handleBrightnessChange(Number(e.target.value))}
-                  className="flex-1 h-2 rounded-full appearance-none cursor-pointer"
-                  style={{
-                    background: `linear-gradient(to right, 
-                      ${hslToHex(adjustedColor.hsl.h, adjustedColor.hsl.s, 5)}, 
-                      ${hslToHex(adjustedColor.hsl.h, adjustedColor.hsl.s, 50)}, 
-                      ${hslToHex(adjustedColor.hsl.h, adjustedColor.hsl.s, 95)}
-                    )`
-                  }}
-                />
-                <span className="text-[10px] uppercase text-neutral-600">Lighter</span>
-                
-                {/* Custom Color Picker Button */}
-                <button
-                  onClick={() => setShowColorPicker(true)}
-                  className="w-8 h-8 rounded-full bg-primary-700 hover:bg-primary-600 flex items-center justify-center transition-colors"
-                  title="Pick custom color"
-                >
-                  <Plus size={14} className="text-neutral-400" />
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Divider */}
-          <div className="border-t border-primary-700" />
-
-          {/* Hex Code */}
-          {adjustedColor && (
-            <div>
-              <label className="block text-[10px] uppercase font-bold tracking-widest text-neutral-500 mb-3">
-                Hex Code
-              </label>
-              <div className="flex items-center gap-3">
-                {/* Color Preview */}
-                <div
-                  className="w-10 h-10 rounded border border-primary-600"
-                  style={{ backgroundColor: adjustedColor.hex }}
-                />
-                
-                {/* Input */}
-                <input
-                  type="text"
-                  value={hexInputValue}
-                  onChange={(e) => handleHexChange(e.target.value.toUpperCase())}
-                  maxLength={7}
-                  className="flex-1 px-4 py-3 bg-primary-800 border border-primary-700 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-accent-500 transition-colors"
-                  placeholder="#000000"
-                />
-                
-                {/* Copy Button */}
-                <button
-                  onClick={handleCopyHex}
-                  className="px-4 py-3 bg-primary-800 border border-primary-700 text-neutral-400 hover:text-white hover:border-primary-600 transition-colors"
-                >
-                  {copied ? <Check size={16} className="text-success-500" /> : <Copy size={16} />}
-                </button>
-              </div>
-              
-              {/* Neutral Badge */}
-              {adjustedColor.is_neutral && (
-                <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-primary-800 rounded-full text-[10px] uppercase tracking-wider text-neutral-400 border border-primary-700">
-                  <Check size={10} />
-                  Neutral Color
-                </div>
-              )}
-            </div>
-          )}
+        <div className="w-full lg:w-[400px]">
+          <ColorSelector
+            detectedColors={detectedColors.map(color => ({
+              hex: color.hex,
+              hsl: color.hsl,
+              name: color.name,
+              is_neutral: color.isNeutral,
+            }))}
+            selectedColorIndex={selectedColorIndex}
+            adjustedColor={adjustedColor}
+            onSelectDetected={selectColor}
+            onUpdateAdjusted={setAdjustedColor}
+            onOpenPicker={() => setShowColorPicker(true)}
+            isExtracting={isExtracting}
+          />
         </div>
       </div>
 
@@ -378,7 +223,11 @@ export default function ColorStep() {
       {showColorPicker && adjustedColor && (
         <ColorPickerModal
           initialColor={adjustedColor.hex}
-          onSelect={handleCustomColor}
+          onSelect={(hex) => {
+            const color = buildColorFromHex(hex)
+            setAdjustedColor(color)
+            setShowColorPicker(false)
+          }}
           onClose={() => setShowColorPicker(false)}
         />
       )}
@@ -396,6 +245,7 @@ export default function ColorStep() {
           itemImageBlob={croppedImage.croppedBlob}
           token={session.access_token}
           onClose={() => setShowTryOnModal(false)}
+          onTryOnComplete={handleTryOnComplete}
         />
       )}
 

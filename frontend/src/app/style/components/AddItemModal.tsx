@@ -1,51 +1,51 @@
 'use client'
 
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useStyleStore } from '@/store/styleStore'
 import { useAuth } from '@/components/AuthProvider'
 import { 
-  X, Upload, ArrowRight, ArrowLeft, Check, AlertTriangle, 
-  Sparkles, Plus, Copy, RotateCcw 
+  X, ArrowRight, Check, AlertTriangle, Sparkles, RotateCcw, Info, ChevronDown, Tag, DollarSign, Link as LinkIcon
 } from 'lucide-react'
-import { CATEGORY_TAXONOMY, FORMALITY_LEVELS, AESTHETIC_TAGS } from '@/types'
-import type { CategoryRecommendation } from '@/types'
+import { CATEGORY_TAXONOMY } from '@/types'
 import { extractDominantColors } from '@/lib/colorExtractor'
-import { buildColorFromHex, hslToHex } from '@/lib/colorUtils'
+import { buildColorFromHex } from '@/lib/colorUtils'
 import { validateItem } from '@/lib/api'
-import CropModal from './CropModal'
-import ColorPickerModal from './ColorPickerModal'
+
+// Shared Atoms
+import CropModal from './shared/CropModal'
+import ColorPickerModal from './shared/ColorPickerModal'
+import CategorySelector from './shared/CategorySelector'
+import FormalitySlider from './shared/FormalitySlider'
+import AestheticsSelector from './shared/AestheticsSelector'
+import ColorSelector from './shared/ColorSelector'
+import ImageUploadZone from './shared/ImageUploadZone'
 import TryOnModal from './TryOnModal'
 import AuthModal from '@/components/AuthModal'
 
 interface AddItemModalProps {
   categoryL1: string
-  recommendation: CategoryRecommendation | null
+  recommendation: any
   onCancel: () => void
 }
 
 type ModalStep = 'upload' | 'metadata' | 'colors' | 'validate'
 
+const STEPS: { id: ModalStep; label: string }[] = [
+  { id: 'upload', label: 'Upload' },
+  { id: 'metadata', label: 'Details' },
+  { id: 'colors', label: 'Colors' },
+  { id: 'validate', label: 'Review' }
+]
+
 export default function AddItemModal({ categoryL1, recommendation, onCancel }: AddItemModalProps) {
   const { user, session } = useAuth()
   
   const {
-    getBaseItem,
-    outfitItems,
-    addingItem,
-    setAddingItemCroppedImage,
-    setAddingItemCategory,
-    setAddingItemFormality,
-    toggleAddingItemAesthetic,
-    setAddingItemOwnership,
-    setAddingItemBrand,
-    setAddingItemPrice,
-    setAddingItemSourceUrl,
-    setAddingItemDetectedColors,
-    selectAddingItemColor,
-    setAddingItemAdjustedColor,
-    setItemValidation,
-    confirmAddItem,
-    setTryOnResult,
+    getBaseItem, outfitItems, addingItem, itemValidation, // Added itemValidation here for reactivity
+    setAddingItemCroppedImage, setAddingItemCategory, setAddingItemFormality,
+    toggleAddingItemAesthetic, setAddingItemDetectedColors,
+    selectAddingItemColor, setAddingItemAdjustedColor, setItemValidation, confirmAddItem, setTryOnResult,
+    setAddingItemBrand, setAddingItemPrice, setAddingItemSourceUrl,
   } = useStyleStore()
 
   const [currentStep, setCurrentStep] = useState<ModalStep>('upload')
@@ -54,194 +54,79 @@ export default function AddItemModal({ categoryL1, recommendation, onCancel }: A
   const [showColorPicker, setShowColorPicker] = useState(false)
   const [showTryOnModal, setShowTryOnModal] = useState(false)
   const [showAuthModal, setShowAuthModal] = useState(false)
-  const [isDragging, setIsDragging] = useState(false)
+  const [showOptional, setShowOptional] = useState(false)
   const [isExtracting, setIsExtracting] = useState(false)
   const [isValidating, setIsValidating] = useState(false)
-  const [hexInputValue, setHexInputValue] = useState('')
-  const [copied, setCopied] = useState(false)
-  const [showOptionalFields, setShowOptionalFields] = useState(false)
-  const [itemValidation, setLocalItemValidation] = useState<any>(null)
   const [pendingTryOnUrl, setPendingTryOnUrl] = useState<string | null>(null)
   
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const baseItem = getBaseItem()
+  
+  // Calculate current step index for progress bar
+  const currentStepIndex = useMemo(() => STEPS.findIndex(s => s.id === currentStep), [currentStep])
 
-  // Get available L2 categories
-  const categoryL2Options = CATEGORY_TAXONOMY[categoryL1] || []
-
-  // Validation helpers
-  const isMetadataValid = addingItem.category?.l1 && addingItem.category?.l2
-  const isColorValid = addingItem.adjustedColor !== null
-
-  // Sync hex input with adjusted color
-  useEffect(() => {
-    if (addingItem.adjustedColor) {
-      setHexInputValue(addingItem.adjustedColor.hex)
-    }
-  }, [addingItem.adjustedColor])
-
-  // Extract colors when entering color step
-  useEffect(() => {
-    if (currentStep === 'colors' && addingItem.croppedImage && addingItem.detectedColors.length === 0) {
-      extractColors()
-    }
-  }, [currentStep, addingItem.croppedImage])
-
-  // ===========================================================================
-  // UPLOAD STEP HANDLERS
-  // ===========================================================================
-
+  // 1. UPLOAD LOGIC
   const handleFileSelect = useCallback((file: File) => {
-    if (!file.type.startsWith('image/')) {
-      alert('Please select an image file')
-      return
-    }
-    if (file.size > 10 * 1024 * 1024) {
-      alert('File size must be less than 10MB')
-      return
-    }
     setSelectedFile(file)
     setShowCropModal(true)
   }, [])
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(false)
-    const file = e.dataTransfer.files[0]
-    if (file) handleFileSelect(file)
-  }, [handleFileSelect])
-
   const handleCropComplete = useCallback((croppedBlob: Blob) => {
     if (!selectedFile) return
     const croppedUrl = URL.createObjectURL(croppedBlob)
-    setAddingItemCroppedImage({
-      originalFile: selectedFile,
-      croppedBlob,
-      croppedUrl,
-    })
+    setAddingItemCroppedImage({ originalFile: selectedFile, croppedBlob, croppedUrl })
     setShowCropModal(false)
     setCurrentStep('metadata')
   }, [selectedFile, setAddingItemCroppedImage])
-
-  const handleSkipCrop = useCallback(() => {
-    if (!selectedFile) return
-    const croppedUrl = URL.createObjectURL(selectedFile)
-    setAddingItemCroppedImage({
-      originalFile: selectedFile,
-      croppedBlob: selectedFile,
-      croppedUrl,
-    })
-    setShowCropModal(false)
-    setCurrentStep('metadata')
-  }, [selectedFile, setAddingItemCroppedImage])
-
-  // ===========================================================================
-  // METADATA STEP HANDLERS
-  // ===========================================================================
 
   const handleL2Select = useCallback((l2: string) => {
     setAddingItemCategory(categoryL1, l2)
   }, [categoryL1, setAddingItemCategory])
 
-  const handleMetadataNext = useCallback(() => {
-    if (isMetadataValid) {
-      setCurrentStep('colors')
+  // 2. COLOR LOGIC
+  useEffect(() => {
+    // Only run if we are on the color step, have an image, and haven't extracted yet
+    if (currentStep === 'colors' && addingItem.croppedImage && addingItem.detectedColors.length === 0) {
+      setIsExtracting(true)
+      extractDominantColors(addingItem.croppedImage.croppedBlob, 3)
+        .then(setAddingItemDetectedColors)
+        .catch(err => console.error("Color extraction failed", err))
+        .finally(() => setIsExtracting(false))
     }
-  }, [isMetadataValid])
-
-  // ===========================================================================
-  // COLOR STEP HANDLERS
-  // ===========================================================================
-
-  const extractColors = async () => {
-    if (!addingItem.croppedImage) return
-
-    setIsExtracting(true)
-    try {
-      const colors = await extractDominantColors(addingItem.croppedImage.croppedBlob, 3)
-      setAddingItemDetectedColors(colors)
-    } catch (error) {
-      console.error('Error extracting colors:', error)
-    } finally {
-      setIsExtracting(false)
-    }
-  }
-
-  const handleBrightnessChange = useCallback((lightness: number) => {
-    if (!addingItem.adjustedColor) return
-    const newHex = hslToHex(addingItem.adjustedColor.hsl.h, addingItem.adjustedColor.hsl.s, lightness)
-    const newColor = buildColorFromHex(newHex)
-    setAddingItemAdjustedColor(newColor)
-  }, [addingItem.adjustedColor, setAddingItemAdjustedColor])
-
-  const handleHexChange = useCallback((value: string) => {
-    setHexInputValue(value)
-    if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
-      const newColor = buildColorFromHex(value)
-      setAddingItemAdjustedColor(newColor)
-    }
-  }, [setAddingItemAdjustedColor])
-
-  const handleCopyHex = useCallback(() => {
-    if (addingItem.adjustedColor) {
-      navigator.clipboard.writeText(addingItem.adjustedColor.hex)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    }
-  }, [addingItem.adjustedColor])
+  }, [currentStep, addingItem.croppedImage, addingItem.detectedColors.length, setAddingItemDetectedColors])
 
   const handleCustomColor = useCallback((hex: string) => {
-    const newColor = buildColorFromHex(hex)
-    setAddingItemAdjustedColor(newColor)
+    setAddingItemAdjustedColor(buildColorFromHex(hex))
     setShowColorPicker(false)
   }, [setAddingItemAdjustedColor])
 
-  const handleTryOnClick = useCallback(() => {
-    if (!user) {
-      setShowAuthModal(true)
-      return
-    }
-    setShowTryOnModal(true)
-  }, [user])
-
-  // Handle try-on completion - save result for later
-  const handleTryOnComplete = useCallback((resultUrl: string) => {
-    setPendingTryOnUrl(resultUrl)
-  }, [])
-
-  // ===========================================================================
-  // VALIDATE STEP HANDLERS
-  // ===========================================================================
-
+  // 3. VALIDATION LOGIC
   const handleValidateAndAdd = useCallback(async () => {
-    if (!baseItem || !addingItem.adjustedColor || !addingItem.category) return
+    // Defensive check: Ensure required data exists
+    if (!baseItem || !addingItem.adjustedColor || !addingItem.category || !addingItem.croppedImage) return
     
     setIsValidating(true)
-    
     try {
       const newItem = {
-        image_url: addingItem.croppedImage!.croppedUrl,
+        image_url: addingItem.croppedImage.croppedUrl,
         color: addingItem.adjustedColor,
         category: addingItem.category,
         formality: addingItem.formality,
         aesthetics: addingItem.aesthetics,
         ownership: addingItem.ownership,
       }
-      
-      const currentOutfitItems = outfitItems.map(oi => oi.item)
-      const validation = await validateItem(newItem, baseItem, currentOutfitItems)
-      
-      setLocalItemValidation(validation)
+      const currentItems = outfitItems.map(oi => oi.item)
+      const validation = await validateItem(newItem, baseItem, currentItems)
       setItemValidation(validation)
       setCurrentStep('validate')
     } catch (error) {
-      console.error('Validation failed:', error)
-      setLocalItemValidation({
-        color_status: 'ok',
-        formality_status: 'ok',
+      console.error('Validation failed', error)
+      // Fallback mock validation if API fails so user isn't stuck
+      setItemValidation({
+        color_status: 'ok', 
+        formality_status: 'ok', 
         aesthetic_status: 'cohesive',
-        pairing_status: 'ok',
-        warnings: ['Validation service unavailable'],
+        pairing_status: 'ok', 
+        warnings: ['Validation service unavailable - proceeding with caution']
       })
       setCurrentStep('validate')
     } finally {
@@ -250,706 +135,306 @@ export default function AddItemModal({ categoryL1, recommendation, onCancel }: A
   }, [baseItem, addingItem, outfitItems, setItemValidation])
 
   const handleConfirmAdd = useCallback(() => {
-    // Save try-on result if we have one
-    if (pendingTryOnUrl) {
-      setTryOnResult(categoryL1, pendingTryOnUrl)
-    }
-    
+    if (pendingTryOnUrl) setTryOnResult(categoryL1, pendingTryOnUrl)
     confirmAddItem()
-    onCancel() // Close modal after adding
+    onCancel()
   }, [confirmAddItem, onCancel, pendingTryOnUrl, categoryL1, setTryOnResult])
 
-  // ===========================================================================
-  // NAVIGATION
-  // ===========================================================================
-
-  const handleBack = useCallback(() => {
-    if (currentStep === 'metadata') setCurrentStep('upload')
-    else if (currentStep === 'colors') setCurrentStep('metadata')
-    else if (currentStep === 'validate') setCurrentStep('colors')
-  }, [currentStep])
-
-  // ===========================================================================
-  // RENDER
-  // ===========================================================================
-
-  const getStepDescription = () => {
-    switch (currentStep) {
-      case 'upload': return 'Add a photo of your item'
-      case 'metadata': return 'Tell us about this piece'
-      case 'colors': return 'Select the dominant color'
-      case 'validate': return 'Check how it fits with your outfit'
-      default: return ''
+  // Helper for status badges
+  const getStatusBadge = (label: string, status: string) => {
+    const styles = {
+      ok: 'bg-success-500/10 text-success-500 border-success-500/20',
+      cohesive: 'bg-success-500/10 text-success-500 border-success-500/20',
+      warning: 'bg-warning-500/10 text-warning-500 border-warning-500/20',
+      mismatch: 'bg-error-500/10 text-error-500 border-error-500/20',
     }
+    const safeStatus = status as keyof typeof styles
+    const style = styles[safeStatus] || styles.warning
+
+    return (
+      <div className={`flex items-center justify-between p-3 rounded border ${style}`}>
+        <span className="text-xs font-bold uppercase tracking-wider opacity-80">{label}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold uppercase">{status}</span>
+          {status === 'ok' || status === 'cohesive' ? <Check size={14} /> : <AlertTriangle size={14} />}
+        </div>
+      </div>
+    )
   }
 
   return (
-    <>
-      {/* Modal Backdrop */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div 
-          className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-          onClick={onCancel}
-        />
-        
-        {/* Modal Content */}
-        <div className="relative bg-primary-900 border border-primary-700 rounded-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-          {/* Header */}
-          <div className="sticky top-0 bg-primary-900 border-b border-primary-800 p-6 z-10">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-bold uppercase tracking-widest text-white">
-                  Adding: {categoryL1}
-                </h2>
-                <p className="text-neutral-500 text-sm mt-1">
-                  {getStepDescription()}
-                </p>
-              </div>
-              <button
-                onClick={onCancel}
-                className="p-2 text-neutral-500 hover:text-white transition-colors"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Step Progress */}
-            <div className="flex items-center gap-2 mt-6">
-              {['upload', 'metadata', 'colors', 'validate'].map((step, index) => (
-                <div key={step} className="flex-1 flex items-center gap-2">
-                  <div 
-                    className={`h-1 flex-1 rounded-full transition-colors ${
-                      currentStep === step || ['metadata', 'colors', 'validate'].indexOf(currentStep) > index
-                        ? 'bg-accent-500'
-                        : 'bg-primary-700'
-                    }`}
-                  />
-                </div>
-              ))}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onCancel} />
+      
+      <div className="relative bg-primary-900 border border-primary-700 rounded-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="sticky top-0 bg-primary-900 border-b border-primary-800 p-6 z-10 flex justify-between items-center">
+          <div>
+            <h2 className="text-xl font-bold uppercase tracking-widest text-white">Adding: {categoryL1}</h2>
+            <div className="flex gap-1 mt-3">
+               {STEPS.map((step, i) => (
+                 <div key={step.id} className="flex flex-col gap-1 w-16">
+                   <div className={`h-1 w-full rounded-full transition-colors duration-300 ${
+                     i <= currentStepIndex ? 'bg-accent-500' : 'bg-primary-700'
+                   }`} />
+                   <span className={`text-[9px] uppercase font-bold tracking-wider ${
+                     i <= currentStepIndex ? 'text-white' : 'text-neutral-600'
+                   }`}>
+                     {step.label}
+                   </span>
+                 </div>
+               ))}
             </div>
           </div>
+          <button onClick={onCancel} className="p-1"><X size={20} className="text-neutral-500 hover:text-white" /></button>
+        </div>
 
-          {/* Body */}
-          <div className="p-6">
-            {/* UPLOAD STEP */}
-            {currentStep === 'upload' && (
-              <div className="space-y-6">
-                {addingItem.croppedImage ? (
-                  // Preview
-                  <div className="flex flex-col items-center gap-6">
-                    <div className="w-64 h-80 bg-primary-800 rounded-lg overflow-hidden border border-primary-700">
-                      <img
-                        src={addingItem.croppedImage.croppedUrl}
-                        alt="Cropped item"
-                        className="w-full h-full object-contain"
-                      />
-                    </div>
-                    <div className="flex gap-3">
-                      <button
-                        onClick={() => {
-                          setSelectedFile(addingItem.croppedImage!.originalFile)
-                          setShowCropModal(true)
-                        }}
-                        className="px-4 py-2 text-sm font-bold uppercase tracking-widest
-                          border border-primary-600 text-neutral-400 hover:text-white hover:border-primary-500"
-                      >
-                        <RotateCcw size={14} className="inline mr-2" />
-                        Re-crop
-                      </button>
-                      <button
-                        onClick={() => fileInputRef.current?.click()}
-                        className="px-4 py-2 text-sm font-bold uppercase tracking-widest
-                          border border-primary-600 text-neutral-400 hover:text-white hover:border-primary-500"
-                      >
-                        Change Image
-                      </button>
-                      <button
-                        onClick={() => setCurrentStep('metadata')}
-                        className="px-6 py-2 text-sm font-bold uppercase tracking-widest
-                          bg-white text-primary-900 hover:bg-neutral-200"
-                      >
-                        Next
-                        <ArrowRight size={14} className="inline ml-2" />
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  // Upload zone
-                  <div
-                    onClick={() => fileInputRef.current?.click()}
-                    onDrop={handleDrop}
-                    onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
-                    onDragLeave={(e) => { e.preventDefault(); setIsDragging(false) }}
-                    className={`
-                      h-96 rounded-xl border-2 border-dashed cursor-pointer transition-all
-                      flex flex-col items-center justify-center gap-6
-                      ${isDragging 
-                        ? 'border-accent-500 bg-accent-500/10' 
-                        : 'border-primary-600 bg-primary-800/30 hover:border-primary-500'
-                      }
-                    `}
-                  >
-                    <div className={`p-6 rounded-full ${isDragging ? 'bg-accent-500/20' : 'bg-primary-800'}`}>
-                      <Upload size={32} className={isDragging ? 'text-accent-500' : 'text-neutral-500'} />
-                    </div>
-                    <div className="text-center">
-                      <h3 className={`text-lg font-bold uppercase tracking-widest mb-2 ${isDragging ? 'text-accent-500' : 'text-white'}`}>
-                        {isDragging ? 'Drop it here!' : 'Drop your image'}
-                      </h3>
-                      <p className="text-neutral-500 text-sm">
-                        or <span className="text-white underline">click to browse</span>
-                      </p>
-                    </div>
-                    <p className="text-neutral-600 text-xs uppercase tracking-wider">
-                      PNG, JPG, WEBP • Max 10MB
-                    </p>
-                  </div>
-                )}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
-                  className="hidden"
-                />
-              </div>
-            )}
+        <div className="p-6">
+          {/* STEP 1: UPLOAD */}
+          {currentStep === 'upload' && (
+             <div className="space-y-6">
+               {addingItem.croppedImage ? (
+                 <div className="flex flex-col items-center gap-6">
+                   <div className="w-64 h-80 bg-primary-800 rounded-lg overflow-hidden border border-primary-700">
+                     <img src={addingItem.croppedImage.croppedUrl} className="w-full h-full object-contain" />
+                   </div>
+                   <div className="flex gap-3">
+                     <button onClick={() => { setSelectedFile(addingItem.croppedImage!.originalFile); setShowCropModal(true) }} className="px-4 py-2 border border-primary-600 text-neutral-400 hover:text-white text-sm font-bold uppercase">
+                       <RotateCcw size={14} className="inline mr-2" /> Re-crop
+                     </button>
+                     <button onClick={() => setCurrentStep('metadata')} className="px-6 py-2 bg-white text-primary-900 hover:bg-neutral-200 text-sm font-bold uppercase">
+                       Next <ArrowRight size={14} className="inline ml-2" />
+                     </button>
+                   </div>
+                 </div>
+               ) : (
+                 <ImageUploadZone onFileSelect={handleFileSelect} label={`Drop ${categoryL1} image`} />
+               )}
+             </div>
+          )}
 
-            {/* METADATA STEP */}
-            {currentStep === 'metadata' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Left: Image Preview */}
-                <div className="flex justify-center">
-                  <div className="w-full max-w-sm aspect-[3/4] bg-primary-800 rounded-lg overflow-hidden border border-primary-700">
-                    {addingItem.croppedImage && (
-                      <img
-                        src={addingItem.croppedImage.croppedUrl}
-                        alt="Item"
-                        className="w-full h-full object-contain"
-                      />
-                    )}
-                  </div>
+          {/* STEP 2: METADATA */}
+          {currentStep === 'metadata' && addingItem.croppedImage && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="flex justify-center">
+                <div className="w-full max-w-sm aspect-[3/4] bg-primary-800 rounded-lg overflow-hidden border border-primary-700">
+                  <img src={addingItem.croppedImage.croppedUrl} className="w-full h-full object-contain" />
                 </div>
-
-                {/* Right: Form */}
-                <div className="space-y-6">
-                  {/* Sub-Category */}
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold tracking-widest text-neutral-500 mb-3">
-                      Sub-Category <span className="text-accent-500">*</span>
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      {categoryL2Options.map((l2) => (
-                        <button
-                          key={l2}
-                          onClick={() => handleL2Select(l2)}
-                          className={`
-                            px-4 py-2.5 text-xs font-medium uppercase tracking-wider
-                            border transition-all duration-200
-                            ${addingItem.category?.l2 === l2
-                              ? 'bg-accent-500 text-primary-900 border-accent-500'
-                              : 'bg-transparent text-neutral-400 border-primary-600 hover:border-accent-500/50 hover:text-accent-500'
-                            }
-                          `}
-                        >
-                          {l2}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Formality */}
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold tracking-widest text-neutral-500 mb-3">
-                      Formality <span className="text-accent-500">*</span>
-                    </label>
-                    <div className="space-y-3">
-                      <input
-                        type="range"
-                        min={1}
-                        max={5}
-                        step={1}
-                        value={addingItem.formality}
-                        onChange={(e) => setAddingItemFormality(Number(e.target.value))}
-                        className="w-full h-1.5 bg-primary-700 rounded-full appearance-none cursor-pointer
-                          [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5
-                          [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
-                      />
-                      <div className="flex justify-between text-[10px] uppercase tracking-wider">
-                        {Object.entries(FORMALITY_LEVELS).map(([level, label]) => (
-                          <span
-                            key={level}
-                            className={Number(level) === addingItem.formality ? 'text-white font-bold' : 'text-neutral-600'}
-                          >
-                            {label}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Aesthetics */}
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold tracking-widest text-neutral-500 mb-1">
-                      Aesthetics
-                    </label>
-                    <p className="text-[10px] text-neutral-600 mb-3">Select up to 3</p>
-                    <div className="flex flex-wrap gap-2">
-                      {AESTHETIC_TAGS.map((tag) => {
-                        const isSelected = addingItem.aesthetics.includes(tag)
-                        const isDisabled = addingItem.aesthetics.length >= 3 && !isSelected
-                        
-                        return (
-                          <button
-                            key={tag}
-                            onClick={() => toggleAddingItemAesthetic(tag)}
-                            disabled={isDisabled}
-                            className={`
-                              px-3 py-2 text-xs font-medium uppercase tracking-wider border transition-all
-                              ${isSelected
-                                ? 'bg-accent-500/20 text-accent-500 border-accent-500'
-                                : isDisabled
-                                  ? 'bg-transparent text-neutral-700 border-primary-700 cursor-not-allowed'
-                                  : 'bg-transparent text-neutral-500 border-primary-600 hover:border-neutral-500'
-                              }
-                            `}
-                          >
-                            {isSelected && <Check size={10} className="inline mr-1.5" />}
-                            {tag}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Ownership */}
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold tracking-widest text-neutral-500 mb-3">
-                      Ownership
-                    </label>
-                    <div className="flex gap-3">
-                      <button
-                        onClick={() => setAddingItemOwnership('owned')}
-                        className={`
-                          flex-1 px-4 py-3 text-xs font-bold uppercase tracking-widest border transition-all
-                          ${addingItem.ownership === 'owned'
-                            ? 'bg-white text-primary-900 border-white'
-                            : 'bg-transparent text-neutral-400 border-primary-600 hover:border-neutral-400'
-                          }
-                        `}
-                      >
-                        I Own This
-                      </button>
-                      <button
-                        onClick={() => setAddingItemOwnership('wishlist')}
-                        className={`
-                          flex-1 px-4 py-3 text-xs font-bold uppercase tracking-widest border transition-all
-                          ${addingItem.ownership === 'wishlist'
-                            ? 'bg-white text-primary-900 border-white'
-                            : 'bg-transparent text-neutral-400 border-primary-600 hover:border-neutral-400'
-                          }
-                        `}
-                      >
-                        Wishlist
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Optional Details (collapsible) */}
-                  <div>
-                    <button
-                      onClick={() => setShowOptionalFields(!showOptionalFields)}
-                      className="flex items-center gap-2 text-[10px] uppercase font-bold tracking-widest text-neutral-500 hover:text-neutral-400 transition-colors"
-                    >
-                      <Plus size={12} className={`transition-transform ${showOptionalFields ? 'rotate-45' : ''}`} />
+              </div>
+              <div className="space-y-6">
+                <CategorySelector 
+                  l2Options={CATEGORY_TAXONOMY[categoryL1] || []}
+                  selectedL2={addingItem.category?.l2}
+                  onSelectL2={handleL2Select}
+                  hideL1={true}
+                />
+                <FormalitySlider value={addingItem.formality} onChange={setAddingItemFormality} />
+                <AestheticsSelector selected={addingItem.aesthetics} onToggle={toggleAddingItemAesthetic} />
+                
+                {/* Optional Details Toggle */}
+                <div className="border-t border-primary-800 pt-4">
+                  <button
+                    onClick={() => setShowOptional(!showOptional)}
+                    className="flex items-center gap-2 text-neutral-400 hover:text-white transition-colors"
+                  >
+                    <ChevronDown 
+                      size={16} 
+                      className={`transition-transform duration-200 ${showOptional ? 'rotate-180' : ''}`}
+                    />
+                    <span className="text-xs font-bold uppercase tracking-widest">
                       Optional Details
-                    </button>
-                    
-                    {showOptionalFields && (
-                      <div className="mt-3 space-y-3 p-4 bg-primary-800/50 rounded-lg border border-primary-700">
-                        {/* Brand */}
-                        <div>
-                          <label className="block text-[9px] uppercase tracking-wider text-neutral-500 mb-1">
-                            Brand
-                          </label>
+                    </span>
+                    {(addingItem.brand || addingItem.price || addingItem.sourceUrl) && (
+                      <span className="ml-2 px-2 py-0.5 bg-accent-500/20 text-accent-500 text-[9px] uppercase rounded-full">
+                        {[addingItem.brand, addingItem.price, addingItem.sourceUrl].filter(Boolean).length} added
+                      </span>
+                    )}
+                  </button>
+
+                  {/* Optional Fields */}
+                  {showOptional && (
+                    <div className="mt-4 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                      
+                      {/* Brand */}
+                      <div>
+                        <label className="block text-[10px] uppercase font-bold tracking-widest text-neutral-500 mb-2">
+                          Brand
+                        </label>
+                        <div className="relative">
+                          <Tag size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-600" />
                           <input
                             type="text"
                             value={addingItem.brand}
                             onChange={(e) => setAddingItemBrand(e.target.value)}
-                            placeholder="e.g. Nike, Zara..."
-                            className="w-full px-3 py-2 bg-primary-900 border border-primary-700 text-white text-sm
-                              placeholder-neutral-600 focus:outline-none focus:border-accent-500"
+                            placeholder="e.g. Nike, Zara, Uniqlo"
+                            className="w-full pl-10 pr-3 py-2 bg-primary-800 border border-primary-700 text-white text-sm
+                              placeholder-neutral-600 focus:outline-none focus:border-accent-500 transition-colors"
                           />
                         </div>
-                        
-                        {/* Price */}
-                        <div>
-                          <label className="block text-[9px] uppercase tracking-wider text-neutral-500 mb-1">
-                            Price
-                          </label>
-                          <div className="flex items-center">
-                            <span className="px-3 py-2 bg-primary-800 border border-r-0 border-primary-700 text-neutral-500 text-sm">$</span>
-                            <input
-                              type="number"
-                              value={addingItem.price}
-                              onChange={(e) => setAddingItemPrice(e.target.value)}
-                              placeholder="0.00"
-                              min="0"
-                              step="0.01"
-                              className="flex-1 px-3 py-2 bg-primary-900 border border-primary-700 text-white text-sm
-                                placeholder-neutral-600 focus:outline-none focus:border-accent-500"
-                            />
-                          </div>
+                      </div>
+
+                      {/* Price */}
+                      <div>
+                        <label className="block text-[10px] uppercase font-bold tracking-widest text-neutral-500 mb-2">
+                          Price
+                        </label>
+                        <div className="relative">
+                          <DollarSign size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-600" />
+                          <input
+                            type="number"
+                            value={addingItem.price}
+                            onChange={(e) => setAddingItemPrice(e.target.value)}
+                            placeholder="0.00"
+                            min="0"
+                            step="0.01"
+                            className="w-full pl-10 pr-3 py-2 bg-primary-800 border border-primary-700 text-white text-sm
+                              placeholder-neutral-600 focus:outline-none focus:border-accent-500 transition-colors"
+                          />
                         </div>
-                        
-                        {/* Source URL */}
-                        <div>
-                          <label className="block text-[9px] uppercase tracking-wider text-neutral-500 mb-1">
-                            Source URL
-                          </label>
+                      </div>
+
+                      {/* Source URL */}
+                      <div>
+                        <label className="block text-[10px] uppercase font-bold tracking-widest text-neutral-500 mb-2">
+                          Source URL
+                        </label>
+                        <div className="relative">
+                          <LinkIcon size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-600" />
                           <input
                             type="url"
                             value={addingItem.sourceUrl}
                             onChange={(e) => setAddingItemSourceUrl(e.target.value)}
                             placeholder="https://..."
-                            className="w-full px-3 py-2 bg-primary-900 border border-primary-700 text-white text-sm
-                              placeholder-neutral-600 focus:outline-none focus:border-accent-500"
+                            className="w-full pl-10 pr-3 py-2 bg-primary-800 border border-primary-700 text-white text-sm
+                              placeholder-neutral-600 focus:outline-none focus:border-accent-500 transition-colors"
                           />
                         </div>
                       </div>
-                    )}
-                  </div>
-
-                  {/* Navigation */}
-                  <div className="flex gap-3 pt-4">
-                    <button
-                      onClick={handleBack}
-                      className="flex items-center gap-2 px-4 py-3 text-neutral-400 hover:text-white
-                        text-xs font-bold uppercase tracking-widest transition-colors"
-                    >
-                      <ArrowLeft size={14} />
-                      Back
-                    </button>
-                    <button
-                      onClick={handleMetadataNext}
-                      disabled={!isMetadataValid}
-                      className="flex-1 flex items-center justify-center gap-2 px-6 py-3
-                        bg-white text-primary-900 hover:bg-neutral-200 disabled:opacity-30
-                        text-xs font-bold uppercase tracking-widest transition-all"
-                    >
-                      Next Step
-                      <ArrowRight size={14} />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* COLORS STEP */}
-            {currentStep === 'colors' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Left: Image with color border */}
-                <div className="flex justify-center">
-                  <div 
-                    className="w-full max-w-sm aspect-[3/4] rounded-lg overflow-hidden shadow-xl transition-all"
-                    style={{
-                      border: `3px solid ${addingItem.adjustedColor?.hex || '#333'}`,
-                      boxShadow: addingItem.adjustedColor ? `0 0 30px ${addingItem.adjustedColor.hex}40` : 'none'
-                    }}
-                  >
-                    {addingItem.croppedImage && (
-                      <img
-                        src={addingItem.croppedImage.croppedUrl}
-                        alt="Item"
-                        className="w-full h-full object-contain bg-primary-800"
-                      />
-                    )}
-                  </div>
-                </div>
-
-                {/* Right: Color controls */}
-                <div className="space-y-6">
-                  {/* Detected Colors */}
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold tracking-widest text-neutral-500 mb-4">
-                      Detected Colors
-                    </label>
-                    {isExtracting ? (
-                      <div className="flex items-center gap-3 text-neutral-400">
-                        <div className="w-5 h-5 border-2 border-accent-500 border-t-transparent rounded-full animate-spin" />
-                        <span className="text-sm">Analyzing image...</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-4">
-                        {addingItem.detectedColors.map((color, index) => (
-                          <button
-                            key={index}
-                            onClick={() => selectAddingItemColor(index)}
-                            className="group flex flex-col items-center gap-2"
-                          >
-                            <div
-                              className={`
-                                w-16 h-16 rounded-full transition-all duration-200
-                                ${addingItem.selectedColorIndex === index 
-                                  ? 'ring-2 ring-white ring-offset-2 ring-offset-primary-900 scale-110' 
-                                  : 'hover:scale-105'
-                                }
-                              `}
-                              style={{ backgroundColor: color.hex }}
-                            />
-                            <span className={`
-                              text-[10px] uppercase tracking-wider transition-colors
-                              ${addingItem.selectedColorIndex === index ? 'text-white' : 'text-neutral-500'}
-                            `}>
-                              {color.name}
-                            </span>
-                            {addingItem.selectedColorIndex === index && (
-                              <Check size={12} className="text-accent-500" />
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="border-t border-primary-700" />
-
-                  {/* Brightness Adjustment */}
-                  {addingItem.adjustedColor && (
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold tracking-widest text-neutral-500 mb-4">
-                        Adjust Brightness
-                      </label>
-                      <div className="flex items-center gap-4">
-                        <span className="text-[10px] uppercase text-neutral-600">Darker</span>
-                        <input
-                          type="range"
-                          min={5}
-                          max={95}
-                          value={addingItem.adjustedColor.hsl.l}
-                          onChange={(e) => handleBrightnessChange(Number(e.target.value))}
-                          className="flex-1 h-2 rounded-full appearance-none cursor-pointer"
-                          style={{
-                            background: `linear-gradient(to right, 
-                              ${hslToHex(addingItem.adjustedColor.hsl.h, addingItem.adjustedColor.hsl.s, 5)}, 
-                              ${hslToHex(addingItem.adjustedColor.hsl.h, addingItem.adjustedColor.hsl.s, 50)}, 
-                              ${hslToHex(addingItem.adjustedColor.hsl.h, addingItem.adjustedColor.hsl.s, 95)}
-                            )`
-                          }}
-                        />
-                        <span className="text-[10px] uppercase text-neutral-600">Lighter</span>
-                        <button
-                          onClick={() => setShowColorPicker(true)}
-                          className="w-8 h-8 rounded-full bg-primary-700 hover:bg-primary-600 flex items-center justify-center"
-                        >
-                          <Plus size={14} className="text-neutral-400" />
-                        </button>
-                      </div>
                     </div>
                   )}
-
-                  <div className="border-t border-primary-700" />
-
-                  {/* Hex Code */}
-                  {addingItem.adjustedColor && (
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold tracking-widest text-neutral-500 mb-3">
-                        Hex Code
-                      </label>
-                      <div className="flex items-center gap-3">
-                        <div
-                          className="w-10 h-10 rounded border border-primary-600"
-                          style={{ backgroundColor: addingItem.adjustedColor.hex }}
-                        />
-                        <input
-                          type="text"
-                          value={hexInputValue}
-                          onChange={(e) => handleHexChange(e.target.value.toUpperCase())}
-                          maxLength={7}
-                          className="flex-1 px-4 py-3 bg-primary-800 border border-primary-700 text-white font-mono text-sm"
-                          placeholder="#000000"
-                        />
-                        <button
-                          onClick={handleCopyHex}
-                          className="px-4 py-3 bg-primary-800 border border-primary-700 text-neutral-400 hover:text-white"
-                        >
-                          {copied ? <Check size={16} className="text-success-500" /> : <Copy size={16} />}
-                        </button>
-                      </div>
-                      {addingItem.adjustedColor.is_neutral && (
-                        <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-primary-800 rounded-full text-[10px] uppercase tracking-wider text-neutral-400 border border-primary-700">
-                          <Check size={10} />
-                          Neutral Color
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Try-on indicator if one was completed */}
-                  {pendingTryOnUrl && (
-                    <div className="flex items-center gap-2 p-3 bg-accent-500/10 rounded border border-accent-500/30">
-                      <Sparkles size={14} className="text-accent-500" />
-                      <span className="text-sm text-accent-400">Try-on image saved</span>
-                    </div>
-                  )}
-
-                  {/* Navigation with Try-On */}
-                  <div className="flex gap-3 pt-4">
-                    <button
-                      onClick={handleBack}
-                      className="flex items-center gap-2 px-4 py-3 text-neutral-400 hover:text-white
-                        text-xs font-bold uppercase tracking-widest transition-colors"
-                    >
-                      <ArrowLeft size={14} />
-                      Back
-                    </button>
-                    <button
-                      onClick={handleTryOnClick}
-                      disabled={!isColorValid || !addingItem.croppedImage}
-                      className={`
-                        flex items-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-widest border transition-all
-                        ${isColorValid && addingItem.croppedImage
-                          ? 'bg-transparent text-accent-500 border-accent-500 hover:bg-accent-500 hover:text-primary-900' 
-                          : 'bg-transparent text-neutral-600 border-primary-700 cursor-not-allowed'
-                        }
-                      `}
-                    >
-                      <Sparkles size={14} />
-                      Try On
-                    </button>
-                    <button
-                      onClick={handleValidateAndAdd}
-                      disabled={!isColorValid || isValidating}
-                      className="flex-1 flex items-center justify-center gap-2 px-6 py-3
-                        bg-white text-primary-900 hover:bg-neutral-200 disabled:opacity-30
-                        text-xs font-bold uppercase tracking-widest transition-all"
-                    >
-                      {isValidating ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-primary-900 border-t-transparent rounded-full animate-spin" />
-                          Checking...
-                        </>
-                      ) : (
-                        <>
-                          Validate & Add
-                          <ArrowRight size={14} />
-                        </>
-                      )}
-                    </button>
-                  </div>
                 </div>
-              </div>
-            )}
-
-            {/* VALIDATE STEP */}
-            {currentStep === 'validate' && itemValidation && (
-              <div className="max-w-2xl mx-auto space-y-6">
-                {/* Validation Result */}
-                {(() => {
-                  const hasWarnings = itemValidation.warnings.length > 0 ||
-                    itemValidation.color_status === 'warning' ||
-                    itemValidation.formality_status !== 'ok' ||
-                    itemValidation.aesthetic_status === 'warning' ||
-                    itemValidation.pairing_status === 'warning'
-                  
-                  return (
-                    <div className={`
-                      p-6 rounded-lg border
-                      ${!hasWarnings 
-                        ? 'bg-success-500/10 border-success-500/30' 
-                        : 'bg-warning-500/10 border-warning-500/30'
-                      }
-                    `}>
-                      <div className="flex items-center gap-4">
-                        {!hasWarnings ? (
-                          <div className="w-12 h-12 rounded-full bg-success-500/20 flex items-center justify-center">
-                            <Check size={24} className="text-success-500" />
-                          </div>
-                        ) : (
-                          <div className="w-12 h-12 rounded-full bg-warning-500/20 flex items-center justify-center">
-                            <AlertTriangle size={24} className="text-warning-500" />
-                          </div>
-                        )}
-                        <div>
-                          <h4 className="text-lg font-bold text-white">
-                            {!hasWarnings ? 'Great Match!' : 'Possible Issues'}
-                          </h4>
-                          <div className="flex gap-4 mt-1">
-                            <span className={`text-xs uppercase ${itemValidation.color_status === 'ok' ? 'text-success-500' : 'text-warning-500'}`}>
-                              Color: {itemValidation.color_status}
-                            </span>
-                            <span className={`text-xs uppercase ${itemValidation.formality_status === 'ok' ? 'text-success-500' : 'text-warning-500'}`}>
-                              Formality: {itemValidation.formality_status}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })()}
-
-                {/* Preview */}
-                <div className="flex justify-center">
-                  <div className="w-48 h-60 bg-primary-800 rounded-lg overflow-hidden border border-primary-700">
-                    {addingItem.croppedImage && (
-                      <img
-                        src={addingItem.croppedImage.croppedUrl}
-                        alt="Item"
-                        className="w-full h-full object-contain"
-                      />
-                    )}
-                  </div>
-                </div>
-
-                {/* Warnings */}
-                {itemValidation.warnings.length > 0 && (
-                  <div className="space-y-2">
-                    <p className="text-xs uppercase tracking-wider text-neutral-500">Warnings</p>
-                    {itemValidation.warnings.map((warning: string, i: number) => (
-                      <div key={i} className="flex items-start gap-2 p-3 bg-warning-500/10 rounded border border-warning-500/20">
-                        <AlertTriangle size={14} className="text-warning-500 mt-0.5 flex-shrink-0" />
-                        <p className="text-sm text-neutral-300">{warning}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Action Buttons */}
+                
                 <div className="flex gap-3 pt-4">
-                  <button
-                    onClick={handleBack}
-                    className="flex items-center gap-2 px-4 py-3 text-neutral-400 hover:text-white
-                      border border-primary-600 text-xs font-bold uppercase tracking-widest transition-all"
-                  >
-                    <ArrowLeft size={14} />
-                    Go Back
-                  </button>
-                  <button
-                    onClick={handleConfirmAdd}
-                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3
-                      bg-white text-primary-900 hover:bg-neutral-200
-                      text-xs font-bold uppercase tracking-widest transition-all"
-                  >
-                    <Check size={14} />
-                    {itemValidation.warnings.length === 0 ? 'Add to Outfit' : 'Add Anyway'}
-                  </button>
+                  <button onClick={() => setCurrentStep('upload')} className="px-4 py-3 text-neutral-400 hover:text-white text-xs font-bold uppercase">Back</button>
+                  <button onClick={() => setCurrentStep('colors')} disabled={!addingItem.category?.l2} className="flex-1 bg-white text-primary-900 hover:bg-neutral-200 disabled:opacity-30 text-xs font-bold uppercase px-6 py-3">Next Step</button>
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
+
+          {/* STEP 3: COLORS */}
+          {currentStep === 'colors' && addingItem.croppedImage && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="flex justify-center">
+                <div className="w-full max-w-sm aspect-[3/4] bg-primary-800 rounded-lg overflow-hidden border border-primary-700"
+                     style={{ border: `3px solid ${addingItem.adjustedColor?.hex || '#333'}` }}>
+                  <img src={addingItem.croppedImage.croppedUrl} className="w-full h-full object-contain" />
+                </div>
+              </div>
+              <div className="space-y-6">
+                <ColorSelector
+                  detectedColors={addingItem.detectedColors.map(dc => ({ ...dc, is_neutral: dc.name.toLowerCase().includes('gray') || dc.name.toLowerCase().includes('beige') || dc.name.toLowerCase().includes('white') || dc.name.toLowerCase().includes('black') }))}
+                  selectedColorIndex={addingItem.selectedColorIndex}
+                  adjustedColor={addingItem.adjustedColor}
+                  onSelectDetected={selectAddingItemColor}
+                  onUpdateAdjusted={setAddingItemAdjustedColor}
+                  onOpenPicker={() => setShowColorPicker(true)}
+                  isExtracting={isExtracting}
+                />
+                
+                <div className="flex gap-3 pt-4">
+                   <button onClick={() => setCurrentStep('metadata')} className="px-4 py-3 text-neutral-400 hover:text-white text-xs font-bold uppercase">Back</button>
+                   
+                   <button 
+                     onClick={() => user ? setShowTryOnModal(true) : setShowAuthModal(true)}
+                     disabled={!addingItem.adjustedColor}
+                     className="px-4 py-3 border border-accent-500 text-accent-500 hover:bg-accent-500 hover:text-primary-900 text-xs font-bold uppercase"
+                   >
+                     <Sparkles size={14} className="inline mr-2" /> Try On
+                   </button>
+                   
+                   <button 
+                     onClick={handleValidateAndAdd} 
+                     disabled={!addingItem.adjustedColor || isValidating}
+                     className="flex-1 bg-white text-primary-900 hover:bg-neutral-200 disabled:opacity-30 text-xs font-bold uppercase px-6 py-3"
+                   >
+                     {isValidating ? 'Validating...' : 'Validate & Add'}
+                   </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 4: VALIDATE */}
+          {currentStep === 'validate' && itemValidation && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+               <div className="p-6 rounded-lg bg-primary-800 border border-primary-700">
+                  <div className="flex items-center gap-4 mb-6">
+                    {itemValidation.warnings.length === 0 
+                      ? <Check className="text-success-500" size={32} />
+                      : <AlertTriangle className="text-warning-500" size={32} />
+                    }
+                    <div>
+                      <h4 className="text-lg font-bold text-white uppercase tracking-wider">
+                        {itemValidation.warnings.length === 0 ? 'Perfect Match!' : 'Compatibility Check'}
+                      </h4>
+                      <p className="text-neutral-400 text-xs mt-1">
+                        How this item fits with your base {baseItem?.category.l2}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Detailed Status Breakdown */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    {getStatusBadge('Color Harmony', itemValidation.color_status)}
+                    {getStatusBadge('Formality', itemValidation.formality_status)}
+                    {getStatusBadge('Aesthetics', itemValidation.aesthetic_status)}
+                    {getStatusBadge('Pairing', itemValidation.pairing_status)}
+                  </div>
+                  
+                  {/* Warnings List */}
+                  {itemValidation.warnings.length > 0 && (
+                    <div className="bg-primary-900/50 p-4 rounded border border-primary-700">
+                       <h5 className="text-xs font-bold uppercase tracking-wider text-neutral-400 mb-2 flex items-center gap-2">
+                         <Info size={12} /> Suggestions
+                       </h5>
+                       <ul className="space-y-2">
+                         {itemValidation.warnings.map((w, i) => (
+                           <li key={i} className="text-sm text-neutral-300 flex items-start gap-2">
+                             <span className="block w-1.5 h-1.5 mt-1.5 rounded-full bg-warning-500 shrink-0" />
+                             {w}
+                           </li>
+                         ))}
+                       </ul>
+                    </div>
+                  )}
+               </div>
+               
+               <div className="flex gap-3 pt-4">
+                 <button onClick={() => setCurrentStep('colors')} className="px-4 py-3 border border-primary-600 text-neutral-400 hover:text-white text-xs font-bold uppercase">Back</button>
+                 <button onClick={handleConfirmAdd} className="flex-1 bg-white text-primary-900 hover:bg-neutral-200 text-xs font-bold uppercase px-6 py-3">
+                   {itemValidation.warnings.length > 0 ? 'Add Anyway' : 'Add to Outfit'}
+                 </button>
+               </div>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Modals */}
       {showCropModal && selectedFile && (
-        <CropModal
-          file={selectedFile}
-          onComplete={handleCropComplete}
-          onSkip={handleSkipCrop}
-          onClose={() => { setShowCropModal(false); setSelectedFile(null) }}
+        <CropModal 
+          file={selectedFile} 
+          onComplete={handleCropComplete} 
+          onSkip={() => {
+            setAddingItemCroppedImage({ originalFile: selectedFile, croppedBlob: selectedFile, croppedUrl: URL.createObjectURL(selectedFile) });
+            setShowCropModal(false);
+            setCurrentStep('metadata');
+          }}
+          onClose={() => setShowCropModal(false)} 
         />
       )}
-
+      
       {showColorPicker && addingItem.adjustedColor && (
         <ColorPickerModal
           initialColor={addingItem.adjustedColor.hex}
@@ -970,14 +455,11 @@ export default function AddItemModal({ categoryL1, recommendation, onCancel }: A
           itemImageBlob={addingItem.croppedImage.croppedBlob}
           token={session.access_token}
           onClose={() => setShowTryOnModal(false)}
-          onTryOnComplete={handleTryOnComplete}
+          onTryOnComplete={(url) => setPendingTryOnUrl(url)}
         />
       )}
-
-      <AuthModal 
-        isOpen={showAuthModal} 
-        onClose={() => setShowAuthModal(false)} 
-      />
-    </>
+      
+      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+    </div>
   )
 }
