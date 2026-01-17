@@ -101,7 +101,7 @@ export default function SuggestionPanel({
           </div>
           <div>
             <h3 className="text-xs font-bold uppercase tracking-widest text-white">
-              AI Suggestions
+              Suggestions
             </h3>
             <p className="text-[10px] text-neutral-500">
               For your {categoryL1.toLowerCase()}
