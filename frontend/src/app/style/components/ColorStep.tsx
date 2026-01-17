@@ -1,16 +1,24 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef, type PointerEvent as ReactPointerEvent } from 'react'
 import { useStyleStore } from '@/store/styleStore'
 import { useAuth } from '@/components/AuthProvider'
-import { ArrowLeft, ArrowRight, Sparkles } from 'lucide-react'
-import { extractDominantColors } from '@/lib/colorExtractor'
+
+import { ArrowLeft, ArrowRight, Sparkles, Search } from 'lucide-react'
+
+import type { Color } from '@/types'
+
+import { extractDominantColors, getDominantColor } from '@/lib/colorExtractor'
 import { buildColorFromHex } from '@/lib/colorUtils'
 import { getRecommendations } from '@/lib/api'
 import ColorSelector from './shared/ColorSelector'
-import ColorPickerModal from './shared/ColorPickerModal' // Ensure you moved this file
+import ColorPickerModal from './shared/ColorPickerModal'
 import TryOnModal from './TryOnModal'
 import AuthModal from '@/components/AuthModal'
+
+/* Magnifier sizing constants */
+const MAGNIFIER_DIAMETER = 56
+const MAGNIFIER_SAMPLE_SIZE = 24
 
 export default function ColorStep() {
   const { user, session } = useAuth()
@@ -39,6 +47,19 @@ export default function ColorStep() {
   const [showColorPicker, setShowColorPicker] = useState(false)
   const [showTryOnModal, setShowTryOnModal] = useState(false)
   const [showAuthModal, setShowAuthModal] = useState(false)
+  
+  /* Local magnifier state/refs so position can be reverted during OOB. */
+  const [magnifierPosition, setMagnifierPosition] = useState<{ x: number; y: number } | null>(null)
+  const [isMagnifierDragging, setIsMagnifierDragging] = useState(false)
+  const imageWrapRef = useRef<HTMLDivElement | null>(null)
+  const imageRef = useRef<HTMLImageElement | null>(null)
+  const dragStartMagnifierRef = useRef<{ x: number; y: number } | null>(null)
+  const dragStartColorRef = useRef<Color | null>(null)
+  const lastCommittedMagnifierRef = useRef<{ x: number; y: number } | null>(null)
+  const lastCommittedColorRef = useRef<Color | null>(null)
+  const magnifierSamplingRef = useRef(false)
+  const pendingMagnifierSampleRef = useRef<{ clientX: number; clientY: number; sessionId: number } | null>(null)
+  const magnifierSessionRef = useRef(0)
 
   // Extract colors on mount
   useEffect(() => {
@@ -61,6 +82,246 @@ export default function ColorStep() {
       setIsExtracting(false)
     }
   }
+
+  /* GENERATED CODE (preface): Compute visible image geometry (object-contain) for drag bounds and sampling mapping. */
+  const getImageMetrics = useCallback(() => {
+    const imageEl = imageRef.current
+    const wrapEl = imageWrapRef.current
+    if (!imageEl || !wrapEl) return null
+
+    const wrapRect = wrapEl.getBoundingClientRect()
+    if (wrapRect.width === 0 || wrapRect.height === 0) return null
+    if (imageEl.naturalWidth === 0 || imageEl.naturalHeight === 0) return null
+
+    const imageRatio = imageEl.naturalWidth / imageEl.naturalHeight
+    const wrapRatio = wrapRect.width / wrapRect.height
+
+    const renderedWidth = imageRatio > wrapRatio ? wrapRect.width : wrapRect.height * imageRatio
+    const renderedHeight = imageRatio > wrapRatio ? wrapRect.width / imageRatio : wrapRect.height
+    const offsetX = (wrapRect.width - renderedWidth) / 2
+    const offsetY = (wrapRect.height - renderedHeight) / 2
+
+    const imageRect = {
+      left: wrapRect.left + offsetX,
+      top: wrapRect.top + offsetY,
+      width: renderedWidth,
+      height: renderedHeight,
+      right: wrapRect.left + offsetX + renderedWidth,
+      bottom: wrapRect.top + offsetY + renderedHeight,
+    }
+
+    return { imageEl, imageRect, wrapRect }
+  }, [])
+
+  /* GENERATED CODE (preface): Extract a dominant color from the magnifier sample area using ColorThief. */
+  const sampleMagnifierColor = useCallback(async (clientX: number, clientY: number, sessionId: number) => {
+    const metrics = getImageMetrics()
+    if (!metrics) return
+
+    const { imageEl, imageRect } = metrics
+    if (!imageEl.complete || imageEl.naturalWidth === 0) return
+
+    const isInside =
+      clientX >= imageRect.left &&
+      clientX <= imageRect.right &&
+      clientY >= imageRect.top &&
+      clientY <= imageRect.bottom
+    if (!isInside) return
+
+    const scaleX = imageEl.naturalWidth / imageRect.width
+    const scaleY = imageEl.naturalHeight / imageRect.height
+    const xInImage = (clientX - imageRect.left) * scaleX
+    const yInImage = (clientY - imageRect.top) * scaleY
+
+    const sampleSize = MAGNIFIER_SAMPLE_SIZE
+    const sx = Math.max(0, Math.min(imageEl.naturalWidth - sampleSize, xInImage - sampleSize / 2))
+    const sy = Math.max(0, Math.min(imageEl.naturalHeight - sampleSize, yInImage - sampleSize / 2))
+
+    const canvas = document.createElement('canvas')
+    canvas.width = sampleSize
+    canvas.height = sampleSize
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    ctx.drawImage(imageEl, sx, sy, sampleSize, sampleSize, 0, 0, sampleSize, sampleSize)
+
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'))
+    if (!blob) return
+
+    try {
+      const dominant = await getDominantColor(blob)
+      if (sessionId !== magnifierSessionRef.current) return
+      setAdjustedColor(buildColorFromHex(dominant.hex))
+    } catch (error) {
+      console.error('Magnifier color sampling failed', error)
+    }
+  }, [getImageMetrics, setAdjustedColor])
+
+  /* GENERATED CODE (preface): Place the magnifier at image center once layout is measurable. */
+  const initializeMagnifierPosition = useCallback(() => {
+    if (!croppedImage || magnifierPosition || isMagnifierDragging) return
+
+    const metrics = getImageMetrics()
+    if (!metrics) return
+
+    const centerX = metrics.imageRect.left + metrics.imageRect.width / 2
+    const centerY = metrics.imageRect.top + metrics.imageRect.height / 2
+    const centeredPosition = {
+      x: centerX - metrics.wrapRect.left,
+      y: centerY - metrics.wrapRect.top,
+    }
+
+    setMagnifierPosition(centeredPosition)
+    lastCommittedMagnifierRef.current = centeredPosition
+  }, [croppedImage, magnifierPosition, isMagnifierDragging, getImageMetrics])
+
+  /* GENERATED CODE (preface): Queue magnifier sampling so only the latest pointer position is processed. */
+  const queueMagnifierSample = useCallback((clientX: number, clientY: number) => {
+    pendingMagnifierSampleRef.current = { clientX, clientY, sessionId: magnifierSessionRef.current }
+    if (magnifierSamplingRef.current) return
+
+    const run = async () => {
+      magnifierSamplingRef.current = true
+      while (pendingMagnifierSampleRef.current) {
+        const nextSample = pendingMagnifierSampleRef.current
+        pendingMagnifierSampleRef.current = null
+        if (nextSample.sessionId !== magnifierSessionRef.current) {
+          continue
+        }
+        await sampleMagnifierColor(nextSample.clientX, nextSample.clientY, nextSample.sessionId)
+      }
+      magnifierSamplingRef.current = false
+    }
+
+    void run()
+  }, [sampleMagnifierColor])
+
+  /* GENERATED CODE (preface): Move the magnifier and clamp it to the visible image area. */
+  const moveMagnifierToClientPoint = useCallback((clientX: number, clientY: number) => {
+    const metrics = getImageMetrics()
+    if (!metrics) return false
+
+    const { imageRect, wrapRect } = metrics
+    const isInside =
+      clientX >= imageRect.left &&
+      clientX <= imageRect.right &&
+      clientY >= imageRect.top &&
+      clientY <= imageRect.bottom
+
+    if (!isInside) return false
+
+    const clampedX = Math.min(imageRect.right, Math.max(imageRect.left, clientX)) - wrapRect.left
+    const clampedY = Math.min(imageRect.bottom, Math.max(imageRect.top, clientY)) - wrapRect.top
+    setMagnifierPosition({ x: clampedX, y: clampedY })
+    return true
+  }, [getImageMetrics])
+
+  /* GENERATED CODE (preface): Reset magnifier state to pre-drag values when leaving the image. */
+  const resetMagnifierToDragStart = useCallback(() => {
+    magnifierSessionRef.current += 1
+    pendingMagnifierSampleRef.current = null
+
+    if (dragStartMagnifierRef.current) {
+      setMagnifierPosition(dragStartMagnifierRef.current)
+    }
+    if (dragStartColorRef.current) {
+      setAdjustedColor(dragStartColorRef.current)
+    }
+
+    dragStartMagnifierRef.current = null
+    dragStartColorRef.current = null
+    setIsMagnifierDragging(false)
+  }, [setAdjustedColor])
+
+  /* GENERATED CODE (preface): Commit the magnifier position/color on pointer release. */
+  const commitMagnifierState = useCallback(() => {
+    if (magnifierPosition) {
+      lastCommittedMagnifierRef.current = magnifierPosition
+    }
+    if (adjustedColor) {
+      lastCommittedColorRef.current = adjustedColor
+    }
+
+    dragStartMagnifierRef.current = null
+    dragStartColorRef.current = null
+    setIsMagnifierDragging(false)
+  }, [adjustedColor, magnifierPosition])
+
+  /* GENERATED CODE (preface): Pointer handler to start a new drag sampling session. */
+  const handleMagnifierPointerDown = useCallback((event: ReactPointerEvent<HTMLButtonElement>) => {
+    event.preventDefault()
+    event.stopPropagation()
+
+    magnifierSessionRef.current += 1
+    dragStartMagnifierRef.current = lastCommittedMagnifierRef.current ?? magnifierPosition
+    dragStartColorRef.current = lastCommittedColorRef.current ?? adjustedColor ?? null
+    setIsMagnifierDragging(true)
+
+    const movedInside = moveMagnifierToClientPoint(event.clientX, event.clientY)
+    if (!movedInside) {
+      resetMagnifierToDragStart()
+      return
+    }
+
+    queueMagnifierSample(event.clientX, event.clientY)
+  }, [adjustedColor, magnifierPosition, moveMagnifierToClientPoint, queueMagnifierSample, resetMagnifierToDragStart])
+
+  /* GENERATED CODE (preface): Keep the last committed color in sync with non-drag updates. */
+  useEffect(() => {
+    if (!isMagnifierDragging && adjustedColor) {
+      lastCommittedColorRef.current = adjustedColor
+    }
+  }, [adjustedColor, isMagnifierDragging])
+
+  /* GENERATED CODE (preface): Reset magnifier state when the cropped image changes. */
+  useEffect(() => {
+    if (!croppedImage) return
+    setMagnifierPosition(null)
+    lastCommittedMagnifierRef.current = null
+    dragStartMagnifierRef.current = null
+    magnifierSessionRef.current += 1
+  }, [croppedImage?.croppedUrl])
+
+  /* GENERATED CODE (preface): Initialize magnifier position once the image is measurable. */
+  useEffect(() => {
+    if (!croppedImage) return
+    const frame = requestAnimationFrame(() => {
+      initializeMagnifierPosition()
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [croppedImage, initializeMagnifierPosition])
+
+  /* GENERATED CODE (preface): Global pointer listeners track drag movement and release. */
+  useEffect(() => {
+    if (!isMagnifierDragging) return
+
+    const handlePointerMove = (event: PointerEvent) => {
+      const movedInside = moveMagnifierToClientPoint(event.clientX, event.clientY)
+      if (!movedInside) {
+        resetMagnifierToDragStart()
+        return
+      }
+      queueMagnifierSample(event.clientX, event.clientY)
+    }
+
+    const handlePointerUp = () => {
+      commitMagnifierState()
+    }
+
+    const handlePointerCancel = () => {
+      resetMagnifierToDragStart()
+    }
+
+    window.addEventListener('pointermove', handlePointerMove)
+    window.addEventListener('pointerup', handlePointerUp)
+    window.addEventListener('pointercancel', handlePointerCancel)
+
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove)
+      window.removeEventListener('pointerup', handlePointerUp)
+      window.removeEventListener('pointercancel', handlePointerCancel)
+    }
+  }, [isMagnifierDragging, moveMagnifierToClientPoint, queueMagnifierSample, commitMagnifierState, resetMagnifierToDragStart])
 
   // Handle Try On Me click
   const handleTryOnClick = useCallback(() => {
@@ -127,8 +388,10 @@ export default function ColorStep() {
         
         {/* Left: Image Preview with color border */}
         <div className="w-full lg:w-auto flex justify-center lg:sticky lg:top-28">
+          {/* GENERATED CODE (preface): Wrapper/image refs enable magnifier positioning and color sampling. */}
           <div 
-            className="w-64 h-80 rounded-lg overflow-hidden shadow-xl transition-all duration-300"
+            ref={imageWrapRef}
+            className="relative w-64 h-80 rounded-lg overflow-hidden shadow-xl transition-all duration-300"
             style={{
               border: `3px solid ${adjustedColor?.hex || '#333'}`,
               boxShadow: adjustedColor 
@@ -138,10 +401,34 @@ export default function ColorStep() {
           >
             {croppedImage && (
               <img
+                ref={imageRef}
                 src={croppedImage.croppedUrl}
                 alt="Your clothing item"
                 className="w-full h-full object-contain bg-primary-800"
+                /* GENERATED CODE (preface): Use image load to place the initial magnifier. */
+                onLoad={initializeMagnifierPosition}
               />
+            )}
+            {/* GENERATED CODE (preface): Draggable magnifier overlay for ColorThief sampling within the image. */}
+            {croppedImage && magnifierPosition && (
+              <button
+                type="button"
+                aria-label="Drag to sample color"
+                onPointerDown={handleMagnifierPointerDown}
+                className={`absolute z-10 flex items-center justify-center rounded-full border border-white/70 bg-primary-900/70 text-white shadow-lg backdrop-blur-sm touch-none ${
+                  isMagnifierDragging ? 'cursor-grabbing' : 'cursor-grab'
+                }`}
+                style={{
+                  left: magnifierPosition.x,
+                  top: magnifierPosition.y,
+                  width: MAGNIFIER_DIAMETER,
+                  height: MAGNIFIER_DIAMETER,
+                  transform: 'translate(-50%, -50%)',
+                  borderColor: adjustedColor?.hex || '#ffffff',
+                }}
+              >
+                <Search size={16} />
+              </button>
             )}
           </div>
         </div>

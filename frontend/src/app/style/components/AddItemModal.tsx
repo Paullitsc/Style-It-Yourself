@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useStyleStore } from '@/store/styleStore'
 import { useAuth } from '@/components/AuthProvider'
-import { 
+import {
   X, ArrowRight, Check, AlertTriangle, Sparkles, RotateCcw, Info, ChevronDown, Tag, DollarSign, Link as LinkIcon
 } from 'lucide-react'
 import { CATEGORY_TAXONOMY } from '@/types'
@@ -58,6 +58,8 @@ export default function AddItemModal({ categoryL1, recommendation, onCancel }: A
   const [isExtracting, setIsExtracting] = useState(false)
   const [isValidating, setIsValidating] = useState(false)
   const [pendingTryOnUrl, setPendingTryOnUrl] = useState<string | null>(null)
+  
+  // NOTE: Add-item modal uses palette/picker only; magnifier sampling stays in the base color step.
   
   const baseItem = getBaseItem()
   
@@ -326,9 +328,15 @@ export default function AddItemModal({ categoryL1, recommendation, onCancel }: A
           {currentStep === 'colors' && addingItem.croppedImage && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="flex justify-center">
-                <div className="w-full max-w-sm aspect-[3/4] bg-primary-800 rounded-lg overflow-hidden border border-primary-700"
-                     style={{ border: `3px solid ${addingItem.adjustedColor?.hex || '#333'}` }}>
-                  <img src={addingItem.croppedImage.croppedUrl} className="w-full h-full object-contain" />
+                {/* Static preview here; AddItemModal relies on palette/picker instead of magnifier sampling. */}
+                <div
+                  className="relative w-full max-w-sm aspect-[3/4] bg-primary-800 rounded-lg overflow-hidden border border-primary-700"
+                  style={{ border: `3px solid ${addingItem.adjustedColor?.hex || '#333'}` }}
+                >
+                  <img
+                    src={addingItem.croppedImage.croppedUrl}
+                    className="w-full h-full object-contain"
+                  />
                 </div>
               </div>
               <div className="space-y-6">
