@@ -181,6 +181,7 @@ interface StyleState {
   setItemValidation: (validation: ValidateItemResponse | null) => void
   confirmAddItem: () => void
   removeOutfitItem: (categoryL1: string) => void
+  addClosetItemToOutfit: (item: ClothingItemResponse) => void
   
   // Try-on actions
   setTryOnResult: (categoryL1: string, imageUrl: string) => void
@@ -643,6 +644,34 @@ export const useStyleStore = create<StyleState>((set, get) => ({
       outfitItems: state.outfitItems.filter(oi => oi.item.category.l1 !== categoryL1),
       tryOnResults: newTryOnResults,
     })
+  },
+
+  addClosetItemToOutfit: (item) => {
+    const outfitItem: ClothingItemCreate = {
+      image_url: item.image_url,
+      color: item.color,
+      category: item.category,
+      formality: item.formality,
+      aesthetics: item.aesthetics,
+      ownership: item.ownership as 'owned' | 'wishlist',
+      brand: item.brand || undefined,
+      price: item.price || undefined,
+      source_url: item.source_url || undefined,
+    }
+    
+    fetch(item.image_url)
+      .then(res => res.blob())
+      .then(blob => {
+        set((state) => ({
+          outfitItems: [...state.outfitItems, { item: outfitItem, imageBlob: blob }],
+        }))
+      })
+      .catch(() => {
+        const emptyBlob = new Blob([], { type: 'image/jpeg' })
+        set((state) => ({
+          outfitItems: [...state.outfitItems, { item: outfitItem, imageBlob: emptyBlob }],
+        }))
+      })
   },
 
   // ---------------------------------------------------------------------------
