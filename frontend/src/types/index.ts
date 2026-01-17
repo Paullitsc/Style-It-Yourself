@@ -147,7 +147,8 @@ export interface OutfitResponse {
 export interface OutfitSummary {
   id: string
   name: string
-  thumbnail_urls: string[]
+  item_count: number
+  thumbnail_url?: string | null
   created_at: string
 }
 
@@ -157,15 +158,10 @@ export interface OutfitSummary {
 // ==============================================================================
 
 export interface ClosetResponse {
+  items_by_category: Record<string, ClothingItemResponse[]>
   outfits: OutfitSummary[]
-  items: ClothingItemResponse[]
-  generated_images: GeneratedImage[]
-}
-
-export interface GeneratedImage {
-  outfit_id: string
-  outfit_name: string
-  image_url: string
+  total_items: number
+  total_outfits: number
 }
 
 
