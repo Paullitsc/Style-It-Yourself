@@ -10,6 +10,7 @@ from fastapi import HTTPException, status
 from app.models.schemas import (
     User,
     ClothingItemResponse,
+    ClosetResponse,
     Color,
     HSL,
     Category,
@@ -17,12 +18,19 @@ from app.models.schemas import (
 )
 from app.routers import closet as closet_router
 
+
 pytestmark = pytest.mark.asyncio
 
 
+# =============================================================================
+# FIXTURES / HELPERS
+# =============================================================================
+
 def _make_color(name: str = "navy", hex_value: str = "#123456") -> Color:
     """Create a minimal Color for ClothingItemResponse."""
-    is_neutral = name.lower() in ["black", "white", "gray", "grey", "navy", "beige", "cream", "tan", "khaki"]
+    is_neutral = name.lower() in [
+        "black", "white", "gray", "grey", "navy", "beige", "cream", "tan", "khaki"
+    ]
     return Color(
         hex=hex_value,
         hsl=HSL(h=210, s=50, l=30),
@@ -31,7 +39,12 @@ def _make_color(name: str = "navy", hex_value: str = "#123456") -> Color:
     )
 
 
-def _make_item(item_id: str, user_id: str, category_l1: str, category_l2: str) -> ClothingItemResponse:
+def _make_item(
+    item_id: str,
+    user_id: str,
+    category_l1: str,
+    category_l2: str,
+) -> ClothingItemResponse:
     """Create a minimal ClothingItemResponse."""
     return ClothingItemResponse(
         id=item_id,
@@ -56,6 +69,27 @@ def _make_outfit(outfit_id: str, name: str, item_count: int = 2) -> OutfitSummar
     )
 
 
+def _make_closet_response(
+    items: list[ClothingItemResponse],
+    outfits: list[OutfitSummary],
+) -> ClosetResponse:
+    """Create a ClosetResponse from items and outfits."""
+    items_by_category: dict[str, list[ClothingItemResponse]] = {}
+    for item in items:
+        items_by_category.setdefault(item.category.l1, []).append(item)
+
+    return ClosetResponse(
+        items_by_category=items_by_category,
+        outfits=outfits,
+        total_items=len(items),
+        total_outfits=len(outfits),
+    )
+
+
+# =============================================================================
+# TESTS - Using service-level mocking
+# =============================================================================
+
 async def test_get_closet_groups_items_and_counts(monkeypatch: pytest.MonkeyPatch) -> None:
     """Groups items by category and returns accurate totals."""
     user = User(id="user-1")
@@ -69,16 +103,20 @@ async def test_get_closet_groups_items_and_counts(monkeypatch: pytest.MonkeyPatc
         _make_outfit("outfit-2", "Weekend", item_count=3),
     ]
 
-    async def fake_get_user_clothing_items(user_id: str):
+    async def fake_get_closet(user_id: str) -> ClosetResponse:
         assert user_id == user.id
-        return items
+        return _make_closet_response(items, outfits)
 
-    async def fake_get_user_outfits(user_id: str):
-        assert user_id == user.id
-        return outfits
-
-    monkeypatch.setattr(closet_router, "get_user_clothing_items", fake_get_user_clothing_items)
-    monkeypatch.setattr(closet_router, "get_user_outfits", fake_get_user_outfits)
+    monkeypatch.setattr(
+        "app.services.supabase.get_closet",
+        fake_get_closet,
+    )
+    # Also patch the import in the router module
+    monkeypatch.setattr(
+        closet_router,
+        "get_closet_from_db",
+        fake_get_closet,
+    )
 
     response = await closet_router.get_closet(current_user=user)
 
@@ -94,14 +132,19 @@ async def test_get_closet_empty_results(monkeypatch: pytest.MonkeyPatch) -> None
     """Handles empty closet responses."""
     user = User(id="user-1")
 
-    async def fake_get_user_clothing_items(user_id: str):
-        return []
+    async def fake_get_closet(user_id: str) -> ClosetResponse:
+        return ClosetResponse(
+            items_by_category={},
+            outfits=[],
+            total_items=0,
+            total_outfits=0,
+        )
 
-    async def fake_get_user_outfits(user_id: str):
-        return []
-
-    monkeypatch.setattr(closet_router, "get_user_clothing_items", fake_get_user_clothing_items)
-    monkeypatch.setattr(closet_router, "get_user_outfits", fake_get_user_outfits)
+    monkeypatch.setattr(
+        closet_router,
+        "get_closet_from_db",
+        fake_get_closet,
+    )
 
     response = await closet_router.get_closet(current_user=user)
 
@@ -116,10 +159,14 @@ async def test_get_closet_timeout_maps_to_503(monkeypatch: pytest.MonkeyPatch) -
     user = User(id="user-1")
     request = httpx.Request("GET", "https://example.com")
 
-    async def fake_get_user_clothing_items(user_id: str):
+    async def fake_get_closet(user_id: str) -> ClosetResponse:
         raise httpx.TimeoutException("timeout", request=request)
 
-    monkeypatch.setattr(closet_router, "get_user_clothing_items", fake_get_user_clothing_items)
+    monkeypatch.setattr(
+        closet_router,
+        "get_closet_from_db",
+        fake_get_closet,
+    )
 
     with pytest.raises(HTTPException) as excinfo:
         await closet_router.get_closet(current_user=user)
@@ -132,10 +179,14 @@ async def test_get_closet_value_error_maps_to_400(monkeypatch: pytest.MonkeyPatc
     """Validation errors map to 400 responses."""
     user = User(id="user-1")
 
-    async def fake_get_user_clothing_items(user_id: str):
+    async def fake_get_closet(user_id: str) -> ClosetResponse:
         raise ValueError("bad input")
 
-    monkeypatch.setattr(closet_router, "get_user_clothing_items", fake_get_user_clothing_items)
+    monkeypatch.setattr(
+        closet_router,
+        "get_closet_from_db",
+        fake_get_closet,
+    )
 
     with pytest.raises(HTTPException) as excinfo:
         await closet_router.get_closet(current_user=user)
@@ -148,10 +199,14 @@ async def test_get_closet_unexpected_error_maps_to_502(monkeypatch: pytest.Monke
     """Unexpected errors map to 502 responses."""
     user = User(id="user-1")
 
-    async def fake_get_user_clothing_items(user_id: str):
+    async def fake_get_closet(user_id: str) -> ClosetResponse:
         raise RuntimeError("boom")
 
-    monkeypatch.setattr(closet_router, "get_user_clothing_items", fake_get_user_clothing_items)
+    monkeypatch.setattr(
+        closet_router,
+        "get_closet_from_db",
+        fake_get_closet,
+    )
 
     with pytest.raises(HTTPException) as excinfo:
         await closet_router.get_closet(current_user=user)
