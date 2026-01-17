@@ -30,7 +30,7 @@ MODEL_FAST = "gemini-2.5-flash-image"  # Fast, cost-effective
 MODEL_HIGH_QUALITY = "gemini-3-pro-image-preview"  # High quality (Nano Banana Pro)
 
 # Default model for try-on
-TRYON_MODEL = MODEL_FAST
+TRYON_MODEL = MODEL_HIGH_QUALITY
 
 
 async def fetch_image_as_pil(image_url: str) -> Image.Image:
@@ -150,8 +150,8 @@ async def generate_tryon_single(
         
         return TryOnResponse(
             success=True,
-            generated_image_url=generated_image_data
-            # processing_time removed to match Schema
+            generated_image_url=generated_image_data,
+            processing_time=processing_time,
         )
         
     except APIError as e:
@@ -226,8 +226,8 @@ async def generate_tryon_outfit(
         
         return TryOnResponse(
             success=True,
-            generated_image_url=generated_image_data
-            # processing_time removed to match Schema
+            generated_image_url=generated_image_data,
+            processing_time=processing_time,
         )
         
     except APIError as e:

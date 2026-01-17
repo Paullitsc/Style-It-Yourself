@@ -11,7 +11,8 @@ interface ColorPickerModalProps {
 }
 
 export default function ColorPickerModal({ initialColor, onSelect, onClose }: ColorPickerModalProps) {
-  const initialHsl = hexToHsl(initialColor)
+  // Safe default if initialColor is invalid
+  const initialHsl = hexToHsl(initialColor) || { h: 0, s: 0, l: 50 }
   
   const [hue, setHue] = useState(initialHsl.h)
   const [saturation, setSaturation] = useState(initialHsl.s)
@@ -57,14 +58,9 @@ export default function ColorPickerModal({ initialColor, onSelect, onClose }: Co
     }
   }, [isDragging, handleSatLightChange])
 
-  // Handle confirm
-  const handleConfirm = useCallback(() => {
-    onSelect(currentHex)
-  }, [currentHex, onSelect])
-
   return (
     <div className="fixed inset-0 bg-primary-900/95 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-primary-900 w-full max-w-md mx-4 border border-primary-700 shadow-2xl animate-in fade-in zoom-in duration-200">
+      <div className="bg-primary-900 w-full max-w-md mx-4 border border-primary-700 shadow-2xl animate-in fade-in zoom-in duration-200 rounded-xl overflow-hidden">
         
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-primary-800">
@@ -160,7 +156,7 @@ export default function ColorPickerModal({ initialColor, onSelect, onClose }: Co
             Cancel
           </button>
           <button
-            onClick={handleConfirm}
+            onClick={() => onSelect(currentHex)}
             className="px-6 py-2.5 bg-white text-primary-900 hover:bg-neutral-200 text-xs font-bold uppercase tracking-widest transition-all"
           >
             Select Color

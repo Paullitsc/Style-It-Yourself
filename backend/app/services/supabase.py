@@ -530,7 +530,7 @@ async def upload_image(
     )
     
     # get_public_url is sync (just builds URL string)
-    public_url = supabase.storage.from_(bucket).get_public_url(path)
+    public_url = await supabase.storage.from_(bucket).get_public_url(path)
     
     return public_url
 
