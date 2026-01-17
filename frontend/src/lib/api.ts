@@ -219,6 +219,31 @@ export async function getCloset(token: string): Promise<ClosetResponse> {
 }
 
 // =============================================================================
+// MATCHING ITEMS (Auth Required)
+// =============================================================================
+export interface MatchingItemsRequest {
+  category_l1: string
+  recommended_colors: Array<{ hex: string; name: string; harmony_type: string }>
+  formality_range: { min: number; max: number }
+  limit?: number
+}
+
+export interface MatchingItemsResponse {
+  items: ClothingItemResponse[]
+  total_in_category: number
+}
+
+export async function getMatchingItems(
+  request: MatchingItemsRequest,
+  token: string
+): Promise<MatchingItemsResponse> {
+  return fetchApiWithAuth<MatchingItemsResponse>('/api/closet/matching-items', token, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  })
+}
+
+// =============================================================================
 // OUTFITS (Auth Required)
 // =============================================================================
 

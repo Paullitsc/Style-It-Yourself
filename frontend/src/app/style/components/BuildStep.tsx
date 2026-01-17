@@ -9,7 +9,7 @@ import TryOnModal from './TryOnModal'
 import ItemDetailModal from './ItemDetailModal'
 import SuggestionPanel from './shared/SuggestionPanel'
 import AddItemPanel from './AddItemPanel'
-import type { ClothingItemCreate, CategoryRecommendation, RecommendedColor } from '@/types'
+import type { ClothingItemCreate, ClothingItemResponse, CategoryRecommendation, RecommendedColor } from '@/types'
 
 export default function BuildStep() {
   const { session } = useAuth()
@@ -31,6 +31,7 @@ export default function BuildStep() {
     startAddingItem,
     cancelAddingItem,
     removeOutfitItem,
+    addClosetItemToOutfit,
     setStep,
   } = useStyleStore()
 
@@ -137,6 +138,14 @@ export default function BuildStep() {
   const handleSuggestedColorClick = useCallback((color: RecommendedColor) => {
     setSelectedSuggestedColor(color)
   }, [])
+
+  // Handle quick add from closet
+  const handleQuickAdd = useCallback((item: ClothingItemResponse) => {
+    if (!addingCategory) return
+    addClosetItemToOutfit(item)
+    setSelectedSuggestedColor(null)
+    cancelAddingItem()
+  }, [addingCategory, addClosetItemToOutfit, cancelAddingItem])
 
   // Handle close add panel
   const handleCloseAddPanel = useCallback(() => {
@@ -322,6 +331,7 @@ export default function BuildStep() {
                 recommendation={getRecommendationForCategory(addingCategory!)}
                 categoryL1={addingCategory!}
                 onColorClick={handleSuggestedColorClick}
+                onQuickAdd={handleQuickAdd}
               />
             </div>
 

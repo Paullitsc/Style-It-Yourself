@@ -1,13 +1,17 @@
 'use client'
 
-import { Sparkles, Lightbulb } from 'lucide-react'
-import type { CategoryRecommendation, RecommendedColor } from '@/types'
+import { useState, useEffect } from 'react'
+import { Sparkles, Lightbulb, Package, Plus, Check } from 'lucide-react'
+import { useAuth } from '@/components/AuthProvider'
+import { getMatchingItems } from '@/lib/api'
+import type { CategoryRecommendation, RecommendedColor, ClothingItemResponse } from '@/types'
 import { FORMALITY_LEVELS } from '@/types'
 
 interface SuggestionPanelProps {
   recommendation: CategoryRecommendation | null
   categoryL1: string
   onColorClick?: (color: RecommendedColor) => void
+  onQuickAdd?: (item: ClothingItemResponse) => void
 }
 
 // Harmony type styling
@@ -29,8 +33,48 @@ const getHarmonyStyle = (type: string) => {
 export default function SuggestionPanel({ 
   recommendation, 
   categoryL1,
-  onColorClick 
+  onColorClick,
+  onQuickAdd,
 }: SuggestionPanelProps) {
+  const { session } = useAuth()
+  const [matchingItems, setMatchingItems] = useState<ClothingItemResponse[]>([])
+  const [totalInCategory, setTotalInCategory] = useState(0)
+  const [isLoadingMatches, setIsLoadingMatches] = useState(false)
+  const [matchError, setMatchError] = useState<string | null>(null)
+
+  // Fetch matching items from closet when recommendation changes
+  useEffect(() => {
+    async function fetchMatches() {
+      if (!recommendation || !session?.access_token) {
+        setMatchingItems([])
+        return
+      }
+
+      setIsLoadingMatches(true)
+      setMatchError(null)
+
+      try {
+        const response = await getMatchingItems({
+          category_l1: categoryL1,
+          recommended_colors: recommendation.colors,
+          formality_range: recommendation.formality_range,
+          limit: 5,
+        }, session.access_token)
+
+        setMatchingItems(response.items)
+        setTotalInCategory(response.total_in_category)
+      } catch (err) {
+        console.error('Failed to fetch matching items:', err)
+        setMatchError('Could not load closet items')
+        setMatchingItems([])
+      } finally {
+        setIsLoadingMatches(false)
+      }
+    }
+
+    fetchMatches()
+  }, [recommendation, categoryL1, session?.access_token])
+
   if (!recommendation) {
     return (
       <div className="h-full flex flex-col items-center justify-center text-center p-8">
@@ -57,7 +101,7 @@ export default function SuggestionPanel({
           </div>
           <div>
             <h3 className="text-xs font-bold uppercase tracking-widest text-white">
-              Suggestions
+              AI Suggestions
             </h3>
             <p className="text-[10px] text-neutral-500">
               For your {categoryL1.toLowerCase()}
@@ -68,6 +112,97 @@ export default function SuggestionPanel({
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-5 space-y-6">
+        
+        {/* Quick Picks from Closet */}
+        {session?.access_token && (
+          <div>
+            <label className="block text-[10px] uppercase font-bold tracking-widest text-neutral-500 mb-3 flex items-center gap-2">
+              <Package size={12} />
+              Quick Picks from Your Closet
+            </label>
+            
+            {isLoadingMatches ? (
+              <div className="flex items-center gap-3 p-4 bg-primary-800/50 rounded-lg">
+                <div className="w-4 h-4 border-2 border-accent-500 border-t-transparent rounded-full animate-spin" />
+                <span className="text-xs text-neutral-400">Searching your closet...</span>
+              </div>
+            ) : matchError ? (
+              <div className="p-4 bg-primary-800/50 rounded-lg">
+                <p className="text-xs text-neutral-500">{matchError}</p>
+              </div>
+            ) : matchingItems.length > 0 ? (
+              <div className="space-y-2">
+                {matchingItems.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => onQuickAdd?.(item)}
+                    className="w-full group flex items-center gap-3 p-3 bg-primary-800 rounded-lg border border-primary-700 hover:border-accent-500/50 hover:bg-primary-800/80 transition-all"
+                  >
+                    {/* Item thumbnail */}
+                    <div className="w-12 h-14 rounded bg-primary-700 overflow-hidden shrink-0">
+                      <img 
+                        src={item.image_url} 
+                        alt={item.category.l2}
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                    
+                    {/* Item info */}
+                    <div className="flex-1 text-left min-w-0">
+                      <p className="text-sm text-white font-medium truncate">
+                        {item.category.l2}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <div 
+                          className="w-3 h-3 rounded-full border border-primary-600"
+                          style={{ backgroundColor: item.color.hex }}
+                        />
+                        <span className="text-[10px] text-neutral-500 truncate">
+                          {item.color.name} • {FORMALITY_LEVELS[item.formality as keyof typeof FORMALITY_LEVELS]}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Add indicator */}
+                    <div className="w-8 h-8 rounded-full bg-primary-700 group-hover:bg-accent-500 flex items-center justify-center transition-colors shrink-0">
+                      <Plus size={14} className="text-neutral-400 group-hover:text-primary-900" />
+                    </div>
+                  </button>
+                ))}
+                
+                {totalInCategory > matchingItems.length && (
+                  <p className="text-[10px] text-neutral-600 text-center pt-2">
+                    Showing top {matchingItems.length} of {totalInCategory} items in {categoryL1}
+                  </p>
+                )}
+              </div>
+            ) : totalInCategory > 0 ? (
+              <div className="p-4 bg-primary-800/50 rounded-lg border border-primary-700/50">
+                <p className="text-xs text-neutral-400 text-center">
+                  No matching items found in your closet.
+                  <br />
+                  <span className="text-neutral-500">
+                    You have {totalInCategory} {categoryL1.toLowerCase()} but none match the recommendations.
+                  </span>
+                </p>
+              </div>
+            ) : (
+              <div className="p-4 bg-primary-800/50 rounded-lg border border-primary-700/50">
+                <p className="text-xs text-neutral-400 text-center">
+                  No {categoryL1.toLowerCase()} in your closet yet.
+                  <br />
+                  <span className="text-neutral-500">Upload a new item below!</span>
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Divider if showing quick picks */}
+        {session?.access_token && (
+          <div className="border-t border-primary-800" />
+        )}
+
         {/* Suggested Colors */}
         <div>
           <label className="block text-[10px] uppercase font-bold tracking-widest text-neutral-500 mb-3">
