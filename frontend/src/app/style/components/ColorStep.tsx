@@ -83,7 +83,7 @@ export default function ColorStep() {
     }
   }
 
-  /* GENERATED CODE (preface): Compute visible image geometry (object-contain) for drag bounds and sampling mapping. */
+
   const getImageMetrics = useCallback(() => {
     const imageEl = imageRef.current
     const wrapEl = imageWrapRef.current
@@ -113,7 +113,7 @@ export default function ColorStep() {
     return { imageEl, imageRect, wrapRect }
   }, [])
 
-  /* GENERATED CODE (preface): Extract a dominant color from the magnifier sample area using ColorThief. */
+
   const sampleMagnifierColor = useCallback(async (clientX: number, clientY: number, sessionId: number) => {
     const metrics = getImageMetrics()
     if (!metrics) return
@@ -157,7 +157,7 @@ export default function ColorStep() {
     }
   }, [getImageMetrics, setAdjustedColor])
 
-  /* GENERATED CODE (preface): Place the magnifier at image center once layout is measurable. */
+  /* Place the magnifier at image center once layout is measurable. */
   const initializeMagnifierPosition = useCallback(() => {
     if (!croppedImage || magnifierPosition || isMagnifierDragging) return
 
@@ -175,7 +175,7 @@ export default function ColorStep() {
     lastCommittedMagnifierRef.current = centeredPosition
   }, [croppedImage, magnifierPosition, isMagnifierDragging, getImageMetrics])
 
-  /* GENERATED CODE (preface): Queue magnifier sampling so only the latest pointer position is processed. */
+  /* Queue magnifier sampling so only the latest pointer position is processed. */
   const queueMagnifierSample = useCallback((clientX: number, clientY: number) => {
     pendingMagnifierSampleRef.current = { clientX, clientY, sessionId: magnifierSessionRef.current }
     if (magnifierSamplingRef.current) return
@@ -196,7 +196,7 @@ export default function ColorStep() {
     void run()
   }, [sampleMagnifierColor])
 
-  /* GENERATED CODE (preface): Move the magnifier and clamp it to the visible image area. */
+  /* Move the magnifier */
   const moveMagnifierToClientPoint = useCallback((clientX: number, clientY: number) => {
     const metrics = getImageMetrics()
     if (!metrics) return false
@@ -216,7 +216,7 @@ export default function ColorStep() {
     return true
   }, [getImageMetrics])
 
-  /* GENERATED CODE (preface): Reset magnifier state to pre-drag values when leaving the image. */
+  /* Reset magnifier state when OOB. */
   const resetMagnifierToDragStart = useCallback(() => {
     magnifierSessionRef.current += 1
     pendingMagnifierSampleRef.current = null
@@ -233,7 +233,6 @@ export default function ColorStep() {
     setIsMagnifierDragging(false)
   }, [setAdjustedColor])
 
-  /* GENERATED CODE (preface): Commit the magnifier position/color on pointer release. */
   const commitMagnifierState = useCallback(() => {
     if (magnifierPosition) {
       lastCommittedMagnifierRef.current = magnifierPosition
@@ -247,7 +246,7 @@ export default function ColorStep() {
     setIsMagnifierDragging(false)
   }, [adjustedColor, magnifierPosition])
 
-  /* GENERATED CODE (preface): Pointer handler to start a new drag sampling session. */
+
   const handleMagnifierPointerDown = useCallback((event: ReactPointerEvent<HTMLButtonElement>) => {
     event.preventDefault()
     event.stopPropagation()
@@ -266,14 +265,14 @@ export default function ColorStep() {
     queueMagnifierSample(event.clientX, event.clientY)
   }, [adjustedColor, magnifierPosition, moveMagnifierToClientPoint, queueMagnifierSample, resetMagnifierToDragStart])
 
-  /* GENERATED CODE (preface): Keep the last committed color in sync with non-drag updates. */
+
   useEffect(() => {
     if (!isMagnifierDragging && adjustedColor) {
       lastCommittedColorRef.current = adjustedColor
     }
   }, [adjustedColor, isMagnifierDragging])
 
-  /* GENERATED CODE (preface): Reset magnifier state when the cropped image changes. */
+
   useEffect(() => {
     if (!croppedImage) return
     setMagnifierPosition(null)
@@ -282,7 +281,6 @@ export default function ColorStep() {
     magnifierSessionRef.current += 1
   }, [croppedImage?.croppedUrl])
 
-  /* GENERATED CODE (preface): Initialize magnifier position once the image is measurable. */
   useEffect(() => {
     if (!croppedImage) return
     const frame = requestAnimationFrame(() => {
@@ -291,7 +289,7 @@ export default function ColorStep() {
     return () => cancelAnimationFrame(frame)
   }, [croppedImage, initializeMagnifierPosition])
 
-  /* GENERATED CODE (preface): Global pointer listeners track drag movement and release. */
+
   useEffect(() => {
     if (!isMagnifierDragging) return
 
@@ -388,7 +386,7 @@ export default function ColorStep() {
         
         {/* Left: Image Preview with color border */}
         <div className="w-full lg:w-auto flex justify-center lg:sticky lg:top-28">
-          {/* GENERATED CODE (preface): Wrapper/image refs enable magnifier positioning and color sampling. */}
+
           <div 
             ref={imageWrapRef}
             className="relative w-64 h-80 rounded-lg overflow-hidden shadow-xl transition-all duration-300"
@@ -405,11 +403,10 @@ export default function ColorStep() {
                 src={croppedImage.croppedUrl}
                 alt="Your clothing item"
                 className="w-full h-full object-contain bg-primary-800"
-                /* GENERATED CODE (preface): Use image load to place the initial magnifier. */
+
                 onLoad={initializeMagnifierPosition}
               />
             )}
-            {/* GENERATED CODE (preface): Draggable magnifier overlay for ColorThief sampling within the image. */}
             {croppedImage && magnifierPosition && (
               <button
                 type="button"
