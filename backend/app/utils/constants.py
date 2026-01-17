@@ -19,7 +19,7 @@ FORMALITY_LEVELS: dict[int, str] = {
     5: "Black Tie",
 }
 
-# Aesthetic tags
+# Aesthetic tag
 AESTHETIC_TAGS: list[str] = [
     "Minimalist",
     "Streetwear",

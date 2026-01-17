@@ -654,7 +654,7 @@ def _row_to_clothing_item(row: dict) -> ClothingItemResponse:
             l2=row["category_l2"],
         ),
         formality=row["formality"],
-        aesthetics=row.get("aesthetics", []),
+        aesthetics=row.get("aesthetics") or [],
         brand=row.get("brand"),
         price=float(row["price"]) if row.get("price") else None,
         source_url=row.get("source_url"),
