@@ -5,8 +5,10 @@ from typing import Optional, Tuple
 from datetime import datetime
 
 
+# ==============================================================================
 # SHARED / BASE SCHEMAS
 # Used across multiple endpoints
+# ==============================================================================
 
 class HSL(BaseModel):
     """HSL color representation."""
@@ -61,8 +63,10 @@ class ClothingItemResponse(ClothingItemBase):
     created_at: datetime
 
 
+# ==============================================================================
 # POST /api/recommendations
 # Get outfit recommendations based on a base item
+# ==============================================================================
 
 class RecommendationRequest(BaseModel):
     """Request body for POST /api/recommendations"""
@@ -100,8 +104,10 @@ class RecommendationResponse(BaseModel):
     recommendations: list[CategoryRecommendation]
 
 
+# ==============================================================================
 # POST /api/validate-item
 # Validate a new item against existing outfit
+# ==============================================================================
 
 class ValidateItemRequest(BaseModel):
     """Request body for POST /api/validate-item"""
@@ -119,8 +125,10 @@ class ValidateItemResponse(BaseModel):
     warnings: list[str] = Field(default_factory=list)
 
 
+# ==============================================================================
 # POST /api/validate-outfit
 # Validate a complete outfit
+# ==============================================================================
 
 class ValidateOutfitRequest(BaseModel):
     """Request body for POST /api/validate-outfit"""
@@ -137,8 +145,10 @@ class ValidateOutfitResponse(BaseModel):
     color_strip: list[str] = Field(default_factory=list, description="List of hex colors in outfit")
 
 
+# ==============================================================================
 # POST /api/outfits (Auth required)
 # Save a new outfit
+# ==============================================================================
 
 class OutfitCreate(BaseModel):
     """Request body for POST /api/outfits"""
@@ -156,8 +166,10 @@ class OutfitResponse(BaseModel):
     created_at: datetime
 
 
+# ==============================================================================
 # GET /api/closet (Auth required)
 # Get user's complete closet
+# ==============================================================================
 
 class OutfitSummary(BaseModel):
     """Brief outfit summary - used in closet listing."""
@@ -176,32 +188,40 @@ class ClosetResponse(BaseModel):
     total_outfits: int
 
 
+# ==============================================================================
 # POST /api/try-on (Auth required)
 # Generate AI try-on image
+# ==============================================================================
+
+class TryOnItemWithImage(BaseModel):
+    """A clothing item with its image URL for try-on."""
+    image_url: str
+    item: ClothingItemBase
+
 
 class TryOnSingleRequest(BaseModel):
     """Request body for POST /api/try-on/single"""
     user_photo_url: str
     item_image_url: str
-    item: ClothingItemBase  # Just need base fields for prompt
-    high_quality: bool
+    item: ClothingItemBase
 
 
 class TryOnOutfitRequest(BaseModel):
     """Request body for POST /api/try-on/outfit"""
     user_photo_url: str
-    item_images: list[tuple[str, ClothingItemBase]]  # [(image_url, item), ...]
-    high_quality: bool
+    items: list[TryOnItemWithImage]
 
 
 class TryOnResponse(BaseModel):
     """Response body for POST /api/try-on"""
-    generated_image_url: str  # Base64 data URL or storage URL
+    generated_image_url: str
     processing_time: float = Field(..., description="Time in seconds")
 
 
+# ==============================================================================
 # POST /api/clothing-items (Auth required)
 # Add item to closet
+# ==============================================================================
 
 class ClothingItemCreateRequest(BaseModel):
     """Request body for POST /api/clothing-items (multipart form)"""
@@ -216,8 +236,10 @@ class ClothingItemCreateRequest(BaseModel):
     # Note: image file is uploaded separately via multipart form
 
 
+# ==============================================================================
 # AUTH / USER
 # Used by auth middleware
+# ==============================================================================
 
 class User(BaseModel):
     """Authenticated user - populated by auth middleware."""
@@ -227,8 +249,10 @@ class User(BaseModel):
     avatar_url: Optional[str] = None
 
 
+# ==============================================================================
 # ERROR RESPONSES
 # Standard error format
+# ==============================================================================
 
 class ErrorResponse(BaseModel):
     """Standard error response for all endpoints."""
