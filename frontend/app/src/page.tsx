@@ -5,19 +5,62 @@ import { useState, useRef } from "react";
 import AuthModal from "@/components/AuthModal";
 import { ArrowRight, Upload, Sparkles } from 'lucide-react'; 
 import { useRouter } from "next/navigation";
+import { useStyleStore } from "@/store/styleStore";
 
 export default function Home() {
   const { user } = useAuth();
   const [isAuthModalOpen, setAuthModalOpen] = useState(false);
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Get the store action to set pending upload
+  const { setPendingUpload } = useStyleStore();
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      console.log("File selected:", file.name);
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file');
+        return;
+      }
+      
+      // Validate file size (10MB max)
+      if (file.size > 10 * 1024 * 1024) {
+        alert('File size must be less than 10MB');
+        return;
+      }
+      
+      // Store the file in Zustand, then navigate
+      setPendingUpload(file);
       router.push('/style');
     }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file');
+        return;
+      }
+      
+      // Validate file size (10MB max)
+      if (file.size > 10 * 1024 * 1024) {
+        alert('File size must be less than 10MB');
+        return;
+      }
+      
+      // Store the file in Zustand, then navigate
+      setPendingUpload(file);
+      router.push('/style');
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
   };
 
   const triggerFileInput = () => {
@@ -78,6 +121,8 @@ export default function Home() {
         {/* RIGHT COLUMN: Upload Zone */}
         <div 
           onClick={triggerFileInput}
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
           className="relative h-[600px] w-full bg-primary-800/20 rounded-xl border border-dashed border-primary-700 hover:border-accent-500/50 hover:bg-primary-800/40 transition-all duration-500 cursor-pointer group overflow-hidden"
         >
           <input 
