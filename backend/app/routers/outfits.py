@@ -43,7 +43,7 @@ async def create_outfit(
         HTTPException: 401 if unauthenticated, 500 for database errors
     """
     try:
-        return await supabase.create_outfit(current_user.id, outfit)    
+        return await supabase.create_outfit(current_user.id, outfit)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -115,18 +115,10 @@ async def get_outfit(
             raise ValueError("Outfit not found")
         return outfit
     except ValueError as e:
-        error_message = str(e)
-        if "not found" in error_message.lower():
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=error_message
-            )
-        else:
-            # Permission denied
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=error_message
-            )
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -162,22 +154,14 @@ async def delete_outfit(
             - 500 for database errors
     """
     try:
-       deleted = await supabase.delete_outfit(outfit_id, current_user.id)
+        deleted = await supabase.delete_outfit(outfit_id, current_user.id)
         if not deleted:
             raise ValueError("Outfit not found")
     except ValueError as e:
-        error_message = str(e)
-        if "not found" in error_message.lower():
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=error_message
-            )
-        else:
-            # Permission denied
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=error_message
-            )
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
