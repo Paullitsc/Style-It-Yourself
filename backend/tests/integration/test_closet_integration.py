@@ -8,6 +8,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
+from typing import AsyncGenerator
 
 from app.middleware import get_current_user
 from app.models.schemas import (
@@ -54,7 +55,7 @@ def client(app: FastAPI) -> TestClient:
 
 
 @pytest.fixture
-async def async_client(app: FastAPI) -> AsyncClient:
+async def async_client(app: FastAPI) -> AsyncGenerator[AsyncClient, None]:
     """Async test client for async tests."""
     async with AsyncClient(
         transport=ASGITransport(app=app),
