@@ -91,8 +91,15 @@ export async function getRecommendations(
  * Validate a new item against existing outfit
  */
 export async function validateItem(
-  request: ValidateItemRequest
+  newItem: ClothingItemCreate,
+  baseItem: ClothingItemCreate,
+  currentOutfit: ClothingItemCreate[] = []
 ): Promise<ValidateItemResponse> {
+  const request: ValidateItemRequest = {
+    new_item: newItem,
+    base_item: baseItem,
+    current_outfit: currentOutfit,
+  }
   return fetchApi<ValidateItemResponse>('/api/validate-item', {
     method: 'POST',
     body: JSON.stringify(request),
@@ -103,8 +110,13 @@ export async function validateItem(
  * Validate a complete outfit
  */
 export async function validateOutfit(
-  request: ValidateOutfitRequest
+  outfit: ClothingItemCreate[],
+  baseItem: ClothingItemCreate
 ): Promise<ValidateOutfitResponse> {
+  const request: ValidateOutfitRequest = {
+    outfit,
+    base_item: baseItem,
+  }
   return fetchApi<ValidateOutfitResponse>('/api/validate-outfit', {
     method: 'POST',
     body: JSON.stringify(request),
@@ -159,16 +171,61 @@ export async function getCloset(token: string): Promise<ClosetResponse> {
 // =============================================================================
 
 /**
- * Save a new outfit
+ * Save a new outfit (requires item IDs - items must be saved first)
  */
 export async function createOutfit(
-  outfit: OutfitCreate,
+  name: string,
+  itemIds: string[],
   token: string
 ): Promise<OutfitResponse> {
+  const payload: OutfitCreate = {
+    name,
+    item_ids: itemIds,
+  }
   return fetchApiWithAuth<OutfitResponse>('/api/outfits', token, {
     method: 'POST',
-    body: JSON.stringify(outfit),
+    body: JSON.stringify(payload),
   })
+}
+
+/**
+ * Save a complete outfit flow:
+ * 1. Upload each item's image and create clothing items
+ * 2. Create outfit with the item IDs
+ * 
+ * Returns the created outfit response
+ */
+export async function saveOutfitWithItems(
+  name: string,
+  items: Array<{
+    item: ClothingItemCreate
+    imageBlob: Blob
+  }>,
+  token: string,
+  onProgress?: (current: number, total: number, status: string) => void
+): Promise<OutfitResponse> {
+  const itemIds: string[] = []
+  const total = items.length + 1 // +1 for outfit creation
+  
+  // Step 1: Save each clothing item
+  for (let i = 0; i < items.length; i++) {
+    const { item, imageBlob } = items[i]
+    
+    onProgress?.(i + 1, total, `Saving item ${i + 1} of ${items.length}...`)
+    
+    // Convert blob to File
+    const imageFile = new File([imageBlob], `item-${i}.jpg`, { type: 'image/jpeg' })
+    
+    // Create clothing item
+    const savedItem = await createClothingItem(item, imageFile, token)
+    itemIds.push(savedItem.id)
+  }
+  
+  // Step 2: Create outfit with item IDs
+  onProgress?.(total, total, 'Creating outfit...')
+  const outfit = await createOutfit(name, itemIds, token)
+  
+  return outfit
 }
 
 /**
