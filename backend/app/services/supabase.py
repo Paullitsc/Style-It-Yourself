@@ -7,12 +7,14 @@ Handles CRUD for:
 - Image storage
 
 Schema matches: backend/supabase_schema.sql
+
+NOTE: Uses async client (acreate_client) for non-blocking operations.
 """
 
 import time
 from typing import Optional
 
-from supabase import create_client, Client
+from supabase._async.client import AsyncClient, acreate_client
 
 from app.config import settings
 from app.models.schemas import (
@@ -28,14 +30,45 @@ from app.models.schemas import (
 )
 
 
-def get_supabase_client() -> Client:
-    """Get Supabase client with service role key (bypasses RLS)."""
-    return create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_KEY)
+# =============================================================================
+# CLIENT MANAGEMENT
+# =============================================================================
+
+_service_client: AsyncClient | None = None
+_anon_client: AsyncClient | None = None
 
 
-def get_supabase_client_anon() -> Client:
-    """Get Supabase client with anon key (respects RLS)."""
-    return create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
+async def get_supabase_client() -> AsyncClient:
+    """Get async Supabase client with service role key (bypasses RLS)."""
+    global _service_client
+    if _service_client is None:
+        _service_client = await acreate_client(
+            settings.SUPABASE_URL,
+            settings.SUPABASE_SERVICE_KEY
+        )
+    return _service_client
+
+
+async def get_supabase_client_anon() -> AsyncClient:
+    """Get async Supabase client with anon key (respects RLS)."""
+    global _anon_client
+    if _anon_client is None:
+        _anon_client = await acreate_client(
+            settings.SUPABASE_URL,
+            settings.SUPABASE_KEY
+        )
+    return _anon_client
+
+
+async def close_supabase_clients():
+    """Close all Supabase clients (call on app shutdown)."""
+    global _service_client, _anon_client
+    if _service_client:
+        await _service_client.aclose()
+        _service_client = None
+    if _anon_client:
+        await _anon_client.aclose()
+        _anon_client = None
 
 
 # =============================================================================
@@ -47,23 +80,12 @@ async def create_clothing_item(
     item: ClothingItemCreate,
     image_url: str,
 ) -> ClothingItemResponse:
-    """Create a new clothing item in the database.
+    """Create a new clothing item in the database."""
+    supabase = await get_supabase_client()
     
-    Args:
-        user_id: The user's UUID
-        item: Clothing item data
-        image_url: URL of uploaded image in Supabase Storage
-        
-    Returns:
-        Created clothing item with ID
-    """
-    supabase = get_supabase_client()
-    
-    # Prepare data matching schema columns
     data = {
         "user_id": user_id,
         "image_url": image_url,
-        # Color fields (separate columns)
         "color_hex": item.color.hex,
         "color_hsl": {
             "h": item.color.hsl.h,
@@ -72,20 +94,17 @@ async def create_clothing_item(
         },
         "color_name": item.color.name,
         "is_neutral": item.color.is_neutral,
-        # Category
         "category_l1": item.category.l1,
         "category_l2": item.category.l2,
-        # Style
         "formality": item.formality,
         "aesthetics": item.aesthetics or [],
-        # Optional metadata
         "brand": item.brand,
         "price": item.price,
         "source_url": item.source_url,
         "ownership": item.ownership or "owned",
     }
     
-    result = supabase.table("clothing_items").insert(data).execute()
+    result = await supabase.table("clothing_items").insert(data).execute()
     
     if not result.data:
         raise ValueError("Failed to create clothing item")
@@ -94,18 +113,10 @@ async def create_clothing_item(
 
 
 async def get_clothing_item(item_id: str, user_id: str) -> Optional[ClothingItemResponse]:
-    """Get a single clothing item by ID.
+    """Get a single clothing item by ID."""
+    supabase = await get_supabase_client()
     
-    Args:
-        item_id: The item's UUID
-        user_id: The user's UUID (for ownership verification)
-        
-    Returns:
-        Clothing item or None if not found
-    """
-    supabase = get_supabase_client()
-    
-    result = (
+    result = await (
         supabase.table("clothing_items")
         .select("*")
         .eq("id", item_id)
@@ -123,21 +134,13 @@ async def get_clothing_items_by_ids(
     item_ids: list[str],
     user_id: str,
 ) -> list[ClothingItemResponse]:
-    """Get multiple clothing items by IDs.
-    
-    Args:
-        item_ids: List of item UUIDs
-        user_id: The user's UUID
-        
-    Returns:
-        List of clothing items (may be fewer than requested if some not found)
-    """
+    """Get multiple clothing items by IDs."""
     if not item_ids:
         return []
     
-    supabase = get_supabase_client()
+    supabase = await get_supabase_client()
     
-    result = (
+    result = await (
         supabase.table("clothing_items")
         .select("*")
         .in_("id", item_ids)
@@ -155,19 +158,8 @@ async def get_user_clothing_items(
     limit: int = 100,
     offset: int = 0,
 ) -> list[ClothingItemResponse]:
-    """Get all clothing items for a user.
-    
-    Args:
-        user_id: The user's UUID
-        category_l1: Optional filter by L1 category
-        ownership: Optional filter by ownership ('owned' or 'wishlist')
-        limit: Max items to return
-        offset: Pagination offset
-        
-    Returns:
-        List of clothing items
-    """
-    supabase = get_supabase_client()
+    """Get all clothing items for a user."""
+    supabase = await get_supabase_client()
     
     query = (
         supabase.table("clothing_items")
@@ -183,7 +175,7 @@ async def get_user_clothing_items(
     if ownership:
         query = query.eq("ownership", ownership)
     
-    result = query.execute()
+    result = await query.execute()
     
     return [_row_to_clothing_item(row) for row in result.data]
 
@@ -193,17 +185,8 @@ async def update_clothing_item(
     user_id: str,
     updates: dict,
 ) -> Optional[ClothingItemResponse]:
-    """Update a clothing item.
-    
-    Args:
-        item_id: The item's UUID
-        user_id: The user's UUID
-        updates: Fields to update
-        
-    Returns:
-        Updated clothing item or None if not found
-    """
-    supabase = get_supabase_client()
+    """Update a clothing item."""
+    supabase = await get_supabase_client()
     
     # Handle nested Color object
     if "color" in updates:
@@ -223,7 +206,7 @@ async def update_clothing_item(
         updates["category_l1"] = category["l1"]
         updates["category_l2"] = category["l2"]
     
-    result = (
+    result = await (
         supabase.table("clothing_items")
         .update(updates)
         .eq("id", item_id)
@@ -238,21 +221,13 @@ async def update_clothing_item(
 
 
 async def delete_clothing_item(item_id: str, user_id: str) -> bool:
-    """Delete a clothing item.
-    
-    Args:
-        item_id: The item's UUID
-        user_id: The user's UUID
-        
-    Returns:
-        True if deleted, False if not found
-    """
-    supabase = get_supabase_client()
+    """Delete a clothing item."""
+    supabase = await get_supabase_client()
     
     # Get item first to retrieve image_url for cleanup
     item = await get_clothing_item(item_id, user_id)
     
-    result = (
+    result = await (
         supabase.table("clothing_items")
         .delete()
         .eq("id", item_id)
@@ -261,7 +236,6 @@ async def delete_clothing_item(item_id: str, user_id: str) -> bool:
     )
     
     if result.data and item and item.image_url:
-        # Clean up image from storage
         await delete_image(item.image_url, "clothing-images")
     
     return len(result.data) > 0
@@ -276,26 +250,16 @@ async def create_outfit(
     outfit: OutfitCreate,
     generated_image_url: Optional[str] = None,
 ) -> OutfitResponse:
-    """Create a new outfit with its items.
+    """Create a new outfit with its items."""
+    supabase = await get_supabase_client()
     
-    Args:
-        user_id: The user's UUID
-        outfit: Outfit data including item IDs
-        generated_image_url: Optional AI-generated try-on image URL
-        
-    Returns:
-        Created outfit with items
-    """
-    supabase = get_supabase_client()
-    
-    # Create outfit record
     outfit_data = {
         "user_id": user_id,
         "name": outfit.name,
         "generated_image_url": generated_image_url,
     }
     
-    result = supabase.table("outfits").insert(outfit_data).execute()
+    result = await supabase.table("outfits").insert(outfit_data).execute()
     
     if not result.data:
         raise ValueError("Failed to create outfit")
@@ -312,26 +276,16 @@ async def create_outfit(
             }
             for position, item_id in enumerate(outfit.item_ids)
         ]
-        supabase.table("outfit_items").insert(outfit_items).execute()
+        await supabase.table("outfit_items").insert(outfit_items).execute()
     
-    # Fetch complete outfit with items
     return await get_outfit(outfit_id, user_id)
 
 
 async def get_outfit(outfit_id: str, user_id: str) -> Optional[OutfitResponse]:
-    """Get a single outfit with all its items.
+    """Get a single outfit with all its items."""
+    supabase = await get_supabase_client()
     
-    Args:
-        outfit_id: The outfit's UUID
-        user_id: The user's UUID
-        
-    Returns:
-        Outfit with items or None if not found
-    """
-    supabase = get_supabase_client()
-    
-    # Get outfit
-    result = (
+    result = await (
         supabase.table("outfits")
         .select("*")
         .eq("id", outfit_id)
@@ -345,7 +299,7 @@ async def get_outfit(outfit_id: str, user_id: str) -> Optional[OutfitResponse]:
     outfit_row = result.data[0]
     
     # Get outfit items with clothing details, ordered by position
-    items_result = (
+    items_result = await (
         supabase.table("outfit_items")
         .select("clothing_item_id, position, clothing_items(*)")
         .eq("outfit_id", outfit_id)
@@ -374,19 +328,10 @@ async def get_user_outfits(
     limit: int = 50,
     offset: int = 0,
 ) -> list[OutfitSummary]:
-    """Get all outfits for a user (summary only).
+    """Get all outfits for a user (summary only)."""
+    supabase = await get_supabase_client()
     
-    Args:
-        user_id: The user's UUID
-        limit: Max outfits to return
-        offset: Pagination offset
-        
-    Returns:
-        List of outfit summaries
-    """
-    supabase = get_supabase_client()
-    
-    result = (
+    result = await (
         supabase.table("outfits")
         .select("id, name, generated_image_url, created_at, outfit_items(clothing_items(image_url))")
         .eq("user_id", user_id)
@@ -397,7 +342,6 @@ async def get_user_outfits(
     
     summaries = []
     for row in result.data:
-        # Get first item's image as thumbnail (or generated image)
         thumbnail = row.get("generated_image_url")
         if not thumbnail and row.get("outfit_items"):
             for oi in row["outfit_items"]:
@@ -423,26 +367,16 @@ async def update_outfit(
     user_id: str,
     updates: dict,
 ) -> Optional[OutfitResponse]:
-    """Update an outfit.
+    """Update an outfit."""
+    supabase = await get_supabase_client()
     
-    Args:
-        outfit_id: The outfit's UUID
-        user_id: The user's UUID
-        updates: Fields to update (name, generated_image_url)
-        
-    Returns:
-        Updated outfit or None if not found
-    """
-    supabase = get_supabase_client()
-    
-    # Only allow certain fields to be updated
     allowed_fields = {"name", "generated_image_url"}
     filtered_updates = {k: v for k, v in updates.items() if k in allowed_fields}
     
     if not filtered_updates:
         return await get_outfit(outfit_id, user_id)
     
-    result = (
+    result = await (
         supabase.table("outfits")
         .update(filtered_updates)
         .eq("id", outfit_id)
@@ -461,25 +395,14 @@ async def add_items_to_outfit(
     user_id: str,
     item_ids: list[str],
 ) -> Optional[OutfitResponse]:
-    """Add clothing items to an existing outfit.
+    """Add clothing items to an existing outfit."""
+    supabase = await get_supabase_client()
     
-    Args:
-        outfit_id: The outfit's UUID
-        user_id: The user's UUID
-        item_ids: List of clothing item IDs to add
-        
-    Returns:
-        Updated outfit or None if not found
-    """
-    supabase = get_supabase_client()
-    
-    # Verify outfit ownership
     outfit = await get_outfit(outfit_id, user_id)
     if not outfit:
         return None
     
-    # Get current max position
-    existing = (
+    existing = await (
         supabase.table("outfit_items")
         .select("position")
         .eq("outfit_id", outfit_id)
@@ -490,7 +413,6 @@ async def add_items_to_outfit(
     
     start_position = (existing.data[0]["position"] + 1) if existing.data else 0
     
-    # Add new items
     outfit_items = [
         {
             "outfit_id": outfit_id,
@@ -500,7 +422,7 @@ async def add_items_to_outfit(
         for i, item_id in enumerate(item_ids)
     ]
     
-    supabase.table("outfit_items").insert(outfit_items).execute()
+    await supabase.table("outfit_items").insert(outfit_items).execute()
     
     return await get_outfit(outfit_id, user_id)
 
@@ -510,42 +432,29 @@ async def remove_item_from_outfit(
     user_id: str,
     item_id: str,
 ) -> Optional[OutfitResponse]:
-    """Remove a clothing item from an outfit.
+    """Remove a clothing item from an outfit."""
+    supabase = await get_supabase_client()
     
-    Args:
-        outfit_id: The outfit's UUID
-        user_id: The user's UUID
-        item_id: The clothing item ID to remove
-        
-    Returns:
-        Updated outfit or None if not found
-    """
-    supabase = get_supabase_client()
-    
-    # Verify outfit ownership
     outfit = await get_outfit(outfit_id, user_id)
     if not outfit:
         return None
     
-    supabase.table("outfit_items").delete().eq("outfit_id", outfit_id).eq("clothing_item_id", item_id).execute()
+    await (
+        supabase.table("outfit_items")
+        .delete()
+        .eq("outfit_id", outfit_id)
+        .eq("clothing_item_id", item_id)
+        .execute()
+    )
     
     return await get_outfit(outfit_id, user_id)
 
 
 async def delete_outfit(outfit_id: str, user_id: str) -> bool:
-    """Delete an outfit.
+    """Delete an outfit."""
+    supabase = await get_supabase_client()
     
-    Args:
-        outfit_id: The outfit's UUID
-        user_id: The user's UUID
-        
-    Returns:
-        True if deleted, False if not found
-    """
-    supabase = get_supabase_client()
-    
-    # Get outfit first to retrieve generated_image_url for cleanup
-    outfit_result = (
+    outfit_result = await (
         supabase.table("outfits")
         .select("generated_image_url")
         .eq("id", outfit_id)
@@ -553,7 +462,7 @@ async def delete_outfit(outfit_id: str, user_id: str) -> bool:
         .execute()
     )
     
-    result = (
+    result = await (
         supabase.table("outfits")
         .delete()
         .eq("id", outfit_id)
@@ -561,7 +470,6 @@ async def delete_outfit(outfit_id: str, user_id: str) -> bool:
         .execute()
     )
     
-    # Clean up generated image if exists
     if result.data and outfit_result.data:
         image_url = outfit_result.data[0].get("generated_image_url")
         if image_url:
@@ -575,18 +483,9 @@ async def delete_outfit(outfit_id: str, user_id: str) -> bool:
 # =============================================================================
 
 async def get_closet(user_id: str) -> ClosetResponse:
-    """Get user's complete closet (items grouped by category + outfits).
-    
-    Args:
-        user_id: The user's UUID
-        
-    Returns:
-        Complete closet data
-    """
-    # Get all owned items
+    """Get user's complete closet (items grouped by category + outfits)."""
     items = await get_user_clothing_items(user_id, ownership="owned", limit=500)
     
-    # Group by L1 category
     items_by_category: dict[str, list[ClothingItemResponse]] = {}
     for item in items:
         l1 = item.category.l1
@@ -594,7 +493,6 @@ async def get_closet(user_id: str) -> ClosetResponse:
             items_by_category[l1] = []
         items_by_category[l1].append(item)
     
-    # Get outfit summaries
     outfits = await get_user_outfits(user_id, limit=100)
     
     return ClosetResponse(
@@ -616,39 +514,40 @@ async def upload_image(
     bucket: str = "clothing-images",
     content_type: str = "image/jpeg",
 ) -> str:
-    """Upload an image to Supabase Storage.
+    """Upload an image to Supabase Storage."""
+    supabase = await get_supabase_client()
     
-    Args:
-        user_id: The user's UUID (for folder organization)
-        file_data: Image file bytes
-        file_name: Original file name
-        bucket: Storage bucket name
-        content_type: MIME type
-        
-    Returns:
-        Public URL of uploaded image
-    """
-    supabase = get_supabase_client()
-    
-    # Generate unique path: user_id/timestamp_filename
     timestamp = int(time.time() * 1000)
-    # Sanitize filename
     safe_filename = "".join(c for c in file_name if c.isalnum() or c in "._-").strip()
     if not safe_filename:
         safe_filename = "image.jpg"
     path = f"{user_id}/{timestamp}_{safe_filename}"
     
-    # Upload to bucket
-    supabase.storage.from_(bucket).upload(
+    await supabase.storage.from_(bucket).upload(
         path,
         file_data,
         {"content-type": content_type}
     )
     
-    # Get public URL
+    # get_public_url is sync (just builds URL string)
     public_url = supabase.storage.from_(bucket).get_public_url(path)
     
     return public_url
+
+
+async def upload_user_photo(
+    user_id: str,
+    file_data: bytes,
+    file_name: str,
+) -> str:
+    """Upload user's full-body photo for try-on."""
+    return await upload_image(
+        user_id,
+        file_data,
+        file_name,
+        bucket="user-photos",
+        content_type="image/jpeg",
+    )
 
 
 async def upload_generated_image(
@@ -656,16 +555,7 @@ async def upload_generated_image(
     image_data: bytes,
     outfit_id: str,
 ) -> str:
-    """Upload a generated try-on image.
-    
-    Args:
-        user_id: The user's UUID
-        image_data: Generated image bytes
-        outfit_id: Associated outfit ID
-        
-    Returns:
-        Public URL of uploaded image
-    """
+    """Upload a generated try-on image."""
     file_name = f"tryon_{outfit_id}.png"
     return await upload_image(
         user_id,
@@ -677,25 +567,20 @@ async def upload_generated_image(
 
 
 async def delete_image(image_url: str, bucket: str = "clothing-images") -> bool:
-    """Delete an image from Supabase Storage.
+    """Delete an image from Supabase Storage."""
+    supabase = await get_supabase_client()
     
-    Args:
-        image_url: Full public URL of the image
-        bucket: Storage bucket name
-        
-    Returns:
-        True if deleted
-    """
-    supabase = get_supabase_client()
-    
-    # Extract path from URL
-    # URL format: https://<project>.supabase.co/storage/v1/object/public/<bucket>/<path>
     try:
         path = image_url.split(f"/{bucket}/")[1]
-        supabase.storage.from_(bucket).remove([path])
+        await supabase.storage.from_(bucket).remove([path])
         return True
     except Exception:
         return False
+
+
+async def delete_user_photo(image_url: str) -> bool:
+    """Delete a user photo."""
+    return await delete_image(image_url, "user-photos")
 
 
 # =============================================================================
@@ -703,17 +588,10 @@ async def delete_image(image_url: str, bucket: str = "clothing-images") -> bool:
 # =============================================================================
 
 async def get_user_profile(user_id: str) -> Optional[dict]:
-    """Get user profile data.
+    """Get user profile data."""
+    supabase = await get_supabase_client()
     
-    Args:
-        user_id: The user's UUID
-        
-    Returns:
-        Profile dict or None
-    """
-    supabase = get_supabase_client()
-    
-    result = (
+    result = await (
         supabase.table("profiles")
         .select("*")
         .eq("id", user_id)
@@ -727,25 +605,16 @@ async def get_user_profile(user_id: str) -> Optional[dict]:
 
 
 async def update_user_profile(user_id: str, updates: dict) -> Optional[dict]:
-    """Update user profile.
+    """Update user profile."""
+    supabase = await get_supabase_client()
     
-    Args:
-        user_id: The user's UUID
-        updates: Fields to update (name, avatar_url)
-        
-    Returns:
-        Updated profile or None
-    """
-    supabase = get_supabase_client()
-    
-    # Only allow certain fields
     allowed_fields = {"name", "avatar_url"}
     filtered_updates = {k: v for k, v in updates.items() if k in allowed_fields}
     
     if not filtered_updates:
         return await get_user_profile(user_id)
     
-    result = (
+    result = await (
         supabase.table("profiles")
         .update(filtered_updates)
         .eq("id", user_id)
