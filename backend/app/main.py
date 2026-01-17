@@ -5,8 +5,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
-from app.core.config import get_settings
-from app.api.routes import recommendations, outfits, tryon
+from app.config import get_settings
+from app.routers import recommendations, outfits, tryon
 
 settings = get_settings()
 
