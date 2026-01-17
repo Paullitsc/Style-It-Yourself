@@ -79,12 +79,7 @@ export default function TryOnModal({
 
   const handleDownload = () => {
     if (resultUrl) {
-      const link = document.createElement('a')
-      link.href = resultUrl
-      link.download = `try-on-${Date.now()}.png`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
+        window.open(resultUrl, '_blank')
     }
   }
 
@@ -172,6 +167,7 @@ export default function TryOnModal({
                 setUserPhotoFile(null)
               }}
               onDownload={handleDownload}
+              onDone={onClose}
               retryLabel={viewOnly ? undefined : "Try Another Photo"}
             />
           )}

@@ -88,12 +88,7 @@ export default function TryOnOutfitModal({ items, token, onClose }: TryOnOutfitM
 
   const handleDownload = () => {
     if (resultUrl) {
-      const link = document.createElement('a')
-      link.href = resultUrl
-      link.download = `outfit-try-on-${Date.now()}.png`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
+      window.open(resultUrl, '_blank')
     }
   }
 
@@ -159,6 +154,7 @@ export default function TryOnOutfitModal({ items, token, onClose }: TryOnOutfitM
               processingTime={processingTime || undefined}
               onRetry={() => { setStep('upload'); setUserPhotoFile(null) }}
               onDownload={handleDownload}
+              onDone={onClose}
             />
           )}
         </div>
