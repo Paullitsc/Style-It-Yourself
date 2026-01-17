@@ -6,10 +6,11 @@ from typing import List
 from app.models.schemas import (
     OutfitCreate,
     OutfitResponse,
+    OutfitSummary,
     User,
 )
 from app.middleware.auth import get_current_user
-from app.services import outfit_service
+from app.services import supabase
 
 router = APIRouter(
     prefix="/api/outfits",
@@ -42,7 +43,7 @@ async def create_outfit(
         HTTPException: 401 if unauthenticated, 500 for database errors
     """
     try:
-        return await outfit_service.create_outfit(outfit, current_user.id)
+        return await supabase.create_outfit(current_user.id, outfit)    
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -52,14 +53,14 @@ async def create_outfit(
 
 @router.get(
     "",
-    response_model=List[OutfitResponse],
+    response_model=List[OutfitSummary],
     status_code=status.HTTP_200_OK,
     summary="Get all outfits",
     description="Retrieve a summary list of all outfits belonging to the authenticated user"
 )
 async def get_outfits(
     current_user: User = Depends(get_current_user)
-) -> List[OutfitResponse]:
+) -> List[OutfitSummary]:
     """
     Retrieve all outfits for the authenticated user.
     
@@ -67,13 +68,13 @@ async def get_outfits(
         current_user: Authenticated user (from dependency)
     
     Returns:
-        List of OutfitResponse objects
+        List of OutfitSummary objects
     
     Raises:
         HTTPException: 401 if unauthenticated, 500 for database errors
     """
     try:
-        return await outfit_service.get_outfits(current_user.id)
+        return await supabase.get_user_outfits(current_user.id)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -109,7 +110,10 @@ async def get_outfit(
             - 500 for database errors
     """
     try:
-        return await outfit_service.get_outfit(outfit_id, current_user.id)
+        outfit = await supabase.get_outfit(outfit_id, current_user.id)
+        if not outfit:
+            raise ValueError("Outfit not found")
+        return outfit
     except ValueError as e:
         error_message = str(e)
         if "not found" in error_message.lower():
@@ -158,7 +162,9 @@ async def delete_outfit(
             - 500 for database errors
     """
     try:
-        await outfit_service.delete_outfit(outfit_id, current_user.id)
+       deleted = await supabase.delete_outfit(outfit_id, current_user.id)
+        if not deleted:
+            raise ValueError("Outfit not found")
     except ValueError as e:
         error_message = str(e)
         if "not found" in error_message.lower():
