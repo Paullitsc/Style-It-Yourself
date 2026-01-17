@@ -74,6 +74,7 @@ class RecommendationRequest(BaseModel):
     base_formality: float = Field(..., ge=1.0, le=5.0)
     base_aesthetics: list[str] = Field(default_factory=list)
     base_category: Category
+    filled_categories: list[str] = Field(default_factory=list, description="Already filled category L1s")
 
 
 class RecommendedColor(BaseModel):
