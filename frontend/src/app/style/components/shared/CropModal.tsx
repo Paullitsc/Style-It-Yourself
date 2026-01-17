@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef } from 'react'
-import Cropper from 'react-easy-crop'
-import type { Point, Area } from 'react-easy-crop'
+import ReactCrop, { type Crop, type PixelCrop } from 'react-image-crop'
+import 'react-image-crop/dist/ReactCrop.css'
 import { X, RotateCcw, ZoomIn, ZoomOut, Maximize } from 'lucide-react'
 
 interface CropModalProps {
@@ -14,12 +14,11 @@ interface CropModalProps {
 
 export default function CropModal({ file, onComplete, onSkip, onClose }: CropModalProps) {
   const [imageSrc, setImageSrc] = useState<string>('')
-  const [crop, setCrop] = useState<Point>({ x: 0, y: 0 })
+  const [crop, setCrop] = useState<Crop>()
+  const [completedCrop, setCompletedCrop] = useState<PixelCrop | null>(null)
   const [zoom, setZoom] = useState(1)
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
-  const [imageSize, setImageSize] = useState<{ width: number; height: number } | null>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
+  const imageRef = useRef<HTMLImageElement | null>(null)
 
   // Load image on mount
   useEffect(() => {
@@ -27,25 +26,23 @@ export default function CropModal({ file, onComplete, onSkip, onClose }: CropMod
     reader.onload = () => {
       const img = reader.result as string
       setImageSrc(img)
-      // Get image dimensions
-      const image = new Image()
-      image.onload = () => {
-        setImageSize({ width: image.width, height: image.height })
-      }
-      image.src = img
     }
     reader.readAsDataURL(file)
   }, [file])
 
-  const onCropComplete = useCallback((croppedArea: Area, croppedAreaPixels: Area) => {
-    setCroppedAreaPixels(croppedAreaPixels)
+  const getDefaultCrop = useCallback((): Crop => {
+    return { unit: '%', x: 10, y: 10, width: 80, height: 60 }
   }, [])
 
+  const onImageLoad = useCallback(() => {
+    setCrop(getDefaultCrop())
+  }, [getDefaultCrop])
+
   const handleConfirm = useCallback(async () => {
-    if (!croppedAreaPixels || !imageSrc) return
+    if (!completedCrop || !imageRef.current) return
     setIsProcessing(true)
     try {
-      const croppedBlob = await getCroppedImg(imageSrc, croppedAreaPixels)
+      const croppedBlob = await getCroppedImg(imageRef.current, completedCrop)
       onComplete(croppedBlob)
     } catch (error) {
       console.error('Error cropping image:', error)
@@ -53,12 +50,26 @@ export default function CropModal({ file, onComplete, onSkip, onClose }: CropMod
     } finally {
       setIsProcessing(false)
     }
-  }, [imageSrc, croppedAreaPixels, onComplete])
+  }, [completedCrop, onComplete])
 
   const handleReset = useCallback(() => {
-    setCrop({ x: 0, y: 0 })
+    setCrop(getDefaultCrop())
     setZoom(1)
-  }, [])
+    setCompletedCrop(null)
+  }, [getDefaultCrop])
+
+  const displayCrop = useCallback(() => {
+    if (!completedCrop || !imageRef.current) return null
+    const rect = imageRef.current.getBoundingClientRect()
+    if (!rect.width || !rect.height) return null
+    const scaleX = imageRef.current.naturalWidth / rect.width
+    const scaleY = imageRef.current.naturalHeight / rect.height
+    return {
+      width: Math.round(completedCrop.width * scaleX),
+      height: Math.round(completedCrop.height * scaleY),
+    }
+  }, [completedCrop])
+  const displaySize = displayCrop()
 
   return (
     <div className="fixed inset-0 bg-primary-900/95 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -81,47 +92,43 @@ export default function CropModal({ file, onComplete, onSkip, onClose }: CropMod
 
         {/* Cropper Area with Better Styling */}
         <div 
-          ref={containerRef}
           className="relative flex-1 min-h-[450px] bg-black overflow-hidden flex items-center justify-center"
         >
           {imageSrc && (
             <>
-              <Cropper
-                image={imageSrc}
-                crop={crop}
-                zoom={zoom}
-                aspect={undefined}
-                onCropChange={setCrop}
-                onCropComplete={onCropComplete}
-                onZoomChange={setZoom}
-                showGrid={true}
-                gridSize={20}
-                minZoom={0.5}
-                maxZoom={3}
-                restrictPosition={true}
+              <div
+                className="transition-transform duration-150 ease-out"
                 style={{
-                  containerStyle: {
-                    backgroundColor: '#000',
-                    width: '100%',
-                    height: '100%',
-                  },
-                  cropAreaStyle: {
-                    border: '3px solid #d4af37',
-                    boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.8)',
-                  },
-                  mediaStyle: {
-                    maxWidth: '100%',
-                    maxHeight: '100%',
-                  },
+                  transform: `scale(${zoom})`,
+                  transformOrigin: 'center',
                 }}
-              />
+              >
+                <ReactCrop
+                  crop={crop}
+                  onChange={(_, percentCrop) => setCrop(percentCrop)}
+                  onComplete={(nextCrop) => setCompletedCrop(nextCrop)}
+                  minWidth={40}
+                  minHeight={40}
+                  keepSelection={true}
+                  ruleOfThirds={true}
+                  className="max-h-[450px]"
+                >
+                  <img
+                    ref={imageRef}
+                    src={imageSrc}
+                    alt="Crop preview"
+                    onLoad={onImageLoad}
+                    className="max-h-[450px] w-auto max-w-full object-contain select-none"
+                  />
+                </ReactCrop>
+              </div>
               {/* Crop Dimensions Display */}
-              {croppedAreaPixels && (
+              {displaySize && (
                 <div className="absolute top-6 right-6 bg-primary-800/90 backdrop-blur-sm px-4 py-3 rounded border border-primary-700 pointer-events-none z-20">
                   <div className="text-xs text-neutral-300 space-y-1">
-                    <div><span className="text-accent-500 font-bold">{Math.round(croppedAreaPixels.width)}</span>px × <span className="text-accent-500 font-bold">{Math.round(croppedAreaPixels.height)}</span>px</div>
+                    <div><span className="text-accent-500 font-bold">{displaySize.width}</span>px × <span className="text-accent-500 font-bold">{displaySize.height}</span>px</div>
                     <div className="text-[9px] text-neutral-500">
-                      Aspect: {(croppedAreaPixels.width / croppedAreaPixels.height).toFixed(2)}:1
+                      Aspect: {(displaySize.width / displaySize.height).toFixed(2)}:1
                     </div>
                   </div>
                 </div>
@@ -189,35 +196,57 @@ export default function CropModal({ file, onComplete, onSkip, onClose }: CropMod
           </div>
         </div>
       </div>
+      <style jsx global>{`
+        .ReactCrop__crop-selection {
+          border: 3px solid #d4af37;
+          box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.8);
+        }
+
+        .ReactCrop__drag-handle:after {
+          width: 12px;
+          height: 12px;
+          background-color: #d4af37;
+          border: 2px solid #0b0f12;
+          border-radius: 2px;
+        }
+
+        .ReactCrop__drag-bar {
+          background: rgba(212, 175, 55, 0.7);
+        }
+      `}</style>
     </div>
   )
 }
 
 // Helper: Create cropped image blob
-async function getCroppedImg(imageSrc: string, pixelCrop: Area): Promise<Blob> {
-  const image = await createImage(imageSrc)
+async function getCroppedImg(image: HTMLImageElement, pixelCrop: PixelCrop): Promise<Blob> {
+  const rect = image.getBoundingClientRect()
   const canvas = document.createElement('canvas')
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('No 2d context')
 
-  canvas.width = pixelCrop.width
-  canvas.height = pixelCrop.height
+  const scaleX = image.naturalWidth / rect.width
+  const scaleY = image.naturalHeight / rect.height
 
-  ctx.drawImage(image, pixelCrop.x, pixelCrop.y, pixelCrop.width, pixelCrop.height, 0, 0, pixelCrop.width, pixelCrop.height)
+  canvas.width = Math.round(pixelCrop.width * scaleX)
+  canvas.height = Math.round(pixelCrop.height * scaleY)
+
+  ctx.drawImage(
+    image,
+    pixelCrop.x * scaleX,
+    pixelCrop.y * scaleY,
+    pixelCrop.width * scaleX,
+    pixelCrop.height * scaleY,
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  )
 
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {
       if (blob) resolve(blob)
       else reject(new Error('Canvas is empty'))
     }, 'image/jpeg', 0.95)
-  })
-}
-
-function createImage(url: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const image = new Image()
-    image.addEventListener('load', () => resolve(image))
-    image.addEventListener('error', (error) => reject(error))
-    image.src = url
   })
 }
