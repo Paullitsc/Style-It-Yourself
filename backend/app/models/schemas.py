@@ -10,7 +10,7 @@ from datetime import datetime
 
 class HSL(BaseModel):
     """HSL color representation."""
-    h: int = Field(..., ge=0, le=360, description="Hue (0-360)") #ex pigment of the color (red, blue, etc). Look this up on color wheel, for example, red is 0, green is 120, blue is 240
+    h: int = Field(..., ge=0, lt=360, description="Hue (0-360)") #ex pigment of the color (red, blue, etc). Look this up on color wheel, for example, red is 0, green is 120, blue is 240
     s: int = Field(..., ge=0, le=100, description="Saturation (0-100)")
     l: int = Field(..., ge=0, le=100, description="Lightness (0-100)")
 
@@ -33,7 +33,7 @@ class ClothingItemBase(BaseModel):
     """Base clothing item fields - used in validation endpoints."""
     color: Color
     category: Category
-    formality: int = Field(..., ge=1, le=5, description="Formality level 1-5")
+    formality: float = Field(..., ge=1.0, le=5.0, description="Formality level 1-5")
     aesthetics: list[str] = Field(default_factory=list, description="Aesthetic tags")
 
 
