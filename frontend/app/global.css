@@ -1,0 +1,99 @@
+@import "tailwindcss";
+
+:root {
+  --background: #101518; /* primary-900 */
+  --foreground: #ffffff; /* neutral-50 */
+}
+
+@theme {
+  /* --- 1. NEUTRAL --- */
+  --color-neutral-50: #ffffff;
+  --color-neutral-100: #fdfdfd;
+  --color-neutral-200: #fdfdfd;
+  --color-neutral-300: #fcfcfc;
+  --color-neutral-400: #fbfbfb;
+  --color-neutral-500: #fafafa;
+  --color-neutral-600: #e4e4e4;
+  --color-neutral-700: #b2b2b2;
+  --color-neutral-800: #8a8a8a;
+  --color-neutral-900: #696969;
+
+  /* --- 2. PRIMARY (Charcoal) --- */
+  --color-primary-50: #e9ebeb;
+  --color-primary-100: #bcbfc1;
+  --color-primary-200: #9ba1a3;
+  --color-primary-300: #6e767a;
+  --color-primary-400: #515b60;
+  --color-primary-500: #263238; /* Main Dark Charcoal */
+  --color-primary-600: #232e33;
+  --color-primary-700: #1b2428;
+  --color-primary-800: #151c1f;
+  --color-primary-900: #101518; /* App Background */
+
+  /* --- 3. ACCENT (Gold) --- */
+  --color-accent-50: #fbf7eb;
+  --color-accent-100: #f2e6c1;
+  --color-accent-200: #ebdaa3;
+  --color-accent-300: #e2c979;
+  --color-accent-400: #ddbf5f;
+  --color-accent-500: #d4af37; /* Main Gold */
+  --color-accent-600: #c19f32;
+  --color-accent-700: #977c27;
+  --color-accent-800: #75601e;
+  --color-accent-900: #594a17;
+
+  /* --- 4. SUCCESS --- */
+  --color-success-50: #eaf2eb;
+  --color-success-100: #bed7bf;
+  --color-success-200: #9fc3a1;
+  --color-success-300: #73a876;
+  --color-success-400: #58975b;
+  --color-success-500: #2e7d32;
+  --color-success-600: #2a722e;
+  --color-success-700: #215924;
+  --color-success-800: #19451c;
+  --color-success-900: #133515;
+
+  /* --- 5. ERROR --- */
+  --color-error-50: #f8e8e8;
+  --color-error-100: #e9b9b9;
+  --color-error-200: #de9797;
+  --color-error-300: #cf6767;
+  --color-error-400: #c54949;
+  --color-error-500: #b71c1c;
+  --color-error-600: #a71919;
+  --color-error-700: #821414;
+  --color-error-800: #650f0f;
+  --color-error-900: #4d0c0c;
+
+  /* --- 6. WARNING --- */
+  --color-warning-50: #fdeee6;
+  --color-warning-100: #f7c9b0;
+  --color-warning-200: #f4af8a;
+  --color-warning-300: #ee8a54;
+  --color-warning-400: #eb7433;
+  --color-warning-500: #e65100;
+  --color-warning-600: #d14a00;
+  --color-warning-700: #a33a00;
+  --color-warning-800: #7f2d00;
+  --color-warning-900: #612200;
+
+  /* --- FONTS & VARS --- */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #101518;
+    --foreground: #ffffff;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
