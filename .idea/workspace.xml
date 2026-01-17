@@ -4,12 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="95aeab20-78da-4736-a7e8-8f8caa65d322" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/app/models/schemas.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/models/schemas.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/app/services/color_harmony.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/services/color_harmony.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/app/utils/constants.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/utils/constants.py" afterDir="false" />
-    </list>
+    <list default="true" id="95aeab20-78da-4736-a7e8-8f8caa65d322" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
