@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS public.clothing_items (
     category_l2 TEXT NOT NULL,
     
     -- Style attributes
-    formality INTEGER NOT NULL CHECK (formality BETWEEN 1 AND 5),
+    formality FLOAT NOT NULL CHECK (formality >= 1.0 AND formality <= 5.0),
     aesthetics TEXT[] DEFAULT '{}',
     
     -- Optional metadata
