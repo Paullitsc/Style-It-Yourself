@@ -203,6 +203,13 @@ export default function ClosetPage() {
                                       style={{ backgroundColor: item.color.hex }}
                                     />
                                   )}
+                                  
+                                  {/* Wishlist badge */}
+                                  {item.ownership === 'wishlist' && (
+                                    <div className="absolute top-2 right-2 px-2 py-1 bg-accent-500/90 text-primary-900 border border-accent-600 rounded text-[10px] font-bold uppercase tracking-wider shadow-md">
+                                      Wishlist
+                                    </div>
+                                  )}
                                 </div>
                                 
                                 {/* Details */}
