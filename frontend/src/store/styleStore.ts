@@ -10,6 +10,7 @@ import type {
   Color,
   Category,
   ValidateItemResponse,
+  ClothingItemResponse
 } from '@/types'
 
 // =============================================================================
@@ -368,21 +369,24 @@ export const useStyleStore = create<StyleState>((set, get) => ({
   // ---------------------------------------------------------------------------
 
   setCroppedImage: (croppedImage) => {
-    // Revoke old URL if exists
-    const oldUrl = get().croppedImage?.croppedUrl
-    if (oldUrl) {
-      URL.revokeObjectURL(oldUrl)
-    }
-    
-    set({ 
-      croppedImage,
-      // Reset downstream state when new image is uploaded
-      detectedColors: [],
-      selectedColorIndex: 0,
-      adjustedColor: null,
-      recommendations: [],
-    })
-  },
+  // Revoke old URL if exists
+  const oldUrl = get().croppedImage?.croppedUrl
+  if (oldUrl) {
+    URL.revokeObjectURL(oldUrl)
+  }
+  
+  set({ 
+    croppedImage,
+    // Reset ALL downstream state when new image is uploaded
+    category: null,          
+    formality: 2,             
+    aesthetics: [],         
+    detectedColors: [],
+    selectedColorIndex: 0,
+    adjustedColor: null,
+    recommendations: [],
+  })
+},
 
   // ---------------------------------------------------------------------------
   // STEP 2A: METADATA

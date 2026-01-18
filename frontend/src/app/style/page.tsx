@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useStyleStore } from '@/store/styleStore'
 import StepIndicator from './components/StepIndicator'
 import UploadStep from './components/UploadStep'
@@ -8,16 +8,28 @@ import MetadataStep from './components/MetadataStep'
 import ColorStep from './components/ColorStep'
 import BuildStep from './components/BuildStep'
 import SummaryStep from './components/SummaryStep'
-export default function StylePage() {
-  const { currentStep, reset } = useStyleStore()
 
-  // Reset store when leaving page
+export default function StylePage() {
+  const { currentStep, croppedImage, reset } = useStyleStore()
+  const [isReady, setIsReady] = useState(false)
+
+  // Reset if we're past upload but have no image (stale state)
+  // Reset if we're past upload but have no image (stale state)
   useEffect(() => {
-    return () => {
-      // Don't reset on unmount during normal navigation within the flow
-      // Only reset if needed (could be controlled by a flag)
+    const state = useStyleStore.getState()
+    console.log('Checking state:', { currentStep: state.currentStep, hasCroppedImage: !!state.croppedImage })
+    
+    if (!state.croppedImage && state.currentStep !== 'upload') {
+      console.log('Resetting stale state')
+      state.reset()
     }
+    setIsReady(true)
   }, [])
+
+  // Don't render until we've checked for stale state
+  if (!isReady) {
+    return <div className="min-h-[calc(100vh-80px)] bg-primary-900" />
+  }
 
   return (
     <div className="min-h-[calc(100vh-80px)] bg-primary-900">
