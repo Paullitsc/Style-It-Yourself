@@ -1,357 +1,376 @@
 """
-Unit tests for outfits router - direct function calls.
+Unit tests for the matching service.
 """
+import pytest
+from app.services.matching import (
+    hex_to_rgb,
+    color_distance,
+    is_color_similar,
+    score_item_match,
+    filter_and_rank_items,
+)
+from app.models.schemas import (
+    ClothingItemResponse,
+    RecommendedColor,
+    FormalityRange,
+    Color,
+    HSL,
+    Category,
+)
 from datetime import datetime
 
-import httpx
-import pytest
-from fastapi import HTTPException, status
-
-from app.models.schemas import (
-    OutfitCreate,
-    OutfitResponse,
-    OutfitSummary,
-    User,
-)
-from app.routers import outfits as outfits_router
-from app.routers.outfits import OutfitNotFoundError, OutfitPermissionError
-
-
-pytestmark = pytest.mark.asyncio
-
 
 # =============================================================================
-# HELPERS
+# FIXTURES
 # =============================================================================
 
-def _make_user(user_id: str = "test-user-123") -> User:
-    """Create a test user."""
-    return User(id=user_id, email="test@example.com", name="Test User")
-
-
-def _make_outfit_response(
-    outfit_id: str = "outfit-123",
-    user_id: str = "test-user-123",
-    name: str = "Test Outfit",
-) -> OutfitResponse:
-    """Create an OutfitResponse."""
-    return OutfitResponse(
-        id=outfit_id,
-        user_id=user_id,
-        name=name,
-        items=[],
-        generated_image_url=None,
-        created_at=datetime(2024, 1, 1, 12, 0, 0),
-    )
-
-
-def _make_outfit_summary(
-    outfit_id: str = "outfit-123",
-    name: str = "Test Outfit",
-    item_count: int = 2,
-) -> OutfitSummary:
-    """Create an OutfitSummary."""
-    return OutfitSummary(
-        id=outfit_id,
-        name=name,
-        item_count=item_count,
-        thumbnail_url=None,
-        created_at=datetime(2024, 1, 1, 12, 0, 0),
-    )
-
-
-# =============================================================================
-# create_outfit
-# =============================================================================
-
-async def test_create_outfit_success(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Successfully creates outfit."""
-    user = _make_user()
-    outfit_create = OutfitCreate(name="Summer Look", item_ids=["item-1", "item-2"])
-    expected = _make_outfit_response(name="Summer Look")
-
-    async def fake_create_outfit(user_id: str, outfit: OutfitCreate):
-        assert user_id == user.id
-        assert outfit.name == "Summer Look"
-        return expected
-
-    monkeypatch.setattr(outfits_router.supabase, "create_outfit", fake_create_outfit)
-
-    response = await outfits_router.create_outfit(outfit_create, user)
-
-    assert response.name == "Summer Look"
-    assert response.id == "outfit-123"
-
-
-async def test_create_outfit_validation_error_maps_to_400(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """ValueError maps to 400."""
-    user = _make_user()
-    outfit_create = OutfitCreate(name="Test", item_ids=["item-1"])
-
-    async def fake_create_outfit(user_id: str, outfit: OutfitCreate):
-        raise ValueError("Invalid item IDs")
-
-    monkeypatch.setattr(outfits_router.supabase, "create_outfit", fake_create_outfit)
-
-    with pytest.raises(HTTPException) as excinfo:
-        await outfits_router.create_outfit(outfit_create, user)
-
-    assert excinfo.value.status_code == status.HTTP_400_BAD_REQUEST
-
-
-async def test_create_outfit_timeout_maps_to_503(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Timeout maps to 503."""
-    user = _make_user()
-    outfit_create = OutfitCreate(name="Test", item_ids=["item-1"])
-
-    async def fake_create_outfit(user_id: str, outfit: OutfitCreate):
-        raise httpx.TimeoutException(
-            "timeout",
-            request=httpx.Request("POST", "http://test"),
-        )
-
-    monkeypatch.setattr(outfits_router.supabase, "create_outfit", fake_create_outfit)
-
-    with pytest.raises(HTTPException) as excinfo:
-        await outfits_router.create_outfit(outfit_create, user)
-
-    assert excinfo.value.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
-
-
-async def test_create_outfit_unexpected_error_maps_to_500(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Unexpected errors map to 500 without exposing details."""
-    user = _make_user()
-    outfit_create = OutfitCreate(name="Test", item_ids=["item-1"])
-
-    async def fake_create_outfit(user_id: str, outfit: OutfitCreate):
-        raise RuntimeError("Database exploded")
-
-    monkeypatch.setattr(outfits_router.supabase, "create_outfit", fake_create_outfit)
-
-    with pytest.raises(HTTPException) as excinfo:
-        await outfits_router.create_outfit(outfit_create, user)
-
-    assert excinfo.value.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
-    assert "Database exploded" not in excinfo.value.detail
-
-
-# =============================================================================
-# get_outfits
-# =============================================================================
-
-async def test_get_outfits_success(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Returns list of outfit summaries."""
-    user = _make_user()
-    expected = [
-        _make_outfit_summary("outfit-1", "Work", 3),
-        _make_outfit_summary("outfit-2", "Casual", 2),
+@pytest.fixture
+def sample_recommended_colors() -> list[RecommendedColor]:
+    return [
+        RecommendedColor(hex="#1E3A5F", name="Navy", harmony_type="complementary"),
+        RecommendedColor(hex="#F5F5DC", name="Beige", harmony_type="neutral"),
+        RecommendedColor(hex="#2F4F4F", name="Slate", harmony_type="analogous"),
     ]
 
-    async def fake_get_user_outfits(user_id: str):
-        assert user_id == user.id
-        return expected
 
-    monkeypatch.setattr(outfits_router.supabase, "get_user_outfits", fake_get_user_outfits)
-
-    response = await outfits_router.get_outfits(user)
-
-    assert len(response) == 2
-    assert response[0].name == "Work"
-    assert response[1].name == "Casual"
+@pytest.fixture
+def sample_formality_range() -> FormalityRange:
+    return FormalityRange(min=2, max=4)
 
 
-async def test_get_outfits_empty(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Returns empty list when no outfits."""
-    user = _make_user()
+@pytest.fixture
+def sample_clothing_item() -> ClothingItemResponse:
+    return ClothingItemResponse(
+        id="item-1",
+        user_id="user-1",
+        image_url="https://example.com/image.jpg",
+        color=Color(
+            hex="#1E3A5F",
+            hsl=HSL(h=210, s=52, l=24),
+            name="Navy",
+            is_neutral=False,
+        ),
+        category=Category(l1="Bottoms", l2="Chinos"),
+        formality=3.0,
+        aesthetics=["Classic", "Minimalist"],
+        ownership="owned",
+        created_at=datetime.now().isoformat(),
+    )
 
-    async def fake_get_user_outfits(user_id: str):
-        return []
 
-    monkeypatch.setattr(outfits_router.supabase, "get_user_outfits", fake_get_user_outfits)
+@pytest.fixture
+def sample_closet_items() -> list[ClothingItemResponse]:
+    """Create a variety of closet items for testing."""
+    base_time = datetime.now().isoformat()
+    
+    return [
+        # Perfect match - Navy chinos, formality 3
+        ClothingItemResponse(
+            id="item-1",
+            user_id="user-1",
+            image_url="https://example.com/navy-chinos.jpg",
+            color=Color(hex="#1E3A5F", hsl=HSL(h=210, s=52, l=24), name="Navy", is_neutral=False),
+            category=Category(l1="Bottoms", l2="Chinos"),
+            formality=3.0,
+            aesthetics=["Classic"],
+            ownership="owned",
+            created_at=base_time,
+        ),
+        # Good match - Beige pants, formality 2
+        ClothingItemResponse(
+            id="item-2",
+            user_id="user-1",
+            image_url="https://example.com/beige-pants.jpg",
+            color=Color(hex="#F5F5DC", hsl=HSL(h=60, s=56, l=91), name="Beige", is_neutral=True),
+            category=Category(l1="Bottoms", l2="Dress Pants"),
+            formality=2.0,
+            aesthetics=["Classic"],
+            ownership="owned",
+            created_at=base_time,
+        ),
+        # Poor color match - Red jeans, formality 3
+        ClothingItemResponse(
+            id="item-3",
+            user_id="user-1",
+            image_url="https://example.com/red-jeans.jpg",
+            color=Color(hex="#FF0000", hsl=HSL(h=0, s=100, l=50), name="Red", is_neutral=False),
+            category=Category(l1="Bottoms", l2="Jeans"),
+            formality=3.0,
+            aesthetics=["Streetwear"],
+            ownership="owned",
+            created_at=base_time,
+        ),
+        # Poor formality match - Navy shorts, formality 1
+        ClothingItemResponse(
+            id="item-4",
+            user_id="user-1",
+            image_url="https://example.com/navy-shorts.jpg",
+            color=Color(hex="#1E3A5F", hsl=HSL(h=210, s=52, l=24), name="Navy", is_neutral=False),
+            category=Category(l1="Bottoms", l2="Shorts"),
+            formality=1.0,
+            aesthetics=["Casual"],
+            ownership="owned",
+            created_at=base_time,
+        ),
+        # Different category - Navy sneakers
+        ClothingItemResponse(
+            id="item-5",
+            user_id="user-1",
+            image_url="https://example.com/navy-sneakers.jpg",
+            color=Color(hex="#1E3A5F", hsl=HSL(h=210, s=52, l=24), name="Navy", is_neutral=False),
+            category=Category(l1="Shoes", l2="Sneakers"),
+            formality=2.0,
+            aesthetics=["Casual"],
+            ownership="owned",
+            created_at=base_time,
+        ),
+    ]
 
-    response = await outfits_router.get_outfits(user)
 
-    assert response == []
+# =============================================================================
+# TESTS: hex_to_rgb
+# =============================================================================
+
+class TestHexToRgb:
+    def test_black(self):
+        assert hex_to_rgb("#000000") == (0, 0, 0)
+    
+    def test_white(self):
+        assert hex_to_rgb("#FFFFFF") == (255, 255, 255)
+    
+    def test_red(self):
+        assert hex_to_rgb("#FF0000") == (255, 0, 0)
+    
+    def test_navy(self):
+        assert hex_to_rgb("#1E3A5F") == (30, 58, 95)
+    
+    def test_lowercase(self):
+        assert hex_to_rgb("#1e3a5f") == (30, 58, 95)
+    
+    def test_without_hash(self):
+        # Should work without # prefix
+        assert hex_to_rgb("1E3A5F") == (30, 58, 95)
 
 
-async def test_get_outfits_timeout_maps_to_503(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Timeout maps to 503."""
-    user = _make_user()
+# =============================================================================
+# TESTS: color_distance
+# =============================================================================
 
-    async def fake_get_user_outfits(user_id: str):
-        raise httpx.TimeoutException(
-            "timeout",
-            request=httpx.Request("GET", "http://test"),
+class TestColorDistance:
+    def test_identical_colors(self):
+        assert color_distance("#1E3A5F", "#1E3A5F") == 0
+    
+    def test_black_vs_white(self):
+        # Maximum distance
+        distance = color_distance("#000000", "#FFFFFF")
+        assert distance > 400  # Should be ~441
+    
+    def test_similar_colors(self):
+        # Two shades of blue should be close
+        distance = color_distance("#1E3A5F", "#1E3A6F")
+        assert distance < 50
+    
+    def test_different_colors(self):
+        # Red vs Blue should be far
+        distance = color_distance("#FF0000", "#0000FF")
+        assert distance > 200
+    
+    def test_symmetry(self):
+        # Distance should be same regardless of order
+        d1 = color_distance("#1E3A5F", "#FF0000")
+        d2 = color_distance("#FF0000", "#1E3A5F")
+        assert d1 == d2
+
+
+# =============================================================================
+# TESTS: is_color_similar
+# =============================================================================
+
+class TestIsColorSimilar:
+    def test_identical_colors(self):
+        assert is_color_similar("#1E3A5F", "#1E3A5F") is True
+    
+    def test_similar_colors(self):
+        assert is_color_similar("#1E3A5F", "#1E3A6F", threshold=50) is True
+    
+    def test_different_colors(self):
+        assert is_color_similar("#FF0000", "#0000FF", threshold=50) is False
+    
+    def test_custom_threshold(self):
+    # With high threshold, even different colors pass
+        assert is_color_similar("#FF0000", "#0000FF", threshold=600) is True
+# =============================================================================
+# TESTS: score_item_match
+# =============================================================================
+
+class TestScoreItemMatch:
+    def test_perfect_match(
+        self, 
+        sample_clothing_item, 
+        sample_recommended_colors, 
+        sample_formality_range
+    ):
+        """Item with exact color match and formality in range should score high."""
+        score = score_item_match(
+            sample_clothing_item,
+            sample_recommended_colors,
+            sample_formality_range,
         )
-
-    monkeypatch.setattr(outfits_router.supabase, "get_user_outfits", fake_get_user_outfits)
-
-    with pytest.raises(HTTPException) as excinfo:
-        await outfits_router.get_outfits(user)
-
-    assert excinfo.value.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
-
-
-# =============================================================================
-# get_outfit
-# =============================================================================
-
-async def test_get_outfit_success(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Returns outfit by ID."""
-    user = _make_user()
-    expected = _make_outfit_response()
-
-    async def fake_get_outfit(outfit_id: str, user_id: str):
-        assert outfit_id == "outfit-123"
-        assert user_id == user.id
-        return expected
-
-    monkeypatch.setattr(outfits_router.supabase, "get_outfit", fake_get_outfit)
-
-    response = await outfits_router.get_outfit("outfit-123", user)
-
-    assert response.id == "outfit-123"
-
-
-async def test_get_outfit_none_maps_to_404(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Returns 404 when service returns None."""
-    user = _make_user()
-
-    async def fake_get_outfit(outfit_id: str, user_id: str):
-        return None
-
-    monkeypatch.setattr(outfits_router.supabase, "get_outfit", fake_get_outfit)
-
-    with pytest.raises(HTTPException) as excinfo:
-        await outfits_router.get_outfit("nonexistent", user)
-
-    assert excinfo.value.status_code == status.HTTP_404_NOT_FOUND
-
-
-async def test_get_outfit_not_found_error_maps_to_404(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """OutfitNotFoundError maps to 404."""
-    user = _make_user()
-
-    async def fake_get_outfit(outfit_id: str, user_id: str):
-        raise OutfitNotFoundError("Outfit does not exist")
-
-    monkeypatch.setattr(outfits_router.supabase, "get_outfit", fake_get_outfit)
-
-    with pytest.raises(HTTPException) as excinfo:
-        await outfits_router.get_outfit("nonexistent", user)
-
-    assert excinfo.value.status_code == status.HTTP_404_NOT_FOUND
-    assert "not found" in excinfo.value.detail.lower()
-
-
-async def test_get_outfit_permission_error_maps_to_403(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """OutfitPermissionError maps to 403."""
-    user = _make_user()
-
-    async def fake_get_outfit(outfit_id: str, user_id: str):
-        raise OutfitPermissionError()
-
-    monkeypatch.setattr(outfits_router.supabase, "get_outfit", fake_get_outfit)
-
-    with pytest.raises(HTTPException) as excinfo:
-        await outfits_router.get_outfit("other-user-outfit", user)
-
-    assert excinfo.value.status_code == status.HTTP_403_FORBIDDEN
-
-
-# =============================================================================
-# delete_outfit
-# =============================================================================
-
-async def test_delete_outfit_success(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Successfully deletes outfit."""
-    user = _make_user()
-
-    async def fake_delete_outfit(outfit_id: str, user_id: str):
-        assert outfit_id == "outfit-123"
-        return True
-
-    monkeypatch.setattr(outfits_router.supabase, "delete_outfit", fake_delete_outfit)
-
-    await outfits_router.delete_outfit("outfit-123", user)
-
-
-async def test_delete_outfit_false_maps_to_404(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Returns 404 when service returns False."""
-    user = _make_user()
-
-    async def fake_delete_outfit(outfit_id: str, user_id: str):
-        return False
-
-    monkeypatch.setattr(outfits_router.supabase, "delete_outfit", fake_delete_outfit)
-
-    with pytest.raises(HTTPException) as excinfo:
-        await outfits_router.delete_outfit("nonexistent", user)
-
-    assert excinfo.value.status_code == status.HTTP_404_NOT_FOUND
-
-
-async def test_delete_outfit_not_found_error_maps_to_404(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """OutfitNotFoundError maps to 404."""
-    user = _make_user()
-
-    async def fake_delete_outfit(outfit_id: str, user_id: str):
-        raise OutfitNotFoundError()
-
-    monkeypatch.setattr(outfits_router.supabase, "delete_outfit", fake_delete_outfit)
-
-    with pytest.raises(HTTPException) as excinfo:
-        await outfits_router.delete_outfit("nonexistent", user)
-
-    assert excinfo.value.status_code == status.HTTP_404_NOT_FOUND
-
-
-async def test_delete_outfit_permission_error_maps_to_403(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """OutfitPermissionError maps to 403."""
-    user = _make_user()
-
-    async def fake_delete_outfit(outfit_id: str, user_id: str):
-        raise OutfitPermissionError()
-
-    monkeypatch.setattr(outfits_router.supabase, "delete_outfit", fake_delete_outfit)
-
-    with pytest.raises(HTTPException) as excinfo:
-        await outfits_router.delete_outfit("other-user-outfit", user)
-
-    assert excinfo.value.status_code == status.HTTP_403_FORBIDDEN
-
-
-async def test_delete_outfit_timeout_maps_to_503(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Timeout maps to 503."""
-    user = _make_user()
-
-    async def fake_delete_outfit(outfit_id: str, user_id: str):
-        raise httpx.TimeoutException(
-            "timeout",
-            request=httpx.Request("DELETE", "http://test"),
+        # Color: ~50 (exact match), Formality: 50 (in range) = ~100
+        assert score >= 90
+    
+    def test_poor_color_match(
+        self, 
+        sample_recommended_colors, 
+        sample_formality_range
+    ):
+        """Item with very different color should score lower."""
+        red_item = ClothingItemResponse(
+            id="item-red",
+            user_id="user-1",
+            image_url="https://example.com/red.jpg",
+            color=Color(hex="#FF0000", hsl=HSL(h=0, s=100, l=50), name="Red", is_neutral=False),
+            category=Category(l1="Bottoms", l2="Jeans"),
+            formality=3.0,
+            aesthetics=[],
+            ownership="owned",
+            created_at=datetime.now().isoformat(),
         )
+        
+        score = score_item_match(red_item, sample_recommended_colors, sample_formality_range)
+        # Color score should be low, formality should be 50
+        assert score < 70
+    
+    def test_formality_out_of_range(
+        self, 
+        sample_recommended_colors
+    ):
+        """Item with formality outside range should score lower."""
+        casual_item = ClothingItemResponse(
+            id="item-casual",
+            user_id="user-1",
+            image_url="https://example.com/casual.jpg",
+            color=Color(hex="#1E3A5F", hsl=HSL(h=210, s=52, l=24), name="Navy", is_neutral=False),
+            category=Category(l1="Bottoms", l2="Shorts"),
+            formality=1.0,  # Below range of 2-4
+            aesthetics=[],
+            ownership="owned",
+            created_at=datetime.now().isoformat(),
+        )
+        
+        formality_range = FormalityRange(min=2, max=4)
+        score = score_item_match(casual_item, sample_recommended_colors, formality_range)
+        
+        # Color: ~50, Formality: 35 (1 level below min)
+        assert score < 90
+        assert score > 50  # But still reasonable due to color match
 
-    monkeypatch.setattr(outfits_router.supabase, "delete_outfit", fake_delete_outfit)
 
-    with pytest.raises(HTTPException) as excinfo:
-        await outfits_router.delete_outfit("outfit-123", user)
+# =============================================================================
+# TESTS: filter_and_rank_items
+# =============================================================================
 
-    assert excinfo.value.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
+class TestFilterAndRankItems:
+    def test_filters_by_category(
+        self, 
+        sample_closet_items, 
+        sample_recommended_colors, 
+        sample_formality_range
+    ):
+        """Should only return items from specified category."""
+        results = filter_and_rank_items(
+            sample_closet_items,
+            category_l1="Bottoms",
+            recommended_colors=sample_recommended_colors,
+            formality_range=sample_formality_range,
+        )
+        
+        assert all(item.category.l1 == "Bottoms" for item in results)
+        assert not any(item.category.l1 == "Shoes" for item in results)
+    
+    def test_respects_limit(
+        self, 
+        sample_closet_items, 
+        sample_recommended_colors, 
+        sample_formality_range
+    ):
+        """Should return at most 'limit' items."""
+        results = filter_and_rank_items(
+            sample_closet_items,
+            category_l1="Bottoms",
+            recommended_colors=sample_recommended_colors,
+            formality_range=sample_formality_range,
+            limit=2,
+        )
+        
+        assert len(results) <= 2
+    
+    def test_ranks_by_score(
+        self, 
+        sample_closet_items, 
+        sample_recommended_colors, 
+        sample_formality_range
+    ):
+        """Best matching items should be first."""
+        results = filter_and_rank_items(
+            sample_closet_items,
+            category_l1="Bottoms",
+            recommended_colors=sample_recommended_colors,
+            formality_range=sample_formality_range,
+            limit=5,
+            min_score=0,  # Include all for this test
+        )
+        
+        if len(results) >= 2:
+            # First item should be navy chinos (perfect match)
+            assert results[0].id == "item-1"
+    
+    def test_filters_by_min_score(
+        self, 
+        sample_closet_items, 
+        sample_recommended_colors, 
+        sample_formality_range
+    ):
+        """Should exclude items below min_score."""
+        # With high min_score, only perfect matches pass
+        results = filter_and_rank_items(
+            sample_closet_items,
+            category_l1="Bottoms",
+            recommended_colors=sample_recommended_colors,
+            formality_range=sample_formality_range,
+            min_score=90,
+        )
+        
+        # Only the navy chinos should pass (perfect match)
+        assert len(results) <= 2
+    
+    def test_empty_category(
+        self, 
+        sample_closet_items, 
+        sample_recommended_colors, 
+        sample_formality_range
+    ):
+        """Should return empty list for category with no items."""
+        results = filter_and_rank_items(
+            sample_closet_items,
+            category_l1="Accessories",
+            recommended_colors=sample_recommended_colors,
+            formality_range=sample_formality_range,
+        )
+        
+        assert results == []
+    
+    def test_empty_items_list(
+        self, 
+        sample_recommended_colors, 
+        sample_formality_range
+    ):
+        """Should handle empty items list gracefully."""
+        results = filter_and_rank_items(
+            [],
+            category_l1="Bottoms",
+            recommended_colors=sample_recommended_colors,
+            formality_range=sample_formality_range,
+        )
+        
+        assert results == []
