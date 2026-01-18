@@ -486,7 +486,7 @@ async def delete_outfit(outfit_id: str, user_id: str) -> bool:
 
 async def get_closet(user_id: str) -> ClosetResponse:
     """Get user's complete closet (items grouped by category + outfits)."""
-    items = await get_user_clothing_items(user_id, ownership="owned", limit=500)
+    items = await get_user_clothing_items(user_id, limit=500)
     
     items_by_category: dict[str, list[ClothingItemResponse]] = {}
     for item in items:
