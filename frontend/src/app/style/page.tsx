@@ -12,8 +12,7 @@ import SummaryStep from './components/SummaryStep'
 export default function StylePage() {
   const { currentStep, croppedImage, reset } = useStyleStore()
   const [isReady, setIsReady] = useState(false)
-
-  // Reset if we're past upload but have no image (stale state)
+ 
   // Reset if we're past upload but have no image (stale state)
   useEffect(() => {
     const state = useStyleStore.getState()
