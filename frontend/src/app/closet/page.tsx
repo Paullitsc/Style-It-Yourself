@@ -7,8 +7,8 @@ import { getCloset } from '@/lib/api'
 import type { ClosetResponse, ClothingItemResponse, OutfitSummary } from '@/types'
 import { CATEGORY_TAXONOMY } from '@/types'
 import { Shirt, Package, AlertCircle } from 'lucide-react'
-import ItemDetailModal from './components/ItemDetailModal'
-import OutfitDetailModal from './components/OutfitDetailModal'
+import ItemDetailModal from './components/ItemDetailModel'
+import OutfitDetailModal from './components/OutfitDetailModel'
 
 type ViewMode = 'items' | 'outfits'
 
