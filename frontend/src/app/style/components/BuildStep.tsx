@@ -91,10 +91,23 @@ export default function BuildStep() {
   const { requiredCategories, optionalCategories } = useMemo(() => {
     const baseCat = baseCategory?.l1
     let required = [...REQUIRED_CATEGORIES]
+    let optional = [...OPTIONAL_CATEGORIES]
+
+    // Case 1: Base item is a REQUIRED category (e.g. Tops, Bottoms, Shoes)
+    // We move it to the front of the required list so it's the first thing the user sees.
     if (baseCat && REQUIRED_CATEGORIES.includes(baseCat)) {
       required = [baseCat, ...REQUIRED_CATEGORIES.filter(c => c !== baseCat)]
+      // Ensure the base cat isn't duplicated in optional (if your constants overlap, though usually they don't)
+      optional = OPTIONAL_CATEGORIES.filter(c => c !== baseCat)
     }
-    const optional = OPTIONAL_CATEGORIES.filter(c => c !== baseCat)
+    
+    // Case 2: Base item is an OPTIONAL category (e.g. Accessories, Outerwear)
+    // We leave 'required' alone (user still needs to fill Tops/Bottoms/Shoes),
+    // but we move the base item to the front of 'optional' so it renders with the image.
+    else if (baseCat && OPTIONAL_CATEGORIES.includes(baseCat)) {
+      optional = [baseCat, ...OPTIONAL_CATEGORIES.filter(c => c !== baseCat)]
+    }
+
     return { requiredCategories: required, optionalCategories: optional }
   }, [baseCategory])
 

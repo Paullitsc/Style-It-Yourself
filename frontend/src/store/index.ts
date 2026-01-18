@@ -13,8 +13,10 @@ import type {
 } from '@/types'
 
 
+// ==============================================================================
 // AUTH STORE
 // Manages user authentication state
+// ==============================================================================
 
 interface AuthState {
   user: User | null
@@ -49,8 +51,10 @@ export const useAuthStore = create<AuthState>((set) => ({
 }))
 
 
+// ==============================================================================
 // OUTFIT BUILDER STORE
 // Manages the piece-first styling flow
+// ==============================================================================
 
 interface OutfitBuilderState {
   // Base item (first item user uploads)
@@ -135,8 +139,11 @@ export const useOutfitBuilderStore = create<OutfitBuilderState>((set) => ({
   }),
 }))
 
+
+// ==============================================================================
 // UI STORE
 // Manages modals, toasts, loading states
+// ==============================================================================
 
 interface UIState {
   // Auth modal

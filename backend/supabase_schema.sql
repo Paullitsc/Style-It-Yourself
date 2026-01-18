@@ -5,6 +5,8 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Users table (extends Supabase auth.users)
+
+-- Note: Supabase Auth already creates auth.users
 -- This table stores additional profile data
 
 CREATE TABLE IF NOT EXISTS public.profiles (
@@ -184,8 +186,20 @@ CREATE POLICY "Users can delete own outfit items"
     );
 
 
--- Storage Buckets
+-- Storage Buckets (run in Supabase Dashboard)
 -- Create these buckets in Supabase Storage:
 -- 1. 'clothing-images' - for user uploaded clothing images
 -- 2. 'user-photos' - for user full-body photos (for try-on)
 -- 3. 'generated-images' - for AI-generated try-on images
+
+-- Example storage policies (add via Dashboard):
+-- 
+-- clothing-images bucket:5
+
+--   - SELECT: auth.uid() = owner
+--   - INSERT: auth.uid() = owner
+--   - DELETE: auth.uid() = owner
+--
+-- generated-images bucket:
+--   - SELECT: true (public read for generated images)
+--   - INSERT: service_role only (API inserts)
