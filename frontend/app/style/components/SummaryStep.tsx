@@ -50,16 +50,20 @@ export default function SummaryStep() {
       setIsValidating(true)
       
       try {
+        console.log('Validating outfit with:', { baseItem, allItems })
         const result = await validateOutfit(allItems, baseItem)
+        console.log('Validation result:', result)
         setValidation(result)
       } catch (error) {
         console.error('Outfit validation failed:', error)
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+        console.error('Error details:', errorMessage)
         setValidation({
           is_complete: true,
           cohesion_score: 70,
           verdict: 'Could not validate outfit',
           color_strip: allItems.map(item => item.color.hex),
-          warnings: ['Validation service unavailable'],
+          warnings: ['Validation service unavailable', `Error: ${errorMessage}`],
         })
       } finally {
         setIsValidating(false)

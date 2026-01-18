@@ -181,9 +181,33 @@ export async function uploadUserPhoto(
   return data.url
 }
 
-// =============================================================================
-// CLOSET (Auth Required)
-// =============================================================================
+/**
+ * Upload an item image for try-on
+ * Returns the public URL of the uploaded image
+ */
+export async function uploadItemImage(
+  imageBlob: Blob,
+  token: string
+): Promise<string> {
+  const formData = new FormData()
+  formData.append('image', imageBlob, `item-${Date.now()}.jpg`)
+  
+  const response = await fetch(`${API_BASE_URL}/api/try-on/upload-photo`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+    body: formData,
+  })
+  
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Unknown error' }))
+    throw new Error(error.detail || `API error: ${response.status}`)
+  }
+  
+  const data = await response.json()
+  return data.url
+}
 
 /**
  * Get user's complete closet

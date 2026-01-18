@@ -1,6 +1,6 @@
 'use client'
 
-import { X, Star, Sparkles, ExternalLink } from 'lucide-react'
+import { X, ExternalLink, Sparkles, Tag, DollarSign, Shirt } from 'lucide-react'
 import type { ClothingItemCreate } from '@/types'
 import { FORMALITY_LEVELS } from '@/types'
 
@@ -10,7 +10,7 @@ interface ItemDetailModalProps {
   tryOnUrl?: string | null
   onClose: () => void
   onViewTryOn?: () => void
-  onTryOn?: () => void  // For initiating new try-on
+  onTryOn?: () => void
 }
 
 export default function ItemDetailModal({
@@ -32,88 +32,73 @@ export default function ItemDetailModal({
       />
       
       {/* Modal */}
-      <div className="relative bg-primary-900 border border-primary-700 rounded-xl w-full max-w-lg overflow-hidden">
+      <div className="relative bg-primary-900 border border-primary-700 rounded-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-primary-800">
-          <div className="flex items-center gap-2">
-            <h2 className="text-lg font-bold uppercase tracking-widest text-white">
+        <div className="flex items-center justify-between p-4 border-b border-primary-800 shrink-0">
+          <div>
+            <h3 className="text-lg font-bold uppercase tracking-widest text-white">
               {item.category.l2}
-            </h2>
+            </h3>
             {isBase && (
-              <span className="flex items-center gap-1 px-2 py-0.5 bg-accent-500 text-[9px] uppercase font-bold rounded text-primary-900">
-                <Star size={10} className="fill-current" />
-                Base
+              <span className="text-[10px] font-bold uppercase tracking-wider text-accent-500 bg-accent-500/10 px-2 py-0.5 rounded-full">
+                Base Item
               </span>
             )}
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 text-neutral-500 hover:text-white transition-colors"
-          >
-            <X size={18} />
+          <button onClick={onClose} className="p-1 text-neutral-500 hover:text-white">
+            <X size={20} />
           </button>
         </div>
 
-        {/* Content */}
-        <div className="p-4">
-          <div className="flex gap-4">
-            {/* Image */}
-            <div 
-              className="w-32 h-40 rounded-lg overflow-hidden border-2 flex-shrink-0"
-              style={{ borderColor: item.color.hex }}
-            >
-              <img
-                src={item.image_url}
-                alt={item.category.l2}
-                className="w-full h-full object-contain bg-primary-800"
+        {/* Scrollable Content */}
+        <div className="overflow-y-auto p-6">
+          {/* Image */}
+          <div className="aspect-[3/4] bg-primary-800 rounded-lg overflow-hidden border border-primary-700 mb-6 relative">
+            {item.image_url ? (
+              <img src={item.image_url} alt="Item" className="w-full h-full object-contain" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-neutral-600">
+                <Shirt size={48} strokeWidth={1} />
+              </div>
+            )}
+            
+            {/* Color Pill */}
+            <div className="absolute bottom-3 right-3 flex items-center gap-2 bg-primary-900/90 backdrop-blur px-3 py-1.5 rounded-full border border-primary-700 shadow-sm">
+              <div 
+                className="w-3 h-3 rounded-full ring-1 ring-white/20" 
+                style={{ backgroundColor: item.color.hex }} 
               />
+              <span className="text-[10px] uppercase font-bold text-white tracking-wider">
+                {item.color.name}
+              </span>
             </div>
+          </div>
 
-            {/* Details */}
-            <div className="flex-1 space-y-3">
-              {/* Category */}
-              <div>
-                <p className="text-[9px] uppercase tracking-wider text-neutral-500">Category</p>
-                <p className="text-sm text-white">{item.category.l1} → {item.category.l2}</p>
-              </div>
-
-              {/* Color */}
-              <div>
-                <p className="text-[9px] uppercase tracking-wider text-neutral-500">Color</p>
-                <div className="flex items-center gap-2">
-                  <div 
-                    className="w-5 h-5 rounded-full border border-primary-600"
-                    style={{ backgroundColor: item.color.hex }}
-                  />
-                  <span className="text-sm text-white">{item.color.name}</span>
-                  <span className="text-xs text-neutral-500 font-mono">{item.color.hex}</span>
-                </div>
-              </div>
-
-              {/* Formality */}
-              <div>
-                <p className="text-[9px] uppercase tracking-wider text-neutral-500">Formality</p>
-                <p className="text-sm text-white">{formalityLabel}</p>
-              </div>
-
-              {/* Ownership */}
-              <div>
-                <p className="text-[9px] uppercase tracking-wider text-neutral-500">Ownership</p>
-                <p className="text-sm text-white capitalize">{item.ownership}</p>
-              </div>
+          {/* Details Grid */}
+          <div className="grid grid-cols-2 gap-6 mb-6">
+            <div>
+              <label className="block text-[10px] uppercase font-bold tracking-widest text-neutral-500 mb-1">
+                Formality
+              </label>
+              <p className="text-sm font-medium text-white">{formalityLabel}</p>
+            </div>
+            <div>
+              <label className="block text-[10px] uppercase font-bold tracking-widest text-neutral-500 mb-1">
+                Category
+              </label>
+              <p className="text-sm font-medium text-white">{item.category.l1} / {item.category.l2}</p>
             </div>
           </div>
 
           {/* Aesthetics */}
           {item.aesthetics.length > 0 && (
-            <div className="mt-4">
-              <p className="text-[9px] uppercase tracking-wider text-neutral-500 mb-2">Aesthetics</p>
-              <div className="flex flex-wrap gap-1.5">
-                {item.aesthetics.map((tag) => (
-                  <span 
-                    key={tag}
-                    className="px-2 py-1 text-[10px] uppercase tracking-wider bg-accent-500/20 text-accent-500 border border-accent-500/30 rounded"
-                  >
+            <div className="mb-6">
+              <label className="block text-[10px] uppercase font-bold tracking-widest text-neutral-500 mb-2">
+                Aesthetics
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {item.aesthetics.map(tag => (
+                  <span key={tag} className="px-2.5 py-1 bg-primary-800 border border-primary-700 rounded text-[10px] uppercase tracking-wider text-neutral-300">
                     {tag}
                   </span>
                 ))}
@@ -121,62 +106,60 @@ export default function ItemDetailModal({
             </div>
           )}
 
-          {/* Optional Details */}
+          {/* Optional Info */}
           {(item.brand || item.price || item.source_url) && (
-            <div className="mt-4 pt-4 border-t border-primary-800">
-              <p className="text-[9px] uppercase tracking-wider text-neutral-500 mb-2">Details</p>
-              <div className="space-y-2">
-                {item.brand && (
-                  <div className="flex justify-between">
-                    <span className="text-xs text-neutral-500">Brand</span>
-                    <span className="text-sm text-white">{item.brand}</span>
-                  </div>
-                )}
-                {item.price && (
-                  <div className="flex justify-between">
-                    <span className="text-xs text-neutral-500">Price</span>
-                    <span className="text-sm text-white">${item.price}</span>
-                  </div>
-                )}
-                {item.source_url && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-neutral-500">Source</span>
-                    <a 
-                      href={item.source_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-accent-500 hover:underline flex items-center gap-1"
-                    >
-                      Link <ExternalLink size={12} />
-                    </a>
-                  </div>
-                )}
-              </div>
+            <div className="pt-6 border-t border-primary-800 space-y-3">
+              {item.brand && (
+                <div className="flex items-center gap-3 text-sm text-neutral-300">
+                  <Tag size={14} className="text-neutral-500" />
+                  <span>{item.brand}</span>
+                </div>
+              )}
+              {item.price && (
+                <div className="flex items-center gap-3 text-sm text-neutral-300">
+                  <DollarSign size={14} className="text-neutral-500" />
+                  <span>${item.price.toFixed(2)}</span>
+                </div>
+              )}
+              {item.source_url && (
+                <div className="flex items-center gap-3 text-sm">
+                  <ExternalLink size={14} className="text-neutral-500" />
+                  <a 
+                    href={item.source_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-accent-500 hover:text-accent-400 hover:underline truncate"
+                  >
+                    View Source
+                  </a>
+                </div>
+              )}
             </div>
           )}
+        </div>
 
-          {/* Try-On Button */}
+        {/* Footer Actions */}
+        <div className="p-4 border-t border-primary-800 bg-primary-900 shrink-0">
           {tryOnUrl && onViewTryOn ? (
             <button
               onClick={onViewTryOn}
-              className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-3 
-                bg-accent-500/20 text-accent-500 border border-accent-500/30 
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 
+                bg-accent-500/10 text-accent-500 border border-accent-500/50
                 hover:bg-accent-500 hover:text-primary-900
-                text-xs font-bold uppercase tracking-widest transition-all rounded"
+                text-xs font-bold uppercase tracking-widest transition-all rounded-lg"
             >
-              <Sparkles size={14} />
-              View Try-On
+              <Sparkles size={16} />
+              View Try-On Result
             </button>
           ) : onTryOn ? (
             <button
               onClick={onTryOn}
-              className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-3 
-                bg-transparent text-accent-500 border border-accent-500 
-                hover:bg-accent-500 hover:text-primary-900
-                text-xs font-bold uppercase tracking-widest transition-all rounded"
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 
+                bg-white text-primary-900 hover:bg-neutral-200
+                text-xs font-bold uppercase tracking-widest transition-all rounded-lg"
             >
-              <Sparkles size={14} />
-              Try On
+              <Sparkles size={16} />
+              Try On Item
             </button>
           ) : null}
         </div>
