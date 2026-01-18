@@ -20,7 +20,9 @@ from app.routers.outfits import OutfitNotFoundError, OutfitPermissionError
 pytestmark = pytest.mark.asyncio
 
 
+# =============================================================================
 # HELPERS
+# =============================================================================
 
 def _make_user(user_id: str = "test-user-123") -> User:
     """Create a test user."""
@@ -139,7 +141,9 @@ async def test_create_outfit_unexpected_error_maps_to_500(
     assert "Database exploded" not in excinfo.value.detail
 
 
+# =============================================================================
 # get_outfits
+# =============================================================================
 
 async def test_get_outfits_success(monkeypatch: pytest.MonkeyPatch) -> None:
     """Returns list of outfit summaries."""
@@ -196,7 +200,9 @@ async def test_get_outfits_timeout_maps_to_503(
     assert excinfo.value.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
 
 
+# =============================================================================
 # get_outfit
+# =============================================================================
 
 async def test_get_outfit_success(monkeypatch: pytest.MonkeyPatch) -> None:
     """Returns outfit by ID."""
@@ -265,7 +271,9 @@ async def test_get_outfit_permission_error_maps_to_403(
     assert excinfo.value.status_code == status.HTTP_403_FORBIDDEN
 
 
+# =============================================================================
 # delete_outfit
+# =============================================================================
 
 async def test_delete_outfit_success(monkeypatch: pytest.MonkeyPatch) -> None:
     """Successfully deletes outfit."""

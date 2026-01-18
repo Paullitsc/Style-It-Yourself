@@ -22,7 +22,9 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/closet", tags=["closet"])
 
 
+# ==============================================================================
 # Schemas for matching endpoint
+# ==============================================================================
 
 class MatchingItemsRequest(BaseModel):
     """Request body for POST /api/closet/matching-items"""
@@ -38,7 +40,9 @@ class MatchingItemsResponse(BaseModel):
     total_in_category: int = Field(..., description="Total items user has in this category")
 
 
+# ==============================================================================
 # Endpoints
+# ==============================================================================
 
 @router.get("", response_model=ClosetResponse)
 async def get_closet(current_user: User = Depends(get_current_user)) -> ClosetResponse:
