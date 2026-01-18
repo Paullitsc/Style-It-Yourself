@@ -133,6 +133,7 @@ export interface ValidateOutfitResponse {
 export interface OutfitCreate {
   name: string
   item_ids: string[]  // List of clothing item IDs (items must be saved first)
+  generated_image_url?: string  // AI-generated outfit image URL (optional)
 }
 
 export interface OutfitResponse {

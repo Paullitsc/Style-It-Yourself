@@ -253,11 +253,13 @@ export async function getMatchingItems(
 export async function createOutfit(
   name: string,
   itemIds: string[],
-  token: string
+  token: string,
+  generatedImageUrl?: string
 ): Promise<OutfitResponse> {
   const payload: OutfitCreate = {
     name,
     item_ids: itemIds,
+    generated_image_url: generatedImageUrl,
   }
   return fetchApiWithAuth<OutfitResponse>('/api/outfits', token, {
     method: 'POST',
@@ -279,7 +281,8 @@ export async function saveOutfitWithItems(
     imageBlob: Blob
   }>,
   token: string,
-  onProgress?: (current: number, total: number, status: string) => void
+  onProgress?: (current: number, total: number, status: string) => void,
+  generatedImageUrl?: string
 ): Promise<OutfitResponse> {
   const itemIds: string[] = []
   const total = items.length + 1 // +1 for outfit creation
@@ -298,9 +301,9 @@ export async function saveOutfitWithItems(
     itemIds.push(savedItem.id)
   }
   
-  // Step 2: Create outfit with item IDs
+  // Step 2: Create outfit with item IDs and optional generated image
   onProgress?.(total, total, 'Creating outfit...')
-  const outfit = await createOutfit(name, itemIds, token)
+  const outfit = await createOutfit(name, itemIds, token, generatedImageUrl)
   
   return outfit
 }

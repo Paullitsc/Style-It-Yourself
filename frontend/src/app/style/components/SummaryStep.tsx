@@ -18,6 +18,7 @@ export default function SummaryStep() {
     getBaseItem,
     getAllOutfitItems,
     getAllOutfitItemsWithBlobs,
+    getTryOnForCategory,
     setStep,
     reset,
   } = useStyleStore()
@@ -102,6 +103,10 @@ export default function SummaryStep() {
     
     const name = outfitName.trim() || `Outfit ${new Date().toLocaleDateString()}`
     
+    // Get generated image URL from try-on results (stored under base item's category)
+    const tryOnResult = baseItem.category?.l1 ? getTryOnForCategory(baseItem.category.l1) : null
+    const generatedImageUrl = tryOnResult?.imageUrl
+    
     setIsSaving(true)
     setSaveError(null)
     setSaveProgress('Starting...')
@@ -113,7 +118,8 @@ export default function SummaryStep() {
         session.access_token,
         (current, total, status) => {
           setSaveProgress(status)
-        }
+        },
+        generatedImageUrl
       )
       
       reset()
@@ -125,7 +131,7 @@ export default function SummaryStep() {
       setIsSaving(false)
       setSaveProgress('')
     }
-  }, [user, session, baseItem, allItemsWithBlobs, outfitName, reset, router])
+  }, [user, session, baseItem, allItemsWithBlobs, outfitName, reset, router, getTryOnForCategory])
 
   // Get score color
   const getScoreColor = (score: number) => {

@@ -4,9 +4,11 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthProvider'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { getCloset } from '@/lib/api'
-import type { ClosetResponse } from '@/types'
+import type { ClosetResponse, ClothingItemResponse, OutfitSummary } from '@/types'
 import { CATEGORY_TAXONOMY } from '@/types'
 import { Shirt, Package, AlertCircle } from 'lucide-react'
+import ItemDetailModal from './components/ItemDetailModal'
+import OutfitDetailModal from './components/OutfitDetailModal'
 
 type ViewMode = 'items' | 'outfits'
 
@@ -19,6 +21,10 @@ export default function ClosetPage() {
   const [closetData, setClosetData] = useState<ClosetResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  
+  // Modal state
+  const [selectedItem, setSelectedItem] = useState<ClothingItemResponse | null>(null)
+  const [selectedOutfit, setSelectedOutfit] = useState<OutfitSummary | null>(null)
 
   const fetchCloset = async () => {
     if (!session?.access_token) return
@@ -172,8 +178,9 @@ export default function ClosetPage() {
                             {items.map((item) => (
                               <div
                                 key={item.id}
+                                onClick={() => setSelectedItem(item)}
                                 className="bg-primary-800 rounded-lg border border-primary-700 overflow-hidden 
-                                  transition-all hover:border-primary-600"
+                                  transition-all hover:border-primary-600 cursor-pointer hover:scale-[1.02]"
                               >
                                 {/* Image */}
                                 <div className="aspect-[3/4] relative bg-primary-900">
@@ -241,8 +248,9 @@ export default function ClosetPage() {
                     {closetData.outfits.map((outfit) => (
                       <div
                         key={outfit.id}
+                        onClick={() => setSelectedOutfit(outfit)}
                         className="bg-primary-800 rounded-lg border border-primary-700 overflow-hidden 
-                          transition-all hover:border-primary-600"
+                          transition-all hover:border-primary-600 cursor-pointer hover:scale-[1.02]"
                       >
                         {/* Thumbnail */}
                         <div className="aspect-[3/4] relative bg-primary-900">
@@ -281,6 +289,23 @@ export default function ClosetPage() {
               </>
             )}
           </>
+        )}
+
+        {/* Item Detail Modal */}
+        {selectedItem && (
+          <ItemDetailModal
+            item={selectedItem}
+            onClose={() => setSelectedItem(null)}
+          />
+        )}
+
+        {/* Outfit Detail Modal */}
+        {selectedOutfit && session?.access_token && (
+          <OutfitDetailModal
+            outfit={selectedOutfit}
+            token={session.access_token}
+            onClose={() => setSelectedOutfit(null)}
+          />
         )}
       </div>
     </ProtectedRoute>

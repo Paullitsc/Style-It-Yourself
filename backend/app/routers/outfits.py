@@ -42,7 +42,11 @@ async def create_outfit(
 ) -> OutfitResponse:
     """Save a new outfit with associated clothing items."""
     try:
-        return await supabase.create_outfit(current_user.id, outfit)
+        return await supabase.create_outfit(
+            current_user.id, 
+            outfit,
+            generated_image_url=outfit.generated_image_url
+        )
 
     except httpx.TimeoutException:
         logger.error(f"Timeout creating outfit for user {current_user.id}")
