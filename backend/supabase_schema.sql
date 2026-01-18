@@ -4,8 +4,9 @@
 -- Enable UUID extension (usually already enabled in Supabase)
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- ============================================
 -- Users table (extends Supabase auth.users)
-
+-- ============================================
 -- Note: Supabase Auth already creates auth.users
 -- This table stores additional profile data
 
@@ -49,7 +50,9 @@ CREATE OR REPLACE TRIGGER on_auth_user_created
     FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 
+-- ============================================
 -- Clothing Items table
+-- ============================================
 
 CREATE TABLE IF NOT EXISTS public.clothing_items (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -104,7 +107,9 @@ CREATE POLICY "Users can delete own items"
     USING (auth.uid() = user_id);
 
 
+-- ============================================
 -- Outfits table
+-- ============================================
 
 CREATE TABLE IF NOT EXISTS public.outfits (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -138,7 +143,9 @@ CREATE POLICY "Users can delete own outfits"
     USING (auth.uid() = user_id);
 
 
+-- ============================================
 -- Outfit Items (join table)
+-- ============================================
 
 CREATE TABLE IF NOT EXISTS public.outfit_items (
     outfit_id UUID REFERENCES public.outfits(id) ON DELETE CASCADE,
@@ -186,7 +193,9 @@ CREATE POLICY "Users can delete own outfit items"
     );
 
 
+-- ============================================
 -- Storage Buckets (run in Supabase Dashboard)
+-- ============================================
 -- Create these buckets in Supabase Storage:
 -- 1. 'clothing-images' - for user uploaded clothing images
 -- 2. 'user-photos' - for user full-body photos (for try-on)

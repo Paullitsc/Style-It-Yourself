@@ -1,0 +1,75 @@
+%%{init: {'theme': 'dark', 'themeVariables': { 'background': '#000000', 'primaryColor': '#1f1f1f', 'primaryTextColor': '#fff', 'primaryBorderColor': '#333', 'lineColor': '#666', 'secondaryColor': '#1a1a2e', 'tertiaryColor': '#16213e'}}}%%
+sequenceDiagram
+    autonumber
+    title Theme-First Styling Flow
+
+    participant U as User
+    participant FE as Frontend
+    participant BE as Backend
+    participant SB as Supabase
+
+    %% Phase 1: Theme Selection
+    rect rgba(40, 40, 80, 0.3)
+        Note over U,SB: Phase 1: Theme Selection
+        U->>FE: Clicks "Style for an event"
+        FE-->>U: Display theme grid
+        U->>FE: Selects theme (e.g., "Job Interview")
+        FE->>BE: GET /api/themes/{themeId}
+        BE-->>FE: {id, name, formalityRange, recommendedColors[], suggestedAesthetics[], guidance, warnings[]}
+        FE-->>U: Display theme guidance screen
+    end
+
+    %% Phase 2: Theme-Based Recommendations
+    rect rgba(80, 40, 40, 0.3)
+        Note over U,SB: Phase 2: Theme-Based Recommendations
+        FE->>BE: POST /api/recommendations {themeId}
+        BE-->>FE: {recommendations[]: {slot, colors[], formalityRange, aesthetics[], suggestedCategories[], example}}
+        FE-->>U: Display outfit builder with recommendations
+    end
+
+    %% Phase 3: Build Outfit
+    rect rgba(80, 60, 40, 0.3)
+        Note over U,SB: Phase 3: Build Outfit
+        loop For each slot
+            U->>FE: Uploads item
+            FE->>SB: Upload image
+            SB-->>FE: {tempImageUrl}
+            FE->>FE: Extract color
+            U->>FE: Fills metadata
+            FE->>BE: POST /api/validate-item-for-theme {newItem, themeId, currentOutfit}
+            BE-->>FE: {colorStatus, formalityStatus, aestheticStatus, warnings[]}
+            alt Has warnings
+                FE-->>U: Show warning + "Continue anyway?"
+            end
+            FE->>FE: Add item to session
+        end
+    end
+
+    %% Phase 4: Theme-Aware Summary
+    rect rgba(60, 40, 80, 0.3)
+        Note over U,SB: Phase 4: Outfit Summary
+        FE->>BE: POST /api/validate-outfit-for-theme {outfit[], themeId}
+        BE-->>FE: {isComplete, cohesionScore, themeCompliance: {score, verdict}, whyThisWorks}
+        FE-->>U: Display summary + "Why this works" section
+    end
+
+    %% Phase 5: Save (Auth Required)
+    rect rgba(80, 40, 60, 0.3)
+        Note over U,SB: Phase 5: Save Outfit (Auth Required)
+        U->>FE: Clicks "Save Outfit"
+        FE->>SB: Check session
+        alt Not authenticated
+            SB-->>FE: No session
+            FE-->>U: Show auth modal
+            U->>FE: Authenticates
+            FE->>SB: Auth request
+            SB-->>FE: {session, user}
+        end
+        FE->>BE: POST /api/outfits {name, notes, items[], themeId} + Bearer token
+        BE->>SB: Verify JWT
+        SB-->>BE: {valid, user_id}
+        BE->>SB: Save items + outfit + outfit_themes
+        SB-->>BE: {outfit_id}
+        BE-->>FE: {savedOutfit}
+        FE-->>U: Success + My Closet link
+    end

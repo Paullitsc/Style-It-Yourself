@@ -61,55 +61,7 @@
 
 ***
 
-## Golden Path 2: Theme-first styling (no persistence)
-
-**Scenario:** User needs a **job interview** outfit and wants structured guidance without “My Closet.”  
-
-1. **Landing → choose theme flow**  
-   - From home, user selects secondary CTA: **“Style for an event”**.  
-
-2. **Pick theme**  
-   - Theme grid: Job Interview, First Date, Wedding Guest, Night Out, Casual Weekend.  
-   - User taps **Job Interview**.  
-
-3. **Theme guidance screen**  
-   - System shows:  
-     - Formality: **Business Casual → Formal**.  
-     - Palette: navy, gray, white, black, low-saturation colors.  
-     - Notes: “Clean lines, minimal accessories.”  
-
-4. **Seed recommendations (no saved items)**  
-   - System asks: “Do you already have a key piece for this outfit?”  
-   - If **Yes**: user uploads, e.g., a light blue dress shirt → same item-description step as in Path 1.  
-   - If **No**: system suggests starting with a key piece (e.g., navy suit or navy chinos + white shirt) as a text hint only.  
-
-5. **Outfit builder – theme-filtered**  
-   - Category nav appears as before, but:  
-     - Only relevant subcategories are emphasized (Dress Shirts, Blazers, Dress Pants, Oxfords/Loafers).  
-     - Recommendation cards respect theme’s formality and color rules.  
-
-6. **Build outfit around theme**  
-   - User uploads:  
-     - White dress shirt (Tops → Dress Shirts).  
-     - Navy dress pants (Bottoms → Dress Pants).  
-     - Black Oxfords (Shoes → Oxfords).  
-   - System checks:  
-     - All formality tags in **Business Casual–Formal** band.  
-     - Color rules: neutrals (white, navy, black) are always compatible.  
-   - Warnings appear only if user deviates, e.g., sneakers or bright neon colors.  
-
-7. **Theme-specific outfit summary**  
-   - Summary view shows:  
-     - “This outfit fits ‘Job Interview’ guidance: formal level is appropriate, colors are neutral and professional.”  
-   - A small “Why this works” section explains color and style logic (education moment).  
-
-8. **Optional AI Try-On**  
-   - User can click **“See it on me”** from this summary.  
-   - Same try-on behavior as Path 1; still no closet, just immediate visual feedback they can screenshot or download.  
-
-***
-
-## Golden Path 3: “Experimenter” flow (color play)
+## Golden Path 2: "Experimenter" flow (color play)
 
 **Scenario:** Fashion enthusiast wants to experiment with color combinations around one statement piece, not store anything.  
 
@@ -151,7 +103,6 @@
 ***
 
 
-These paths give you 3 clear cases:  
+These paths give you 2 clear cases:  
 1) Style an item I have → build full outfit → try it on.  
-2) Style for an event → guided outfit → try it on.  
-3) Experiment with color and style → see compatibility → optional try-on.  
+2) Experiment with color and style → see compatibility → optional try-on.  

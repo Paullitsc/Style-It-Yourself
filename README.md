@@ -3,6 +3,7 @@ You dress like a bum? You got no girls? This app allows you to style like a styl
 
 USECASES NEEDED FOR THE HACK: check sequence diagrams 1,4
 
+RULES TO FOLLOW: https://mchacks.ca/live/ (plz keep this thing a secret, we cant have anyone know what we building until after the hack:)) 
 
 ## DEV SETUP
 1. After cloning, cp env.example to .env

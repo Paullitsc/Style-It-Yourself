@@ -1,8 +1,8 @@
 // src/app/layout.tsx
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import "./global.css";
-import Header from "@/components/Headers";
+import "./globals.css";
+import Header from "@/components/Header";
 import { AuthProvider } from "@/components/AuthProvider";
 
 const inter = Inter({ subsets: ["latin"], variable: '--font-inter' });
