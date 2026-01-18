@@ -253,10 +253,12 @@ async def create_outfit(
     """Create a new outfit with its items."""
     supabase = await get_supabase_client()
     
+    final_image_url = generated_image_url or outfit.generated_image_url
+
     outfit_data = {
         "user_id": user_id,
         "name": outfit.name,
-        "generated_image_url": generated_image_url,
+        "generated_image_url": final_image_url,
     }
     
     result = await supabase.table("outfits").insert(outfit_data).execute()
