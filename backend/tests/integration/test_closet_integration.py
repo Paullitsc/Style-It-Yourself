@@ -26,7 +26,10 @@ from app.routers.closet import router
 pytestmark = pytest.mark.asyncio
 
 
+# =============================================================================
 # FIXTURES
+# =============================================================================
+
 @pytest.fixture
 def test_user() -> User:
     """Test user for dependency override."""
@@ -116,7 +119,11 @@ def _make_closet_response() -> ClosetResponse:
         total_outfits=1,
     )
 
+
+# =============================================================================
 # INTEGRATION TESTS
+# =============================================================================
+
 def test_get_closet_returns_200_with_valid_response(
     client: TestClient,
     monkeypatch: pytest.MonkeyPatch,

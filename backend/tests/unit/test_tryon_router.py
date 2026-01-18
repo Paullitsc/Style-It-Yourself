@@ -21,7 +21,9 @@ from app.routers import tryon as tryon_router
 pytestmark = pytest.mark.asyncio
 
 
+# =============================================================================
 # HELPERS
+# =============================================================================
 
 def _make_user(user_id: str = "test-user-123") -> User:
     """Create a test user."""
@@ -43,7 +45,9 @@ def _make_clothing_item() -> ClothingItemBase:
     )
 
 
+# =============================================================================
 # try_on_single
+# =============================================================================
 
 async def test_try_on_single_success(monkeypatch: pytest.MonkeyPatch) -> None:
     """Successfully generates and saves a single item try-on."""
@@ -140,7 +144,9 @@ async def test_try_on_single_validation_error_maps_to_400(
     assert "Image URL not accessible" in excinfo.value.detail
 
 
+# =============================================================================
 # try_on_outfit
+# =============================================================================
 
 async def test_try_on_outfit_success(monkeypatch: pytest.MonkeyPatch) -> None:
     """Successfully generates and saves an outfit try-on."""
@@ -207,8 +213,9 @@ async def test_try_on_outfit_partial_url_failure(monkeypatch: pytest.MonkeyPatch
     assert "Invalid URL" in excinfo.value.detail
 
 
-
+# =============================================================================
 # Internal helper: _save_generated_image
+# =============================================================================
 
 async def test_save_generated_image_handles_base64(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test the private helper _save_generated_image logic via direct call if possible, 
