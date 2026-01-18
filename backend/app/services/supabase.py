@@ -14,7 +14,7 @@ NOTE: Uses async client (acreate_client) for non-blocking operations.
 import time
 from typing import Optional
 
-from supabase._async.client import AsyncClient, acreate_client
+from supabase import acreate_client, AsyncClient
 
 from app.config import settings
 from app.models.schemas import (
@@ -253,10 +253,12 @@ async def create_outfit(
     """Create a new outfit with its items."""
     supabase = await get_supabase_client()
     
+    final_image_url = generated_image_url or outfit.generated_image_url
+
     outfit_data = {
         "user_id": user_id,
         "name": outfit.name,
-        "generated_image_url": generated_image_url,
+        "generated_image_url": final_image_url,
     }
     
     result = await supabase.table("outfits").insert(outfit_data).execute()
@@ -530,7 +532,7 @@ async def upload_image(
     )
     
     # get_public_url is sync (just builds URL string)
-    public_url = supabase.storage.from_(bucket).get_public_url(path)
+    public_url = await supabase.storage.from_(bucket).get_public_url(path)
     
     return public_url
 

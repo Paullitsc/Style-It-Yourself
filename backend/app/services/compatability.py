@@ -50,7 +50,9 @@ from app.utils.constants import (
 from app.services.color_harmony import check_color_compatibility, generate_recommended_colors
 
 
+# ==============================================================================
 # FORMALITY CHECKING
+# ==============================================================================
 
 def check_formality_compatibility(formality1: float, formality2: float) -> tuple[str, str | None]:
     """Check formality compatibility between two items.
@@ -77,7 +79,9 @@ def check_formality_compatibility(formality1: float, formality2: float) -> tuple
         return ("mismatch", f"Formality mismatch: {distance:.1f} levels apart ({formality1} vs {formality2})")
 
 
+# ==============================================================================
 # AESTHETIC CHECKING
+# ==============================================================================
 
 def check_aesthetic_compatibility(aesthetics1: list[str], aesthetics2: list[str]) -> tuple[str, str | None]:
     """Check aesthetic tag compatibility.
@@ -105,7 +109,9 @@ def check_aesthetic_compatibility(aesthetics1: list[str], aesthetics2: list[str]
         return ("warning", "No shared aesthetic tags")
 
 
+# ==============================================================================
 # CATEGORY PAIRING
+# ==============================================================================
 
 def check_category_pairing(item1: ClothingItemBase, item2: ClothingItemBase) -> tuple[str, str | None]:
     """Check if two items pair well based on category rules.
@@ -161,8 +167,10 @@ def check_category_pairing(item1: ClothingItemBase, item2: ClothingItemBase) -> 
 
 
 
+# ==============================================================================
 # SINGLE ITEM VALIDATION
 # Used by: POST /api/validate-item
+# ==============================================================================
 
 def validate_item(
     new_item: ClothingItemBase,
@@ -276,7 +284,9 @@ def validate_item(
     )
 
 
+# ==============================================================================
 # OUTFIT COMPOSITION
+# ==============================================================================
 
 def check_outfit_composition(items: list[ClothingItemBase]) -> tuple[bool, list[str]]:
     """Check if outfit has required composition.
@@ -326,7 +336,9 @@ def get_categories_in_outfit(items: list[ClothingItemBase]) -> dict[str, list[Cl
     return categories
 
 
+# ==============================================================================
 # COHESION SCORE
+# ==============================================================================
 
 def calculate_cohesion_score(items: list[ClothingItemBase], base_item: ClothingItemBase) -> int:
     """Calculate outfit cohesion score (0-100).
@@ -430,8 +442,10 @@ def get_verdict(score: int, is_complete: bool, warnings: list[str]) -> str:
         return "Consider revising - multiple style conflicts"
 
 
+# ==============================================================================
 # FULL OUTFIT VALIDATION
 # Used by: POST /api/validate-outfit
+# ==============================================================================
 
 def validate_outfit(
     items: list[ClothingItemBase],
@@ -501,8 +515,10 @@ def validate_outfit(
     )
 
 
+# ==============================================================================
 # RECOMMENDATIONS GENERATOR
 # Used by: POST /api/recommendations
+# ==============================================================================
 
 def generate_category_recommendations(
     base_item: ClothingItemBase,
