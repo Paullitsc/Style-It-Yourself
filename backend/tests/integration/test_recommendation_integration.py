@@ -12,11 +12,7 @@ from app.models.schemas import (
 )
 from app.routers.recommendations import router
 
-
-# =============================================================================
 # FIXTURES
-# =============================================================================
-
 @pytest.fixture
 def app() -> FastAPI:
     """Create test FastAPI app."""

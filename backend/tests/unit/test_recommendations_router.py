@@ -20,9 +20,7 @@ from app.routers import recommendations as recommendations_router
 pytestmark = pytest.mark.asyncio
 
 
-# =============================================================================
 # FIXTURES / HELPERS
-# =============================================================================
 
 def _make_color(name: str = "navy", hex_value: str = "#0B1C2D") -> Color:
     """Create a Color object."""
@@ -70,9 +68,7 @@ def _make_category_recommendation(
     )
 
 
-# =============================================================================
 # UNIT TESTS
-# =============================================================================
 
 async def test_get_recommendations_success(monkeypatch: pytest.MonkeyPatch) -> None:
     """Returns recommendations for valid request."""

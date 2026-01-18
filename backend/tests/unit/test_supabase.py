@@ -39,9 +39,7 @@ from app.models.schemas import (
 )
 
 
-# =============================================================================
 # FIXTURES
-# =============================================================================
 
 @pytest.fixture
 def mock_supabase():
@@ -165,9 +163,7 @@ def sample_outfit_row(sample_user_id, sample_outfit_id):
     }
 
 
-# =============================================================================
 # HELPER FUNCTION TESTS
-# =============================================================================
 
 class TestRowToClothingItem:
     """Tests for _row_to_clothing_item helper."""
@@ -200,9 +196,7 @@ class TestRowToClothingItem:
         assert result.color.is_neutral is False
 
 
-# =============================================================================
 # CLOTHING ITEM CRUD TESTS
-# =============================================================================
 
 class TestCreateClothingItem:
     
@@ -379,9 +373,7 @@ class TestDeleteClothingItem:
         assert result is False
 
 
-# =============================================================================
 # OUTFIT CRUD TESTS
-# =============================================================================
 
 class TestCreateOutfit:
     
@@ -482,10 +474,8 @@ class TestDeleteOutfit:
         assert result is True
 
 
-# =============================================================================
-# STORAGE TESTS
-# =============================================================================
 
+# STORAGE TESTS
 class TestUploadImage:
     
     @pytest.mark.asyncio

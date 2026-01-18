@@ -15,10 +15,7 @@ from app.services import compatibility
 from app.utils.constants import SHOE_BOTTOM_PAIRINGS, MAX_OUTFIT_ITEMS
 
 
-# ==============================================================================
 # Helper Functions
-# ==============================================================================
-
 def _make_color(name: str, h: int = 0, s: int = 50, l: int = 50, hex_value: str = "#123456") -> Color:
     """Helper to create a Color object."""
     is_neutral = name.lower() in ["black", "white", "gray", "grey", "navy", "beige", "cream", "tan", "khaki"]
@@ -40,11 +37,7 @@ def _make_item(
         aesthetics=aesthetics or [],
     )
 
-
-# ==============================================================================
 # FORMALITY CHECKING TESTS
-# ==============================================================================
-
 @pytest.mark.parametrize(
     "formality1, formality2, expected_status",
     [
@@ -94,9 +87,7 @@ def test_check_formality_compatibility_boundary_cases():
     assert status == "warning"
 
 
-# ==============================================================================
 # AESTHETIC CHECKING TESTS
-# ==============================================================================
 
 def test_check_aesthetic_compatibility_shared_tags():
     """Test aesthetic compatibility with shared tags."""
@@ -143,10 +134,7 @@ def test_check_aesthetic_compatibility_single_tag():
     assert status == "cohesive"
     assert msg is None
 
-
-# ==============================================================================
 # CATEGORY PAIRING TESTS
-# ==============================================================================
 
 def test_check_category_pairing_valid_shoe_bottom():
     """Test valid shoe-bottom pairings."""
@@ -224,10 +212,7 @@ def test_check_category_pairing_unknown_shoe_type():
     assert status == "warning"
     assert msg is not None
 
-
-# ==============================================================================
 # OUTFIT COMPOSITION TESTS
-# ==============================================================================
 
 def test_check_outfit_composition_standard_complete():
     """Test standard outfit composition (complete)."""
@@ -298,9 +283,8 @@ def test_get_categories_in_outfit():
     assert len(categories["Shoes"]) == 1
 
 
-# ==============================================================================
+
 # COHESION SCORE TESTS
-# ==============================================================================
 
 def test_calculate_cohesion_score_single_item():
     """Test cohesion score for single item (should be 100)."""
@@ -393,9 +377,7 @@ def test_calculate_cohesion_score_float_formality():
     assert 0 <= score <= 100
 
 
-# ==============================================================================
 # VERDICT TESTS
-# ==============================================================================
 
 @pytest.mark.parametrize(
     "score, is_complete, expected_keyword",
@@ -494,9 +476,7 @@ def test_validate_item_with_current_outfit():
     assert response.formality_status in ["ok", "warning", "mismatch"]
 
 
-# ==============================================================================
 # FULL OUTFIT VALIDATION TESTS
-# ==============================================================================
 
 def test_validate_outfit_complete():
     """Test validating a complete outfit."""
@@ -576,9 +556,7 @@ def test_validate_outfit_collects_warnings():
     assert len(response.warnings) > 0
 
 
-# ==============================================================================
 # RECOMMENDATIONS TESTS
-# ==============================================================================
 
 def test_generate_category_recommendations_standard_base():
     """Test generating recommendations for standard base item."""

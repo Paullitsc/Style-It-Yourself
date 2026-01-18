@@ -20,9 +20,7 @@ from app.models.schemas import (
 from datetime import datetime
 
 
-# =============================================================================
 # FIXTURES
-# =============================================================================
 
 @pytest.fixture
 def sample_recommended_colors() -> list[RecommendedColor]:
@@ -127,9 +125,7 @@ def sample_closet_items() -> list[ClothingItemResponse]:
     ]
 
 
-# =============================================================================
 # TESTS: hex_to_rgb
-# =============================================================================
 
 class TestHexToRgb:
     def test_black(self):
@@ -152,9 +148,8 @@ class TestHexToRgb:
         assert hex_to_rgb("1E3A5F") == (30, 58, 95)
 
 
-# =============================================================================
+
 # TESTS: color_distance
-# =============================================================================
 
 class TestColorDistance:
     def test_identical_colors(self):
@@ -182,9 +177,8 @@ class TestColorDistance:
         assert d1 == d2
 
 
-# =============================================================================
+
 # TESTS: is_color_similar
-# =============================================================================
 
 class TestIsColorSimilar:
     def test_identical_colors(self):
@@ -199,9 +193,8 @@ class TestIsColorSimilar:
     def test_custom_threshold(self):
     # With high threshold, even different colors pass
         assert is_color_similar("#FF0000", "#0000FF", threshold=600) is True
-# =============================================================================
+
 # TESTS: score_item_match
-# =============================================================================
 
 class TestScoreItemMatch:
     def test_perfect_match(
@@ -266,9 +259,7 @@ class TestScoreItemMatch:
         assert score > 50  # But still reasonable due to color match
 
 
-# =============================================================================
 # TESTS: filter_and_rank_items
-# =============================================================================
 
 class TestFilterAndRankItems:
     def test_filters_by_category(

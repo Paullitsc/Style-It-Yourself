@@ -15,11 +15,7 @@ from app.models.schemas import (
 )
 from app.routers.outfits import router, OutfitNotFoundError, OutfitPermissionError
 
-
-# =============================================================================
 # HELPERS
-# =============================================================================
-
 def _make_user(user_id: str = "test-user-123") -> User:
     """Create a test user."""
     return User(id=user_id, email="test@example.com", name="Test User")
