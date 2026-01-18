@@ -1,15 +1,15 @@
 'use client'
 
-import { useState, useCallback, useEffect, useMemo, useRef, type PointerEvent as ReactPointerEvent } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useStyleStore } from '@/store/styleStore'
 import { useAuth } from '@/components/AuthProvider'
 import {
-  X, ArrowRight, ArrowLeft, Check, AlertTriangle, Sparkles, RotateCcw, Info, Search,
+  X, ArrowRight, ArrowLeft, Check, AlertTriangle, Sparkles, RotateCcw, Info, 
   ChevronDown, Tag, DollarSign, Link as LinkIcon
 } from 'lucide-react'
 import { CATEGORY_TAXONOMY } from '@/types'
 import type { CategoryRecommendation, RecommendedColor, Color } from '@/types'
-import { extractDominantColors, getDominantColor } from '@/lib/colorExtractor'
+import { extractDominantColors } from '@/lib/colorExtractor'
 import { buildColorFromHex } from '@/lib/colorUtils'
 import { validateItem } from '@/lib/api'
 
@@ -23,10 +23,6 @@ import ColorSelector from './shared/ColorSelector'
 import ImageUploadZone from './shared/ImageUploadZone'
 import TryOnModal from './TryOnModal'
 import AuthModal from '@/components/AuthModal'
-
-/* Magnifier sizing constants */
-const MAGNIFIER_DIAMETER = 56
-const MAGNIFIER_SAMPLE_SIZE = 24
 
 interface AddItemPanelProps {
   categoryL1: string
@@ -71,18 +67,6 @@ export default function AddItemPanel({
   const [isExtracting, setIsExtracting] = useState(false)
   const [isValidating, setIsValidating] = useState(false)
   const [pendingTryOnUrl, setPendingTryOnUrl] = useState<string | null>(null)
-
-  const [magnifierPosition, setMagnifierPosition] = useState<{ x: number; y: number } | null>(null)
-  const [isMagnifierDragging, setIsMagnifierDragging] = useState(false)
-  const imageWrapRef = useRef<HTMLDivElement | null>(null)
-  const imageRef = useRef<HTMLImageElement | null>(null)
-  const dragStartMagnifierRef = useRef<{ x: number; y: number } | null>(null)
-  const dragStartColorRef = useRef<Color | null>(null)
-  const lastCommittedMagnifierRef = useRef<{ x: number; y: number } | null>(null)
-  const lastCommittedColorRef = useRef<Color | null>(null)
-  const magnifierSamplingRef = useRef(false)
-  const pendingMagnifierSampleRef = useRef<{ clientX: number; clientY: number; sessionId: number } | null>(null)
-  const magnifierSessionRef = useRef(0)
 
   const baseItem = getBaseItem()
   const currentStepIndex = useMemo(() => STEPS.findIndex(s => s.id === currentStep), [currentStep])
@@ -152,235 +136,6 @@ export default function AddItemPanel({
         .finally(() => setIsExtracting(false))
     }
   }, [currentStep, addingItem.croppedImage, addingItem.detectedColors.length, recommendation, setAddingItemDetectedColors])
-
-  // MAGNIFIER LOGIC
-  const getImageMetrics = useCallback(() => {
-    const imageEl = imageRef.current
-    const wrapEl = imageWrapRef.current
-    if (!imageEl || !wrapEl) return null
-
-    const wrapRect = wrapEl.getBoundingClientRect()
-    if (wrapRect.width === 0 || wrapRect.height === 0) return null
-    if (imageEl.naturalWidth === 0 || imageEl.naturalHeight === 0) return null
-
-    const imageRatio = imageEl.naturalWidth / imageEl.naturalHeight
-    const wrapRatio = wrapRect.width / wrapRect.height
-
-    const renderedWidth = imageRatio > wrapRatio ? wrapRect.width : wrapRect.height * imageRatio
-    const renderedHeight = imageRatio > wrapRatio ? wrapRect.width / imageRatio : wrapRect.height
-    const offsetX = (wrapRect.width - renderedWidth) / 2
-    const offsetY = (wrapRect.height - renderedHeight) / 2
-
-    const imageRect = {
-      left: wrapRect.left + offsetX,
-      top: wrapRect.top + offsetY,
-      width: renderedWidth,
-      height: renderedHeight,
-      right: wrapRect.left + offsetX + renderedWidth,
-      bottom: wrapRect.top + offsetY + renderedHeight,
-    }
-
-    return { imageEl, imageRect, wrapRect }
-  }, [])
-
-  const sampleMagnifierColor = useCallback(async (clientX: number, clientY: number, sessionId: number) => {
-    const metrics = getImageMetrics()
-    if (!metrics) return
-
-    const { imageEl, imageRect } = metrics
-    if (!imageEl.complete || imageEl.naturalWidth === 0) return
-
-    const isInside =
-      clientX >= imageRect.left &&
-      clientX <= imageRect.right &&
-      clientY >= imageRect.top &&
-      clientY <= imageRect.bottom
-    if (!isInside) return
-
-    const scaleX = imageEl.naturalWidth / imageRect.width
-    const scaleY = imageEl.naturalHeight / imageRect.height
-    const xInImage = (clientX - imageRect.left) * scaleX
-    const yInImage = (clientY - imageRect.top) * scaleY
-
-    const sampleSize = MAGNIFIER_SAMPLE_SIZE
-    const sx = Math.max(0, Math.min(imageEl.naturalWidth - sampleSize, xInImage - sampleSize / 2))
-    const sy = Math.max(0, Math.min(imageEl.naturalHeight - sampleSize, yInImage - sampleSize / 2))
-
-    const canvas = document.createElement('canvas')
-    canvas.width = sampleSize
-    canvas.height = sampleSize
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    ctx.drawImage(imageEl, sx, sy, sampleSize, sampleSize, 0, 0, sampleSize, sampleSize)
-
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'))
-    if (!blob) return
-
-    try {
-      const dominant = await getDominantColor(blob)
-      if (sessionId !== magnifierSessionRef.current) return
-      setAddingItemAdjustedColor(buildColorFromHex(dominant.hex))
-    } catch (error) {
-      console.error('Magnifier color sampling failed', error)
-    }
-  }, [getImageMetrics, setAddingItemAdjustedColor])
-
-  const initializeMagnifierPosition = useCallback(() => {
-    if (!addingItem.croppedImage || magnifierPosition || isMagnifierDragging) return
-
-    const metrics = getImageMetrics()
-    if (!metrics) return
-
-    const centerX = metrics.imageRect.left + metrics.imageRect.width / 2
-    const centerY = metrics.imageRect.top + metrics.imageRect.height / 2
-    const centeredPosition = {
-      x: centerX - metrics.wrapRect.left,
-      y: centerY - metrics.wrapRect.top,
-    }
-
-    setMagnifierPosition(centeredPosition)
-    lastCommittedMagnifierRef.current = centeredPosition
-  }, [addingItem.croppedImage, magnifierPosition, isMagnifierDragging, getImageMetrics])
-
-  const queueMagnifierSample = useCallback((clientX: number, clientY: number) => {
-    pendingMagnifierSampleRef.current = { clientX, clientY, sessionId: magnifierSessionRef.current }
-    if (magnifierSamplingRef.current) return
-
-    const run = async () => {
-      magnifierSamplingRef.current = true
-      while (pendingMagnifierSampleRef.current) {
-        const nextSample = pendingMagnifierSampleRef.current
-        pendingMagnifierSampleRef.current = null
-        if (nextSample.sessionId !== magnifierSessionRef.current) {
-          continue
-        }
-        await sampleMagnifierColor(nextSample.clientX, nextSample.clientY, nextSample.sessionId)
-      }
-      magnifierSamplingRef.current = false
-    }
-
-    void run()
-  }, [sampleMagnifierColor])
-
-  const moveMagnifierToClientPoint = useCallback((clientX: number, clientY: number) => {
-    const metrics = getImageMetrics()
-    if (!metrics) return false
-
-    const { imageRect, wrapRect } = metrics
-    const isInside =
-      clientX >= imageRect.left &&
-      clientX <= imageRect.right &&
-      clientY >= imageRect.top &&
-      clientY <= imageRect.bottom
-
-    if (!isInside) return false
-
-    const clampedX = Math.min(imageRect.right, Math.max(imageRect.left, clientX)) - wrapRect.left
-    const clampedY = Math.min(imageRect.bottom, Math.max(imageRect.top, clientY)) - wrapRect.top
-    setMagnifierPosition({ x: clampedX, y: clampedY })
-    return true
-  }, [getImageMetrics])
-
-  const resetMagnifierToDragStart = useCallback(() => {
-    magnifierSessionRef.current += 1
-    pendingMagnifierSampleRef.current = null
-
-    if (dragStartMagnifierRef.current) {
-      setMagnifierPosition(dragStartMagnifierRef.current)
-    }
-    if (dragStartColorRef.current) {
-      setAddingItemAdjustedColor(dragStartColorRef.current)
-    }
-
-    dragStartMagnifierRef.current = null
-    dragStartColorRef.current = null
-    setIsMagnifierDragging(false)
-  }, [setAddingItemAdjustedColor])
-
-  const commitMagnifierState = useCallback(() => {
-    if (magnifierPosition) {
-      lastCommittedMagnifierRef.current = magnifierPosition
-    }
-    if (addingItem.adjustedColor) {
-      lastCommittedColorRef.current = addingItem.adjustedColor
-    }
-
-    dragStartMagnifierRef.current = null
-    dragStartColorRef.current = null
-    setIsMagnifierDragging(false)
-  }, [addingItem.adjustedColor, magnifierPosition])
-
-  const handleMagnifierPointerDown = useCallback((event: ReactPointerEvent<HTMLButtonElement>) => {
-    event.preventDefault()
-    event.stopPropagation()
-
-    magnifierSessionRef.current += 1
-    dragStartMagnifierRef.current = lastCommittedMagnifierRef.current ?? magnifierPosition
-    dragStartColorRef.current = lastCommittedColorRef.current ?? addingItem.adjustedColor ?? null
-    setIsMagnifierDragging(true)
-
-    const movedInside = moveMagnifierToClientPoint(event.clientX, event.clientY)
-    if (!movedInside) {
-      resetMagnifierToDragStart()
-      return
-    }
-
-    queueMagnifierSample(event.clientX, event.clientY)
-  }, [addingItem.adjustedColor, magnifierPosition, moveMagnifierToClientPoint, queueMagnifierSample, resetMagnifierToDragStart])
-
-  useEffect(() => {
-    if (!isMagnifierDragging && addingItem.adjustedColor) {
-      lastCommittedColorRef.current = addingItem.adjustedColor
-    }
-  }, [addingItem.adjustedColor, isMagnifierDragging])
-
-  useEffect(() => {
-    if (!addingItem.croppedImage) return
-    setMagnifierPosition(null)
-    lastCommittedMagnifierRef.current = null
-    dragStartMagnifierRef.current = null
-    magnifierSessionRef.current += 1
-  }, [addingItem.croppedImage?.croppedUrl])
-
-  useEffect(() => {
-    if (!addingItem.croppedImage) return
-    const frame = requestAnimationFrame(() => {
-      initializeMagnifierPosition()
-    })
-    return () => cancelAnimationFrame(frame)
-  }, [addingItem.croppedImage, initializeMagnifierPosition])
-
-  useEffect(() => {
-    if (!isMagnifierDragging) return
-
-    const handlePointerMove = (event: PointerEvent) => {
-      const movedInside = moveMagnifierToClientPoint(event.clientX, event.clientY)
-      if (!movedInside) {
-        resetMagnifierToDragStart()
-        return
-      }
-      queueMagnifierSample(event.clientX, event.clientY)
-    }
-
-    const handlePointerUp = () => {
-      commitMagnifierState()
-    }
-
-    const handlePointerCancel = () => {
-      resetMagnifierToDragStart()
-    }
-
-    window.addEventListener('pointermove', handlePointerMove)
-    window.addEventListener('pointerup', handlePointerUp)
-    window.addEventListener('pointercancel', handlePointerCancel)
-
-    return () => {
-      window.removeEventListener('pointermove', handlePointerMove)
-      window.removeEventListener('pointerup', handlePointerUp)
-      window.removeEventListener('pointercancel', handlePointerCancel)
-    }
-  }, [isMagnifierDragging, moveMagnifierToClientPoint, queueMagnifierSample, commitMagnifierState, resetMagnifierToDragStart])
 
   const handleCustomColor = useCallback((hex: string) => {
     setAddingItemAdjustedColor(buildColorFromHex(hex))
@@ -675,39 +430,14 @@ export default function AddItemPanel({
             {/* Image with color border */}
             <div className="flex justify-center">
               <div
-                ref={imageWrapRef}
-                className="relative w-40 h-52 bg-primary-800 rounded-lg overflow-hidden transition-all duration-300"
-                style={{
-                  border: `3px solid ${addingItem.adjustedColor?.hex || '#333'}`,
-                }}
+                className="w-40 h-52 bg-primary-800 rounded-lg overflow-hidden transition-all duration-300"
+                style={{ border: `3px solid ${addingItem.adjustedColor?.hex || '#333'}` }}
               >
                 <img
-                  ref={imageRef}
                   src={addingItem.croppedImage.croppedUrl}
                   alt="Item preview"
                   className="w-full h-full object-contain"
-                  onLoad={initializeMagnifierPosition}
                 />
-                {magnifierPosition && (
-                  <button
-                    type="button"
-                    aria-label="Drag to sample color"
-                    onPointerDown={handleMagnifierPointerDown}
-                    className={`absolute z-10 flex items-center justify-center rounded-full border border-white/70 bg-primary-900/70 text-white shadow-lg backdrop-blur-sm touch-none ${
-                      isMagnifierDragging ? 'cursor-grabbing' : 'cursor-grab'
-                    }`}
-                    style={{
-                      left: magnifierPosition.x,
-                      top: magnifierPosition.y,
-                      width: MAGNIFIER_DIAMETER,
-                      height: MAGNIFIER_DIAMETER,
-                      transform: 'translate(-50%, -50%)',
-                      borderColor: addingItem.adjustedColor?.hex || '#ffffff',
-                    }}
-                  >
-                    <Search size={16} />
-                  </button>
-                )}
               </div>
             </div>
 
