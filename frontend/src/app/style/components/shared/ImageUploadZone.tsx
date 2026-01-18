@@ -68,35 +68,10 @@ export default function ImageUploadZone({
   return (
     <div className="space-y-3">
       {previewUrl ? (
-        <div className="relative rounded-lg overflow-hidden bg-primary-800 border border-primary-700 flex items-center justify-center">
-          <img src={previewUrl} alt="Preview" className="w-full h-full object-contain" />
-          <div className="absolute inset-0 bg-black/0 hover:bg-black/40 transition-all duration-200 flex items-center justify-center gap-3">
-            <button
-              onClick={() => {
-                if (!disabled) {
-                  fileInputRef.current?.click()
-                }
-              }}
-              disabled={disabled}
-              className="px-4 py-2 bg-white text-primary-900 font-bold text-xs uppercase rounded hover:bg-neutral-200 disabled:opacity-50 transition-all"
-            >
-              Change
-            </button>
-            {onClear && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onClear()
-                }}
-                disabled={disabled}
-                className="px-4 py-2 bg-error-500 text-white font-bold text-xs uppercase rounded hover:bg-error-600 disabled:opacity-50 transition-all"
-              >
-                Clear
-              </button>
-            )}
-          </div>
+        <div className={`relative rounded-lg bg-primary-800 border border-primary-700 overflow-y-auto scrollbar-hide ${compact ? 'max-h-64' : 'max-h-96'}`}>
+        <img src={previewUrl} alt="Preview" className="w-full h-auto" />
         </div>
-      ) : (
+        ) : (
         <div
       onClick={() => !disabled && fileInputRef.current?.click()}
       onDrop={(e) => !disabled && handleDrop(e)}
