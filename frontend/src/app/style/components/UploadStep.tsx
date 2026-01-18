@@ -71,7 +71,7 @@ export default function UploadStep() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-[500px] py-12">
+    <div className="flex items-center justify-center min-h-[500px] py-12 enter-fade">
       <div className="w-full max-w-xl">
         <div className="text-center mb-10">
           <h2 className="text-2xl md:text-3xl font-bold uppercase tracking-widest text-white mb-2">

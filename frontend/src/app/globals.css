@@ -102,6 +102,17 @@ body {
 @tailwind components;
 @tailwind utilities;
 
+@keyframes enter-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 @layer utilities {
   .scrollbar-hide {
     -ms-overflow-style: none;
@@ -109,5 +120,24 @@ body {
   }
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
+  }
+
+  .enter-fade {
+    animation: enter-fade-up 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .enter-fade-delay-1 {
+    animation-delay: 80ms;
+  }
+  .enter-fade-delay-2 {
+    animation-delay: 160ms;
+  }
+  .enter-fade-delay-3 {
+    animation-delay: 240ms;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .enter-fade {
+    animation: none;
   }
 }

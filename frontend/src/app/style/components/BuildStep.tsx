@@ -179,7 +179,7 @@ export default function BuildStep() {
   const isPanelOpen = addingCategory !== null
 
   return (
-    <div className="min-h-[calc(100vh-80px)] bg-primary-900 flex flex-col">
+    <div className="min-h-[calc(100vh-80px)] bg-primary-900 flex flex-col enter-fade">
       {/* Compact Header */}
       <div className="h-20 border-b border-primary-800 bg-primary-900/95 backdrop-blur-sm sticky top-0 z-20 shrink-0">
         <div className="max-w-7xl mx-auto px-6 md:px-12 h-full flex items-center justify-between">

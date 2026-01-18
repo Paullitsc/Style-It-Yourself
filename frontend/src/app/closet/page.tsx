@@ -13,7 +13,7 @@ import OutfitDetailModal from './components/OutfitDetailModal'
 type ViewMode = 'items' | 'outfits'
 
 // Category display order
-const CATEGORY_ORDER = ['Tops', 'Bottoms', 'Shoes', 'Outerwear', 'Accessories', 'Full Body']
+const CATEGORY_ORDER = ['Tops', 'Bottoms', 'Shoes', 'Outerwear', 'Accessories']
 
 export default function ClosetPage() {
   const { session } = useAuth()
@@ -62,14 +62,14 @@ export default function ClosetPage() {
   const getSortedCategories = () => {
     if (!closetData?.items_by_category) return []
     
-    const categories = Object.keys(closetData.items_by_category)
+    const categories = Object.keys(closetData.items_by_category).filter((category) => category !== 'Full Body')
     return CATEGORY_ORDER.filter(cat => categories.includes(cat))
       .concat(categories.filter(cat => !CATEGORY_ORDER.includes(cat)).sort())
   }
 
   return (
     <ProtectedRoute>
-      <div className="min-h-[calc(100vh-80px)] w-full max-w-[1920px] mx-auto px-6 md:px-12 py-12">
+      <div className="min-h-[calc(100vh-80px)] w-full max-w-[1920px] mx-auto px-6 md:px-12 py-12 enter-fade">
         
         {/* HEADER */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8 border-b border-primary-800 pb-6">

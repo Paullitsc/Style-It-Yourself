@@ -370,7 +370,7 @@ export default function ColorStep() {
   }, [adjustedColor, category, formality, aesthetics, setRecommendations, setStep, setLoadingRecommendations, setError])
 
   return (
-    <div className="py-8">
+    <div className="py-8 enter-fade">
       {/* Title */}
       <div className="text-center mb-10">
         <h2 className="text-2xl md:text-3xl font-bold uppercase tracking-widest text-white mb-2">

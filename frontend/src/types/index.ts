@@ -231,7 +231,6 @@ export const CATEGORY_TAXONOMY: Record<string, string[]> = {
   "Shoes": ["Sneakers", "Loafers", "Oxfords", "Boots", "Sandals", "Heels"],
   "Accessories": ["Watches", "Belts", "Bags", "Hats", "Scarves", "Jewelry", "Sunglasses"],
   "Outerwear": ["Jackets", "Coats", "Vests"],
-  "Full Body": ["Dresses", "Suits"],
 }
 
 export const FORMALITY_LEVELS: Record<number, string> = {

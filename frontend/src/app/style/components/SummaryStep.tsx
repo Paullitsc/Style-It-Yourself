@@ -144,7 +144,7 @@ export default function SummaryStep() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-80px)] bg-primary-900">
+    <div className="min-h-[calc(100vh-80px)] bg-primary-900 enter-fade">
       {/* Header */}
       <div className="border-b border-primary-800 bg-primary-900/80 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-6 md:px-12 py-6">

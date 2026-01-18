@@ -23,7 +23,7 @@ export default function StylePage() {
     <div className="min-h-[calc(100vh-80px)] bg-primary-900">
       {/* Step Indicator - Show on all steps except build (where it's more complex) */}
       {(currentStep === 'upload' || currentStep === 'metadata' || currentStep === 'colors') && (
-        <div className="pt-8 pb-4">
+        <div className="pt-8 pb-4 enter-fade">
           <StepIndicator />
         </div>
       )}

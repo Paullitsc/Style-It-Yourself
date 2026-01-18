@@ -73,7 +73,7 @@ export default function Home() {
       <section className="flex-1 grid grid-cols-1 md:grid-cols-2 items-center max-w-[1920px] mx-auto px-6 md:px-12 gap-12 md:gap-24 py-12 w-full">
         
         {/* LEFT COLUMN: Centered & Minimalist */}
-        <div className="flex flex-col justify-center items-center text-center space-y-10 h-full">
+        <div className="flex flex-col justify-center items-center text-center space-y-10 h-full enter-fade">
           <div className="space-y-6 flex flex-col items-center">
             
             {/* HEADLINE: White + Muted Grey (Luxury contrast) */}
@@ -123,7 +123,7 @@ export default function Home() {
           onClick={triggerFileInput}
           onDrop={handleDrop}
           onDragOver={handleDragOver}
-          className="relative h-[600px] w-full bg-primary-800/20 rounded-xl border border-dashed border-primary-700 hover:border-accent-500/50 hover:bg-primary-800/40 transition-all duration-500 cursor-pointer group overflow-hidden"
+          className="relative h-[600px] w-full bg-primary-800/20 rounded-xl border border-dashed border-primary-700 hover:border-accent-500/50 hover:bg-primary-800/40 transition-all duration-500 cursor-pointer group overflow-hidden enter-fade enter-fade-delay-1"
         >
           <input 
             type="file" 

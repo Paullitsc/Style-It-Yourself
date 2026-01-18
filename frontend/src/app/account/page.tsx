@@ -13,7 +13,7 @@ export default function AccountPage() {
         - px-6 md:px-12 
         - py-12
       */}
-      <div className="min-h-[calc(100vh-80px)] w-full max-w-[1920px] mx-auto px-6 md:px-12 py-12">
+      <div className="min-h-[calc(100vh-80px)] w-full max-w-[1920px] mx-auto px-6 md:px-12 py-12 enter-fade">
         
         {/* PAGE HEADER */}
         {/* Same margin and border structure as Closet Page */}
