@@ -111,7 +111,7 @@ export default function OutfitDetailModal({ outfit, token, onClose }: OutfitDeta
         </div>
 
         {/* Content */}
-        <div className="overflow-y-auto p-6">
+        <div className="overflow-y-auto p-6 scrollbar-hide">
           {/* Loading State */}
           {isLoading && (
             <div className="flex flex-col items-center justify-center py-12">

@@ -97,3 +97,11 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans);
 }
+
+@utility scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
