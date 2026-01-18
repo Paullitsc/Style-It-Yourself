@@ -18,6 +18,7 @@ export default function SummaryStep() {
     getBaseItem,
     getAllOutfitItems,
     getAllOutfitItemsWithBlobs,
+    getTryOnForCategory,
     setStep,
     reset,
   } = useStyleStore()
@@ -102,6 +103,10 @@ export default function SummaryStep() {
     if (!user || !session?.access_token || !baseItem || allItemsWithBlobs.length === 0) return
     
     const name = outfitName.trim() || `Outfit ${new Date().toLocaleDateString()}`
+    
+    // Get generated image URL from try-on results (stored under base item's category)
+    const tryOnResult = baseItem.category?.l1 ? getTryOnForCategory(baseItem.category.l1) : null
+    const generatedImageUrl = tryOnResult?.imageUrl
     
     setIsSaving(true)
     setSaveError(null)
