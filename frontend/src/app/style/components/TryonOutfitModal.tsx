@@ -15,11 +15,14 @@ interface TryOnOutfitModalProps {
   }>
   token: string
   onClose: () => void
+  // 1. Add this prop
+  onComplete?: (url: string) => void
 }
 
 type ModalStep = 'upload' | 'generating' | 'result'
 
-export default function TryOnOutfitModal({ items, token, onClose }: TryOnOutfitModalProps) {
+// 2. Add onComplete to destructuring
+export default function TryOnOutfitModal({ items, token, onClose, onComplete }: TryOnOutfitModalProps) {
   const { getBaseItem, setTryOnResult } = useStyleStore()
   const [step, setStep] = useState<ModalStep>('upload')
   const [userPhotoFile, setUserPhotoFile] = useState<File | null>(null)
@@ -64,19 +67,19 @@ export default function TryOnOutfitModal({ items, token, onClose }: TryOnOutfitM
         item_images: itemImages
       }, token)
 
-      // Save to store FIRST, before updating UI
-      const baseItem = getBaseItem()
-      console.log('Base item in TryOnOutfitModal:', baseItem)
-      console.log('Base item category L1:', baseItem?.category?.l1)
-      if (baseItem?.category?.l1) {
-        console.log('Saving try-on result for category:', baseItem.category.l1, 'URL:', response.generated_image_url)
-        setTryOnResult(baseItem.category.l1, response.generated_image_url)
-      } else {
-        console.warn('No baseItem or category found')
+      // 4. Pass the generated URL back to the parent (SummaryStep) immediately
+      if (response.generated_image_url && onComplete) {
+        onComplete(response.generated_image_url)
       }
 
-      setResultUrl(response.generated_image_url)
-      setProcessingTime(response.processing_time)
+      // Save to store FIRST, before updating UI
+      const baseItem = getBaseItem()
+      if (baseItem?.category?.l1 && response.generated_image_url) {
+        setTryOnResult(baseItem.category.l1, response.generated_image_url)
+      }
+
+      setResultUrl(response.generated_image_url || null)
+      setProcessingTime(response.processing_time || null)
       setStep('result')
       
     } catch (err) {
