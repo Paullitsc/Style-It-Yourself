@@ -98,7 +98,7 @@ export default function TryOnModal({
           </button>
         </div>
 
-        <div className="p-6">
+        <div className="p-6 overflow-y-auto scrollbar-hide flex-1">
           {/* UPLOAD STEP */}
           {step === 'upload' && (
             <div className="space-y-6">

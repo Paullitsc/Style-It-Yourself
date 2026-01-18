@@ -155,8 +155,7 @@ class OutfitCreate(BaseModel):
     """Request body for POST /api/outfits"""
     name: str = Field(..., min_length=1, max_length=100)
     item_ids: list[str] = Field(..., min_length=1, description="List of clothing item IDs")
-    generated_image_url: Optional[str] = Field(None, description="AI-generated outfit image URL")
-
+    generated_image_url: Optional[str] = None
 
 class OutfitResponse(BaseModel):
     """Response body for POST /api/outfits and GET /api/outfits/{id}"""

@@ -282,27 +282,26 @@ export async function saveOutfitWithItems(
   }>,
   token: string,
   onProgress?: (current: number, total: number, status: string) => void,
-  generatedImageUrl?: string
+  generatedImageUrl?: string // Add optional param
 ): Promise<OutfitResponse> {
   const itemIds: string[] = []
-  const total = items.length + 1 // +1 for outfit creation
+  const total = items.length + 1
   
   // Step 1: Save each clothing item
   for (let i = 0; i < items.length; i++) {
     const { item, imageBlob } = items[i]
-    
     onProgress?.(i + 1, total, `Saving item ${i + 1} of ${items.length}...`)
-    
-    // Convert blob to File
-    const imageFile = new File([imageBlob], `item-${i}.jpg`, { type: 'image/jpeg' })
-    
-    // Create clothing item
-    const savedItem = await createClothingItem(item, imageFile, token)
+    const savedItem = await createClothingItem(item, 
+      new File([imageBlob], `item-${i}.jpg`, { type: 'image/jpeg' }), 
+      token
+    )
     itemIds.push(savedItem.id)
   }
   
-  // Step 2: Create outfit with item IDs and optional generated image
+  // Step 2: Create outfit with generatedImageUrl
   onProgress?.(total, total, 'Creating outfit...')
+  
+  // Pass the generatedImageUrl here
   const outfit = await createOutfit(name, itemIds, token, generatedImageUrl)
   
   return outfit

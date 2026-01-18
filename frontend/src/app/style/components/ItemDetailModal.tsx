@@ -51,7 +51,7 @@ export default function ItemDetailModal({
         </div>
 
         {/* Scrollable Content */}
-        <div className="overflow-y-auto p-6">
+        <div className="overflow-y-auto p-6 scrollbar-hide">
           {/* Image */}
           <div className="aspect-[3/4] bg-primary-800 rounded-lg overflow-hidden border border-primary-700 mb-6 relative">
             {item.image_url ? (

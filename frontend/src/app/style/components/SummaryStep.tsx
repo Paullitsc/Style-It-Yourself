@@ -32,6 +32,7 @@ export default function SummaryStep() {
   const [showNameInput, setShowNameInput] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [showTryOnModal, setShowTryOnModal] = useState(false)
+  const [generatedTryOnUrl, setGeneratedTryOnUrl] = useState<string | null>(null)
 
   const baseItem = getBaseItem()
   const allItems = getAllOutfitItems()
@@ -119,11 +120,12 @@ export default function SummaryStep() {
         (current, total, status) => {
           setSaveProgress(status)
         },
-        generatedImageUrl
+        // Pass the generated URL if it exists
+        generatedTryOnUrl || undefined 
       )
       
       reset()
-      router.push('/closet')
+      router.push('/closet') 
     } catch (error) {
       console.error('Save outfit failed:', error)
       setSaveError(error instanceof Error ? error.message : 'Failed to save outfit')
@@ -131,7 +133,7 @@ export default function SummaryStep() {
       setIsSaving(false)
       setSaveProgress('')
     }
-  }, [user, session, baseItem, allItemsWithBlobs, outfitName, reset, router, getTryOnForCategory])
+  }, [user, session, baseItem, allItemsWithBlobs, outfitName, reset, router, generatedTryOnUrl])
 
   // Get score color
   const getScoreColor = (score: number) => {
@@ -398,6 +400,11 @@ export default function SummaryStep() {
           items={allItemsWithBlobs}
           token={session.access_token}
           onClose={() => setShowTryOnModal(false)}
+          
+          onComplete={(url: string) => {
+            setGeneratedTryOnUrl(url)
+            //close the modal automatically or show a success toast
+          }}
         />
       )}
     </div>
