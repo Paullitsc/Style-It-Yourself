@@ -8,6 +8,7 @@ interface TryOnResultProps {
   onRetry: () => void
   onDownload: () => void
   retryLabel?: string
+  onDone?: () => void
 }
 
 export default function TryOnResult({ 
@@ -15,7 +16,8 @@ export default function TryOnResult({
   processingTime, 
   onRetry, 
   onDownload,
-  retryLabel = "Try Another Photo"
+  retryLabel = "Try Another Photo",
+  onDone
 }: TryOnResultProps) {
   return (
     <div className="space-y-6">
@@ -36,26 +38,38 @@ export default function TryOnResult({
       )}
 
       {/* Actions */}
-      <div className="flex gap-4">
+      <div className="flex gap-3">
+        {retryLabel && (
+            <button
+            onClick={onRetry}
+            className="flex items-center justify-center gap-2 px-4 py-3
+                border border-primary-600 text-neutral-400 hover:text-white hover:border-primary-500
+                text-xs font-bold uppercase tracking-widest transition-all rounded-lg"
+            >
+            <RotateCcw size={14} />
+            {retryLabel}
+            </button>
+        )}
         <button
-          onClick={onRetry}
-          className="flex-1 flex items-center justify-center gap-2 px-6 py-3
-            border border-primary-600 text-neutral-400 hover:text-white hover:border-primary-500
-            text-xs font-bold uppercase tracking-widest transition-all"
-        >
-          <RotateCcw size={14} />
-          {retryLabel}
-        </button>
-        <button
-          onClick={onDownload}
-          className="flex-1 flex items-center justify-center gap-2 px-6 py-3
+            onClick={onDownload}
+            className="flex items-center justify-center gap-2 px-4 py-3
             bg-accent-500 text-primary-900 hover:bg-accent-400
-            text-xs font-bold uppercase tracking-widest transition-all"
+            text-xs font-bold uppercase tracking-widest transition-all rounded-lg"
         >
-          <Download size={14} />
-          Download
+            <Download size={14} />
+            Download
         </button>
-      </div>
+        {onDone && (
+            <button
+            onClick={onDone}
+            className="flex-1 flex items-center justify-center gap-2 px-6 py-3
+                bg-white text-primary-900 hover:bg-neutral-200
+                text-xs font-bold uppercase tracking-widest transition-all rounded-lg"
+            >
+            Done
+            </button>
+        )}
+        </div>
     </div>
   )
 }
