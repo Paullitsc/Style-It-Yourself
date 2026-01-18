@@ -47,7 +47,7 @@ export interface ClothingItemResponse extends ClothingItemBase {
   brand?: string
   price?: number
   source_url?: string
-  ownership: string
+  ownership: 'owned' | 'wishlist'
   created_at: string
 }
 
