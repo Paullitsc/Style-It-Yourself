@@ -1,5 +1,7 @@
 # Style It Yourself (SIY) — Intentional Fashion for the Modern Closet
 
+2-min demo: https://devpost.com/software/siy-style-it-yourself
+
 ## Inspiration
 
 We've all been there. You buy a piece you love—maybe a bold jacket or a statement shoe—only to get home and realize it doesn't go with anything you own. So you buy more to match it. And then more. The cycle continues.
