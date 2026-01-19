@@ -1,7 +1,5 @@
 # Style It Yourself (SIY) — Intentional Fashion for the Modern Closet
 
-2-min demo: https://www.youtube.com/watch?v=JjGNJ1kew_Q&t=12s
-
 ## Inspiration
 
 We've all been there. You buy a piece you love—maybe a bold jacket or a statement shoe—only to get home and realize it doesn't go with anything you own. So you buy more to match it. And then more. The cycle continues.
@@ -14,7 +12,7 @@ We're inspired by a simple truth about human nature: **we want access, but we ch
 
 ## What It Does
 
-SIY is a personal styling assistant that helps you:
+[SIY](https://www.youtube.com/watch?v=JjGNJ1kew_Q&t=12s) is a personal styling assistant that helps you:
 
 1. **Upload a clothing item** and instantly extract its dominant color
 2. **Get smart recommendations** for complementary pieces based on color theory
