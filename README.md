@@ -1,6 +1,6 @@
 # Style It Yourself (SIY) — Intentional Fashion for the Modern Closet
 
-2-min demo: [https://devpost.com/software/siy-style-it-yourself](https://www.youtube.com/watch?v=JjGNJ1kew_Q&t=12s)
+2-min demo: https://www.youtube.com/watch?v=JjGNJ1kew_Q&t=12s
 
 ## Inspiration
 
