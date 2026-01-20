@@ -6,7 +6,7 @@ We've all been there. You buy a piece you love, maybe a bold jacket or a stateme
 
 As a team with a few self-admitted shopaholics, we've lived this loop. After years of watching fashion flood the market (and our closets), we started asking: *what if fashion could be more intentional?* Not about owning less, but about styling smarter.
 
-We're inspired by a simple truth about human nature: **we want access, but we chase excess**. SIY flips that script—helping you see how pieces work *before* you buy, and building outfits that actually make sense together.
+We're inspired by a simple truth about human nature: **we want access, but we chase excess**. SIY flips that script, helping you see how pieces work *before* you buy, and building outfits that actually make sense together.
 
 ---
 
