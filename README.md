@@ -2,7 +2,7 @@
 
 ## Inspiration
 
-We've all been there. You buy a piece you love—maybe a bold jacket or a statement shoe—only to get home and realize it doesn't go with anything you own. So you buy more to match it. And then more. The cycle continues.
+We've all been there. You buy a piece you love, maybe a bold jacket or a statement shoe, only to get home and realize it doesn't go with anything you own. So you buy more to match it. And then more... The cycle continues...
 
 As a team with a few self-admitted shopaholics, we've lived this loop. After years of watching fashion flood the market (and our closets), we started asking: *what if fashion could be more intentional?* Not about owning less, but about styling smarter.
 
