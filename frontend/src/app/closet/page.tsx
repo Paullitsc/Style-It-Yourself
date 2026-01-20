@@ -13,7 +13,7 @@ import OutfitDetailModal from './components/OutfitDetailModal'
 type ViewMode = 'items' | 'outfits'
 
 // Category display order
-const CATEGORY_ORDER = ['Tops', 'Bottoms', 'Shoes', 'Outerwear', 'Accessories', 'Full Body']
+const CATEGORY_ORDER = ['Tops', 'Bottoms', 'Shoes', 'Outerwear', 'Accessories']
 
 export default function ClosetPage() {
   const { session } = useAuth()
