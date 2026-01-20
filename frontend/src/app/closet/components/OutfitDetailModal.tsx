@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Package, Calendar, AlertTriangle, Sparkles } from 'lucide-react'
+import { X, Package, Calendar, AlertTriangle, Sparkles, Trash2 } from 'lucide-react'
 import type { OutfitSummary, OutfitResponse, ValidateOutfitResponse } from '@/types'
 import { getOutfit, validateOutfit } from '@/lib/api'
 
@@ -9,13 +9,16 @@ interface OutfitDetailModalProps {
   outfit: OutfitSummary
   token: string
   onClose: () => void
+  onDelete?: (outfitId: string) => Promise<void>
 }
 
-export default function OutfitDetailModal({ outfit, token, onClose }: OutfitDetailModalProps) {
+export default function OutfitDetailModal({ outfit, token, onClose, onDelete }: OutfitDetailModalProps) {
   const [fullOutfit, setFullOutfit] = useState<OutfitResponse | null>(null)
   const [validation, setValidation] = useState<ValidateOutfitResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
 
   useEffect(() => {
     async function fetchOutfitDetails() {
@@ -23,11 +26,9 @@ export default function OutfitDetailModal({ outfit, token, onClose }: OutfitDeta
       setError(null)
 
       try {
-        // Fetch full outfit data
         const outfitData = await getOutfit(outfit.id, token)
         setFullOutfit(outfitData)
 
-        // Validate outfit if we have items
         if (outfitData.items.length > 0) {
           const baseItem = outfitData.items[0]
           const otherItems = outfitData.items.slice(1)
@@ -37,7 +38,6 @@ export default function OutfitDetailModal({ outfit, token, onClose }: OutfitDeta
             setValidation(validationResult)
           } catch (validationError) {
             console.error('Validation failed:', validationError)
-            // Create a fallback validation response
             setValidation({
               is_complete: true,
               cohesion_score: 70,
@@ -80,6 +80,19 @@ export default function OutfitDetailModal({ outfit, token, onClose }: OutfitDeta
     if (score >= 80) return 'bg-success-500'
     if (score >= 60) return 'bg-warning-500'
     return 'bg-error-500'
+  }
+
+  const handleDelete = async () => {
+    if (!onDelete) return
+    setIsDeleting(true)
+    try {
+      await onDelete(outfit.id)
+      onClose()
+    } catch (error) {
+      console.error('Failed to delete outfit:', error)
+      setIsDeleting(false)
+      setShowConfirm(false)
+    }
   }
 
   return (
@@ -268,13 +281,60 @@ export default function OutfitDetailModal({ outfit, token, onClose }: OutfitDeta
 
         {/* Footer */}
         <div className="p-4 border-t border-primary-800 bg-primary-900 shrink-0">
-          <button
-            onClick={onClose}
-            className="w-full px-4 py-3 bg-primary-800 text-white hover:bg-primary-700
-              text-xs font-bold uppercase tracking-widest transition-all rounded-lg border border-primary-700"
-          >
-            Close
-          </button>
+          {showConfirm ? (
+            <div className="space-y-3">
+              <p className="text-sm text-neutral-300 text-center">
+                Delete this outfit? Items will remain in your closet.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowConfirm(false)}
+                  disabled={isDeleting}
+                  className="flex-1 px-4 py-3 bg-primary-800 text-white hover:bg-primary-700
+                    text-xs font-bold uppercase tracking-widest transition-all rounded-lg border border-primary-700
+                    disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="flex-1 px-4 py-3 bg-error-500 text-white hover:bg-error-600
+                    text-xs font-bold uppercase tracking-widest transition-all rounded-lg
+                    disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isDeleting ? (
+                    <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                  ) : (
+                    <>
+                      <Trash2 size={14} />
+                      Delete
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <button
+                onClick={onClose}
+                className="flex-1 px-4 py-3 bg-primary-800 text-white hover:bg-primary-700
+                  text-xs font-bold uppercase tracking-widest transition-all rounded-lg border border-primary-700"
+              >
+                Close
+              </button>
+              {onDelete && (
+                <button
+                  onClick={() => setShowConfirm(true)}
+                  className="px-4 py-3 bg-primary-800 text-error-400 hover:bg-error-500/20 hover:text-error-300
+                    text-xs font-bold uppercase tracking-widest transition-all rounded-lg border border-primary-700
+                    hover:border-error-500/50"
+                >
+                  <Trash2 size={16} />
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

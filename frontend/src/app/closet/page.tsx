@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthProvider'
 import ProtectedRoute from '@/components/ProtectedRoute'
-import { getCloset } from '@/lib/api'
+import { getCloset, deleteClothingItem, deleteOutfit } from '@/lib/api'
 import type { ClosetResponse, ClothingItemResponse, OutfitSummary } from '@/types'
 import { CATEGORY_TAXONOMY } from '@/types'
 import { Shirt, Package, AlertCircle } from 'lucide-react'
@@ -40,6 +40,17 @@ export default function ClosetPage() {
     } finally {
       setIsLoading(false)
     }
+  }
+  const handleDeleteItem = async (itemId: string) => {
+    if (!session?.access_token) return
+    await deleteClothingItem(itemId, session.access_token)
+    await fetchCloset()
+  }
+
+  const handleDeleteOutfit = async (outfitId: string) => {
+    if (!session?.access_token) return
+    await deleteOutfit(outfitId, session.access_token)
+    await fetchCloset()
   }
 
   useEffect(() => {
@@ -303,6 +314,7 @@ export default function ClosetPage() {
           <ItemDetailModal
             item={selectedItem}
             onClose={() => setSelectedItem(null)}
+            onDelete={handleDeleteItem}
           />
         )}
 
@@ -312,6 +324,7 @@ export default function ClosetPage() {
             outfit={selectedOutfit}
             token={session.access_token}
             onClose={() => setSelectedOutfit(null)}
+            onDelete={handleDeleteOutfit}
           />
         )}
       </div>

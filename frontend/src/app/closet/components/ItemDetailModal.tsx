@@ -1,15 +1,20 @@
 'use client'
 
-import { X, ExternalLink, Tag, DollarSign, Shirt, Calendar, ShoppingBag } from 'lucide-react'
+import { useState } from 'react'
+import { X, ExternalLink, Tag, DollarSign, Shirt, Calendar, ShoppingBag, Trash2 } from 'lucide-react'
 import type { ClothingItemResponse } from '@/types'
 import { FORMALITY_LEVELS } from '@/types'
 
 interface ItemDetailModalProps {
   item: ClothingItemResponse
   onClose: () => void
+  onDelete?: (itemId: string) => Promise<void>
 }
 
-export default function ItemDetailModal({ item, onClose }: ItemDetailModalProps) {
+export default function ItemDetailModal({ item, onClose, onDelete }: ItemDetailModalProps) {
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
+  
   const formalityLabel = FORMALITY_LEVELS[item.formality as keyof typeof FORMALITY_LEVELS] || item.formality
 
   const formatDate = (dateString: string) => {
@@ -21,6 +26,19 @@ export default function ItemDetailModal({ item, onClose }: ItemDetailModalProps)
       })
     } catch {
       return dateString
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!onDelete) return
+    setIsDeleting(true)
+    try {
+      await onDelete(item.id)
+      onClose()
+    } catch (error) {
+      console.error('Failed to delete item:', error)
+      setIsDeleting(false)
+      setShowConfirm(false)
     }
   }
 
@@ -163,13 +181,60 @@ export default function ItemDetailModal({ item, onClose }: ItemDetailModalProps)
 
         {/* Footer */}
         <div className="p-4 border-t border-primary-800 bg-primary-900 shrink-0">
-          <button
-            onClick={onClose}
-            className="w-full px-4 py-3 bg-primary-800 text-white hover:bg-primary-700
-              text-xs font-bold uppercase tracking-widest transition-all rounded-lg border border-primary-700"
-          >
-            Close
-          </button>
+          {showConfirm ? (
+            <div className="space-y-3">
+              <p className="text-sm text-neutral-300 text-center">
+                Delete this item? This cannot be undone.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowConfirm(false)}
+                  disabled={isDeleting}
+                  className="flex-1 px-4 py-3 bg-primary-800 text-white hover:bg-primary-700
+                    text-xs font-bold uppercase tracking-widest transition-all rounded-lg border border-primary-700
+                    disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="flex-1 px-4 py-3 bg-error-500 text-white hover:bg-error-600
+                    text-xs font-bold uppercase tracking-widest transition-all rounded-lg
+                    disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isDeleting ? (
+                    <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                  ) : (
+                    <>
+                      <Trash2 size={14} />
+                      Delete
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <button
+                onClick={onClose}
+                className="flex-1 px-4 py-3 bg-primary-800 text-white hover:bg-primary-700
+                  text-xs font-bold uppercase tracking-widest transition-all rounded-lg border border-primary-700"
+              >
+                Close
+              </button>
+              {onDelete && (
+                <button
+                  onClick={() => setShowConfirm(true)}
+                  className="px-4 py-3 bg-primary-800 text-error-400 hover:bg-error-500/20 hover:text-error-300
+                    text-xs font-bold uppercase tracking-widest transition-all rounded-lg border border-primary-700
+                    hover:border-error-500/50"
+                >
+                  <Trash2 size={16} />
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

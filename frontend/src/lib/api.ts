@@ -350,3 +350,47 @@ export async function createClothingItem(
   
   return response.json()
 }
+
+// =============================================================================
+// DELETE OPERATIONS (Auth Required)
+// =============================================================================
+
+/**
+ * Delete a clothing item from closet
+ */
+export async function deleteClothingItem(
+  itemId: string,
+  token: string
+): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/api/clothing-items/${itemId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  })
+  
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Unknown error' }))
+    throw new Error(error.detail || `API error: ${response.status}`)
+  }
+}
+
+/**
+ * Delete an outfit (items remain in closet)
+ */
+export async function deleteOutfit(
+  outfitId: string,
+  token: string
+): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/api/outfits/${outfitId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  })
+  
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Unknown error' }))
+    throw new Error(error.detail || `API error: ${response.status}`)
+  }
+}
