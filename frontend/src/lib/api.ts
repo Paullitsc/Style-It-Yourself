@@ -269,9 +269,9 @@ export async function createOutfit(
 
 /**
  * Save a complete outfit flow:
- * 1. Upload each item's image and create clothing items
+ * 1. Upload each item's image and create clothing items (skip if existingId is set)
  * 2. Create outfit with the item IDs
- * 
+ *
  * Returns the created outfit response
  */
 export async function saveOutfitWithItems(
@@ -279,31 +279,42 @@ export async function saveOutfitWithItems(
   items: Array<{
     item: ClothingItemCreate
     imageBlob: Blob
+    existingId?: string  // If set, item already exists - use this ID instead of creating new
   }>,
   token: string,
   onProgress?: (current: number, total: number, status: string) => void,
   generatedImageUrl?: string // Add optional param
 ): Promise<OutfitResponse> {
   const itemIds: string[] = []
-  const total = items.length + 1
-  
-  // Step 1: Save each clothing item
+  const newItemsCount = items.filter(i => !i.existingId).length
+  const total = newItemsCount + 1
+  let progressCount = 0
+
+  // Step 1: Save each clothing item (or use existing ID)
   for (let i = 0; i < items.length; i++) {
-    const { item, imageBlob } = items[i]
-    onProgress?.(i + 1, total, `Saving item ${i + 1} of ${items.length}...`)
-    const savedItem = await createClothingItem(item, 
-      new File([imageBlob], `item-${i}.jpg`, { type: 'image/jpeg' }), 
-      token
-    )
-    itemIds.push(savedItem.id)
+    const { item, imageBlob, existingId } = items[i]
+
+    if (existingId) {
+      // Item already exists in closet - just use its ID
+      itemIds.push(existingId)
+    } else {
+      // New item - create it
+      progressCount++
+      onProgress?.(progressCount, total, `Saving item ${progressCount} of ${newItemsCount}...`)
+      const savedItem = await createClothingItem(item,
+        new File([imageBlob], `item-${i}.jpg`, { type: 'image/jpeg' }),
+        token
+      )
+      itemIds.push(savedItem.id)
+    }
   }
-  
+
   // Step 2: Create outfit with generatedImageUrl
   onProgress?.(total, total, 'Creating outfit...')
-  
+
   // Pass the generatedImageUrl here
   const outfit = await createOutfit(name, itemIds, token, generatedImageUrl)
-  
+
   return outfit
 }
 

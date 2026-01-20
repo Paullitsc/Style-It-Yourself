@@ -69,6 +69,7 @@ export interface AddingItemState {
 export interface OutfitItemWithBlob {
   item: ClothingItemCreate
   imageBlob: Blob
+  existingId?: string  // If set, item already exists in closet - don't create duplicate
 }
 
 const initialAddingItemState: AddingItemState = {
@@ -662,18 +663,21 @@ export const useStyleStore = create<StyleState>((set, get) => ({
       price: item.price || undefined,
       source_url: item.source_url || undefined,
     }
-    
+
+    // Preserve the existing item ID to avoid creating duplicates
+    const existingId = item.id
+
     fetch(item.image_url)
       .then(res => res.blob())
       .then(blob => {
         set((state) => ({
-          outfitItems: [...state.outfitItems, { item: outfitItem, imageBlob: blob }],
+          outfitItems: [...state.outfitItems, { item: outfitItem, imageBlob: blob, existingId }],
         }))
       })
       .catch(() => {
         const emptyBlob = new Blob([], { type: 'image/jpeg' })
         set((state) => ({
-          outfitItems: [...state.outfitItems, { item: outfitItem, imageBlob: emptyBlob }],
+          outfitItems: [...state.outfitItems, { item: outfitItem, imageBlob: emptyBlob, existingId }],
         }))
       })
   },
