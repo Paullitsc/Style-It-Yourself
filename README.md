@@ -117,6 +117,40 @@ Where:
 | Storage | Supabase Storage |
 | AI | Google Gemini API |
 
+## CI/CD
+
+This repository uses GitHub Actions with GHCR image publishing.
+
+- CI workflow: `/.github/workflows/ci.yml`
+  - Runs backend tests, frontend lint/build, Docker build validation, and high/critical security scan.
+- CD workflow: `/.github/workflows/cd.yml`
+  - Builds and publishes backend/frontend images to GHCR.
+  - Supports manual deployments through a provider adapter contract in `/ops/deploy`.
+
+Full setup details, required secrets, deploy adapter contract, rollback steps, and troubleshooting are documented in `docs/ci-cd.md`.
+
+### Required GitHub Secrets
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_API_URL`
+- `SUPABASE_URL`
+- `SUPABASE_KEY`
+- `SUPABASE_SERVICE_KEY`
+- `SUPABASE_JWT_SECRET`
+- `GEMINI_API_KEY`
+- `GHCR_PAT` (optional if `GITHUB_TOKEN` policy allows package write)
+- `DEPLOY_*` provider secrets (see `docs/ci-cd.md`)
+
+### Branch Protection Recommendation
+
+Require these CI checks to pass before merging to `main`:
+
+- `Backend Tests`
+- `Frontend Lint & Build`
+- `Docker Build Validation`
+- `Security Scan`
+
 ---
 
 *Built with intention, styled with math.*

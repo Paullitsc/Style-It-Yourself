@@ -1,0 +1,156 @@
+name: CD
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        required: true
+        default: staging
+        type: choice
+        options:
+          - staging
+          - production
+      provider:
+        description: Deployment provider adapter
+        required: true
+        default: render
+        type: choice
+        options:
+          - render
+          - vps
+      deploy:
+        description: Trigger deploy after image publish
+        required: true
+        default: true
+        type: boolean
+
+concurrency:
+  group: cd-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAMESPACE: ${{ github.repository }}
+
+jobs:
+  build-and-push-images:
+    name: Build & Push Images
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.meta.outputs.environment }}
+      provider: ${{ steps.meta.outputs.provider }}
+      deploy_enabled: ${{ steps.meta.outputs.deploy_enabled }}
+      backend_image: ${{ steps.images.outputs.backend_image }}
+      frontend_image: ${{ steps.images.outputs.frontend_image }}
+      backend_digest: ${{ steps.build_backend.outputs.digest }}
+      frontend_digest: ${{ steps.build_frontend.outputs.digest }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Resolve deploy metadata
+        id: meta
+        shell: bash
+        run: |
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            echo "environment=${{ inputs.environment }}" >> "$GITHUB_OUTPUT"
+            echo "provider=${{ inputs.provider }}" >> "$GITHUB_OUTPUT"
+            echo "deploy_enabled=${{ inputs.deploy }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "environment=production" >> "$GITHUB_OUTPUT"
+            echo "provider=render" >> "$GITHUB_OUTPUT"
+            echo "deploy_enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Authenticate to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_PAT || secrets.GITHUB_TOKEN }}
+
+      - name: Compute image names
+        id: images
+        run: |
+          echo "backend_image=${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/backend" >> "$GITHUB_OUTPUT"
+          echo "frontend_image=${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/frontend" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push backend image
+        id: build_backend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.images.outputs.backend_image }}:${{ github.sha }}
+            ${{ steps.images.outputs.backend_image }}:main
+            ${{ steps.images.outputs.backend_image }}:latest
+
+      - name: Build and push frontend image
+        id: build_frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.images.outputs.frontend_image }}:${{ github.sha }}
+            ${{ steps.images.outputs.frontend_image }}:main
+            ${{ steps.images.outputs.frontend_image }}:latest
+          build-args: |
+            NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+            NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
+
+      - name: Publish image summary
+        run: |
+          {
+            echo "## Published Images"
+            echo "- Backend: \`${{ steps.images.outputs.backend_image }}:${{ github.sha }}\`"
+            echo "- Frontend: \`${{ steps.images.outputs.frontend_image }}:${{ github.sha }}\`"
+            echo "- Backend digest: \`${{ steps.build_backend.outputs.digest }}\`"
+            echo "- Frontend digest: \`${{ steps.build_frontend.outputs.digest }}\`"
+            echo "- Deploy enabled: \`${{ steps.meta.outputs.deploy_enabled }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    name: Deploy
+    needs: build-and-push-images
+    runs-on: ubuntu-latest
+    if: needs.build-and-push-images.outputs.deploy_enabled == 'true'
+    environment: ${{ needs.build-and-push-images.outputs.environment }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run deploy adapter
+        shell: bash
+        env:
+          DEPLOY_PROVIDER: ${{ needs.build-and-push-images.outputs.provider }}
+          DEPLOY_ENVIRONMENT: ${{ needs.build-and-push-images.outputs.environment }}
+          BACKEND_IMAGE: ${{ needs.build-and-push-images.outputs.backend_image }}:${{ github.sha }}
+          FRONTEND_IMAGE: ${{ needs.build-and-push-images.outputs.frontend_image }}:${{ github.sha }}
+          BACKEND_DIGEST: ${{ needs.build-and-push-images.outputs.backend_digest }}
+          FRONTEND_DIGEST: ${{ needs.build-and-push-images.outputs.frontend_digest }}
+          DEPLOY_API_TOKEN: ${{ secrets.DEPLOY_API_TOKEN }}
+          DEPLOY_PROJECT_ID: ${{ secrets.DEPLOY_PROJECT_ID }}
+          DEPLOY_SERVICE_ID: ${{ secrets.DEPLOY_SERVICE_ID }}
+          DEPLOY_FRONTEND_SERVICE_ID: ${{ secrets.DEPLOY_FRONTEND_SERVICE_ID }}
+          DEPLOY_VPS_HOST: ${{ secrets.DEPLOY_VPS_HOST }}
+          DEPLOY_VPS_USER: ${{ secrets.DEPLOY_VPS_USER }}
+          DEPLOY_VPS_SSH_KEY: ${{ secrets.DEPLOY_VPS_SSH_KEY }}
+        run: |
+          chmod +x ops/deploy/deploy.sh
+          ./ops/deploy/deploy.sh
