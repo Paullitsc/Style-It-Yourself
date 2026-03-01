@@ -6,6 +6,8 @@ import { AlertTriangle, X } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { Button } from './Button'
 
+let openModalCount = 0
+
 const FOCUSABLE_SELECTORS = [
   'a[href]',
   'button:not([disabled])',
@@ -67,8 +69,8 @@ export function Modal({
     if (!isOpen) return
 
     lastFocusedRef.current = document.activeElement as HTMLElement | null
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
+    openModalCount++
+    if (openModalCount === 1) document.body.style.overflow = 'hidden'
 
     const timer = window.setTimeout(() => {
       if (initialFocusRef?.current) {
@@ -87,7 +89,8 @@ export function Modal({
 
     return () => {
       window.clearTimeout(timer)
-      document.body.style.overflow = previousOverflow
+      openModalCount--
+      if (openModalCount === 0) document.body.style.overflow = ''
       lastFocusedRef.current?.focus()
     }
   }, [initialFocusRef, isOpen])
