@@ -13,7 +13,6 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     
     # API documentation
-    ENABLE_DOCS: bool | None = None
     ENABLE_REDOC: bool = False
     OPENAPI_URL: str = "/openapi.json"
     
@@ -47,10 +46,7 @@ class Settings(BaseSettings):
         Default behavior:
         - Enabled in development
         - Disabled in production
-        - Can be overridden via ENABLE_DOCS
         """
-        if self.ENABLE_DOCS is not None:
-            return self.ENABLE_DOCS
         return self.is_development
 
     @property
