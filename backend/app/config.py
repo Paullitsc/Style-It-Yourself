@@ -12,6 +12,10 @@ class Settings(BaseSettings):
     # Environment
     ENVIRONMENT: str = "development"
     
+    # API documentation
+    ENABLE_REDOC: bool = False
+    OPENAPI_URL: str = "/openapi.json"
+    
     # Supabase
     SUPABASE_URL: str
     SUPABASE_KEY: str
@@ -28,6 +32,34 @@ class Settings(BaseSettings):
     def cors_origins_list(self) -> list[str]:
         """Parse CORS_ORIGINS string into list."""
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
+    
+    @property
+    def is_development(self) -> bool:
+        """Whether the app is running in a development-like environment."""
+        return self.debug or self.ENVIRONMENT.lower() in {"development", "dev", "local"}
+
+    @property
+    def docs_enabled(self) -> bool:
+        """
+        Whether interactive API docs should be enabled.
+
+        Default behavior:
+        - Enabled in development
+        - Disabled in production
+        """
+        return self.is_development
+
+    @property
+    def docs_url(self) -> str | None:
+        """Swagger UI path (None disables Swagger UI)."""
+        return "/docs" if self.docs_enabled else None
+
+    @property
+    def redoc_url(self) -> str | None:
+        """ReDoc path (None disables ReDoc)."""
+        if self.docs_enabled and self.ENABLE_REDOC:
+            return "/redoc"
+        return None
     
     class Config:
         env_file = ".env"
