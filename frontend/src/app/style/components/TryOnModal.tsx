@@ -1,11 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { X, Sparkles } from 'lucide-react'
+import { Sparkles } from 'lucide-react'
 import { tryOnSingle, uploadUserPhoto } from '@/lib/api'
 import type { ClothingItemBase } from '@/types'
 import ImageUploadZone from './shared/ImageUploadZone'
 import TryOnResult from './shared/TryOnResult'
+import { Button, Card, Modal, StatusBadge } from '@/components/ui'
 
 interface TryOnModalProps {
   item: ClothingItemBase
@@ -20,9 +21,15 @@ interface TryOnModalProps {
 
 type TryOnStep = 'upload' | 'generating' | 'result'
 
-export default function TryOnModal({ 
-  item, itemImageUrl, itemImageBlob, token, onClose,
-  viewOnly = false, existingTryOnUrl, onTryOnComplete,
+export default function TryOnModal({
+  item,
+  itemImageUrl,
+  itemImageBlob,
+  token,
+  onClose,
+  viewOnly = false,
+  existingTryOnUrl,
+  onTryOnComplete,
 }: TryOnModalProps) {
   const [step, setStep] = useState<TryOnStep>(viewOnly ? 'result' : 'upload')
   const [userPhotoFile, setUserPhotoFile] = useState<File | null>(null)
@@ -34,42 +41,44 @@ export default function TryOnModal({
     if (!userPhotoFile) return
     setStep('generating')
     setError(null)
-    
+
     try {
-      // 1. Upload user photo
       const userPhotoUrl = await uploadUserPhoto(userPhotoFile, token)
-      
-      // 2. Upload item image blob so backend can access it
+
       const itemUploadFormData = new FormData()
       itemUploadFormData.append('image', itemImageBlob)
-      
-      const itemUploadResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/try-on/upload-photo`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        body: itemUploadFormData,
-      })
-      
+
+      const itemUploadResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/try-on/upload-photo`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: itemUploadFormData,
+        }
+      )
+
       if (!itemUploadResponse.ok) {
         throw new Error('Failed to upload item image')
       }
-      
+
       const itemUploadData = await itemUploadResponse.json()
       const itemUploadUrl = itemUploadData.url
-      
-      // 3. Call Try-On API
-      const response = await tryOnSingle({
-        user_photo_url: userPhotoUrl,
-        item_image_url: itemUploadUrl,
-        item: item
-      }, token)
-      
+
+      const response = await tryOnSingle(
+        {
+          user_photo_url: userPhotoUrl,
+          item_image_url: itemUploadUrl,
+          item,
+        },
+        token
+      )
+
       setResultUrl(response.generated_image_url)
       setProcessingTime(response.processing_time)
       setStep('result')
       onTryOnComplete?.(response.generated_image_url)
-      
     } catch (err) {
       console.error('Try-on failed:', err)
       setError('Failed to generate try-on. Please try again.')
@@ -79,100 +88,104 @@ export default function TryOnModal({
 
   const handleDownload = () => {
     if (resultUrl) {
-        window.open(resultUrl, '_blank')
+      window.open(resultUrl, '_blank')
     }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
-      
-      <div className="relative bg-primary-900 border border-primary-700 rounded-xl w-full max-w-lg overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-primary-800">
-          <h3 className="text-lg font-bold uppercase tracking-widest text-white">
-            {viewOnly ? 'Try-On Result' : 'Virtual Try-On'}
-          </h3>
-          <button onClick={onClose} className="p-1 text-neutral-500 hover:text-white">
-            <X size={20} />
-          </button>
-        </div>
-
-        <div className="p-6 overflow-y-auto scrollbar-hide flex-1">
-          {/* UPLOAD STEP */}
-          {step === 'upload' && (
-            <div className="space-y-6">
-              <div className="flex gap-4 p-4 bg-primary-800 rounded-lg">
-                <img src={itemImageUrl} alt="Item" className="w-16 h-20 object-contain bg-primary-900 rounded" />
-                <div>
-                  <p className="text-xs uppercase text-neutral-500">Trying On</p>
-                  <p className="text-white font-bold">{item.category.l2}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color.hex }} />
-                    <span className="text-xs text-neutral-400">{item.color.name}</span>
-                  </div>
-                </div>
-              </div>
-
-              <ImageUploadZone 
-                onFileSelect={setUserPhotoFile}
-                label="Upload full body photo"
-                compact={true}
-                disabled={!!userPhotoFile}
-                previewFile={userPhotoFile}
-                onClear={() => setUserPhotoFile(null)}
+    <Modal
+      isOpen={true}
+      onClose={onClose}
+      title={viewOnly ? 'Try-On Result' : 'Virtual Try-On'}
+      size="md"
+    >
+      {step === 'upload' && (
+        <div className="space-y-[var(--space-6)]">
+          <Card className="p-[var(--space-4)]">
+            <div className="flex gap-[var(--space-4)]">
+              <img
+                src={itemImageUrl}
+                alt="Item"
+                className="h-20 w-16 rounded-[var(--radius-sm)] bg-primary-900 object-contain"
               />
-              
-              {userPhotoFile && (
-                <div className="flex items-center justify-between p-3 bg-primary-800 rounded border border-primary-700">
-                  <span className="text-sm text-white truncate max-w-[200px]">{userPhotoFile.name}</span>
-                  <button onClick={() => setUserPhotoFile(null)} className="text-xs text-neutral-500 hover:text-white">Change</button>
+              <div>
+                <p className="text-xs uppercase text-neutral-500">Trying On</p>
+                <p className="font-bold text-white">{item.category.l2}</p>
+                <div className="mt-[var(--space-2)] flex items-center gap-[var(--space-2)]">
+                  <div
+                    className="h-3 w-3 rounded-full border border-primary-600"
+                    style={{ backgroundColor: item.color.hex }}
+                    aria-hidden="true"
+                  />
+                  <span className="text-xs text-neutral-400">{item.color.name}</span>
+                  <StatusBadge status="info" size="sm" label={`${item.formality}/5`} />
                 </div>
-              )}
-
-              {error && <p className="text-error-500 text-sm text-center">{error}</p>}
-
-              <button
-                onClick={handleGenerate}
-                disabled={!userPhotoFile}
-                className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-white text-primary-900 hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed text-xs font-bold uppercase tracking-widest transition-all"
-              >
-                <Sparkles size={16} /> Generate Try-On
-              </button>
-            </div>
-          )}
-
-          {/* GENERATING STEP */}
-          {step === 'generating' && (
-            <div className="py-12 flex flex-col items-center justify-center text-center">
-              <div className="relative w-20 h-20 mb-6">
-                <div className="absolute inset-0 border-4 border-primary-800 rounded-full" />
-                <div className="absolute inset-0 border-4 border-accent-500 border-t-transparent rounded-full animate-spin" />
-                <Sparkles className="absolute inset-0 m-auto text-accent-500 animate-pulse" size={24} />
               </div>
-              <h4 className="text-lg font-bold text-white mb-2">Generating...</h4>
-              <p className="text-neutral-500 text-sm max-w-xs">
-                AI is fitting the {item.category.l2} onto your photo. This usually takes about 10-15 seconds.
-              </p>
+            </div>
+          </Card>
+
+          <ImageUploadZone
+            onFileSelect={setUserPhotoFile}
+            label="Upload full body photo"
+            compact={true}
+            disabled={!!userPhotoFile}
+            previewFile={userPhotoFile}
+            onClear={() => setUserPhotoFile(null)}
+          />
+
+          {userPhotoFile && (
+            <div className="flex items-center justify-between rounded-[var(--radius-md)] border border-primary-700 bg-primary-800 p-[var(--space-3)]">
+              <span className="max-w-[220px] truncate text-sm text-white">{userPhotoFile.name}</span>
+              <Button variant="ghost" size="sm" onClick={() => setUserPhotoFile(null)}>
+                Change
+              </Button>
             </div>
           )}
 
-          {/* RESULT STEP */}
-          {step === 'result' && resultUrl && (
-            <TryOnResult 
-              imageUrl={resultUrl}
-              processingTime={processingTime || undefined}
-              onRetry={() => {
-                setStep('upload')
-                setUserPhotoFile(null)
-              }}
-              onDownload={handleDownload}
-              onDone={onClose}
-              retryLabel={viewOnly ? undefined : "Try Another Photo"}
-            />
+          {error && (
+            <p className="text-center text-sm text-error-400" role="alert">
+              {error}
+            </p>
           )}
+
+          <Button
+            onClick={handleGenerate}
+            disabled={!userPhotoFile}
+            fullWidth
+            leftIcon={<Sparkles size={16} aria-hidden="true" />}
+          >
+            Generate Try-On
+          </Button>
         </div>
-      </div>
-    </div>
+      )}
+
+      {step === 'generating' && (
+        <div className="flex flex-col items-center justify-center py-[var(--space-12)] text-center">
+          <div className="relative mb-[var(--space-6)] h-20 w-20">
+            <div className="absolute inset-0 rounded-full border-4 border-primary-800" />
+            <div className="absolute inset-0 animate-spin rounded-full border-4 border-accent-500 border-t-transparent" />
+            <Sparkles className="absolute inset-0 m-auto animate-pulse text-accent-500" size={24} aria-hidden="true" />
+          </div>
+          <h4 className="mb-[var(--space-2)] text-lg font-bold text-white">Generating...</h4>
+          <p className="max-w-xs text-sm text-neutral-500">
+            AI is fitting the {item.category.l2} onto your photo. This usually takes about 10-15 seconds.
+          </p>
+        </div>
+      )}
+
+      {step === 'result' && resultUrl && (
+        <TryOnResult
+          imageUrl={resultUrl}
+          processingTime={processingTime || undefined}
+          onRetry={() => {
+            setStep('upload')
+            setUserPhotoFile(null)
+          }}
+          onDownload={handleDownload}
+          onDone={onClose}
+          retryLabel={viewOnly ? undefined : 'Try Another Photo'}
+        />
+      )}
+    </Modal>
   )
 }

@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react'
 import { useStyleStore } from '@/store/styleStore'
 import { ArrowLeft, ArrowRight, ChevronDown, Tag, DollarSign, Link as LinkIcon } from 'lucide-react'
 import { CATEGORY_TAXONOMY } from '@/types'
+import { TextInput } from '@/components/ui'
 import CategorySelector from './shared/CategorySelector'
 import FormalitySlider from './shared/FormalitySlider'
 import AestheticsSelector from './shared/AestheticsSelector'
@@ -138,60 +139,36 @@ export default function MetadataStep() {
               <div className="mt-6 space-y-5 animate-in fade-in slide-in-from-top-2 duration-300">
                 
                 {/* Brand */}
-                <div>
-                  <label className="block text-[10px] uppercase font-bold tracking-widest text-neutral-500 mb-2">
-                    Brand
-                  </label>
-                  <div className="relative">
-                    <Tag size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-600" />
-                    <input
-                      type="text"
-                      value={brand}
-                      onChange={(e) => setBrand(e.target.value)}
-                      placeholder="e.g. Nike, Zara, Uniqlo"
-                      className="w-full pl-11 pr-4 py-3 bg-primary-800 border border-primary-700 text-white text-sm
-                        placeholder-neutral-600 focus:outline-none focus:border-accent-500 transition-colors"
-                    />
-                  </div>
-                </div>
+                <TextInput
+                  label="Brand"
+                  type="text"
+                  value={brand}
+                  onChange={(e) => setBrand(e.target.value)}
+                  placeholder="e.g. Nike, Zara, Uniqlo"
+                  leftIcon={<Tag size={14} aria-hidden="true" />}
+                />
 
                 {/* Price */}
-                <div>
-                  <label className="block text-[10px] uppercase font-bold tracking-widest text-neutral-500 mb-2">
-                    Price
-                  </label>
-                  <div className="relative">
-                    <DollarSign size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-600" />
-                    <input
-                      type="number"
-                      value={price}
-                      onChange={(e) => setPrice(e.target.value)}
-                      placeholder="0.00"
-                      min="0"
-                      step="0.01"
-                      className="w-full pl-11 pr-4 py-3 bg-primary-800 border border-primary-700 text-white text-sm
-                        placeholder-neutral-600 focus:outline-none focus:border-accent-500 transition-colors"
-                    />
-                  </div>
-                </div>
+                <TextInput
+                  label="Price"
+                  type="number"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  placeholder="0.00"
+                  min="0"
+                  step="0.01"
+                  leftIcon={<DollarSign size={14} aria-hidden="true" />}
+                />
 
                 {/* Source URL */}
-                <div>
-                  <label className="block text-[10px] uppercase font-bold tracking-widest text-neutral-500 mb-2">
-                    Source URL
-                  </label>
-                  <div className="relative">
-                    <LinkIcon size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-600" />
-                    <input
-                      type="url"
-                      value={sourceUrl}
-                      onChange={(e) => setSourceUrl(e.target.value)}
-                      placeholder="https://..."
-                      className="w-full pl-11 pr-4 py-3 bg-primary-800 border border-primary-700 text-white text-sm
-                        placeholder-neutral-600 focus:outline-none focus:border-accent-500 transition-colors"
-                    />
-                  </div>
-                </div>
+                <TextInput
+                  label="Source URL"
+                  type="url"
+                  value={sourceUrl}
+                  onChange={(e) => setSourceUrl(e.target.value)}
+                  placeholder="https://..."
+                  leftIcon={<LinkIcon size={14} aria-hidden="true" />}
+                />
               </div>
             )}
           </div>

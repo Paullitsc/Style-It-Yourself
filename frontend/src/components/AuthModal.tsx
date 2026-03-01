@@ -1,7 +1,8 @@
 'use client'
+
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { X, Loader2 } from 'lucide-react' // Added Loader icon
+import { Button, Modal, TextInput } from '@/components/ui'
 
 interface AuthModalProps {
   isOpen: boolean
@@ -9,16 +10,14 @@ interface AuthModalProps {
 }
 
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
-  const [isLogin, setIsLogin] = useState(true) // Default to Login now (Standard UX)
+  const [isLogin, setIsLogin] = useState(true)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  if (!isOpen) return null
-
-  const handleAuth = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleAuth = async (event: React.FormEvent) => {
+    event.preventDefault()
     setLoading(true)
     setError(null)
 
@@ -30,96 +29,75 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         const { error } = await supabase.auth.signUp({ email, password })
         if (error) throw error
       }
+
       onClose()
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message)
+      } else {
+        setError('Authentication failed')
+      }
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    // OVERLAY: Darker and blurrier for focus
-    <div className="fixed inset-0 bg-primary-900/80 backdrop-blur-sm flex items-center justify-center z-[60]">
-      
-      {/* MODAL CARD: Dark theme, thin border, shadow */}
-      <div className="bg-primary-900 p-8 w-full max-w-md relative border border-primary-700 animate-in fade-in zoom-in duration-200">
-        
-        {/* Close Button: Neutral to White hover */}
-        <button 
-          onClick={onClose} 
-          className="absolute top-6 right-6 text-neutral-500 hover:text-white transition-colors"
-        >
-          <X size={20} strokeWidth={1.5} />
-        </button>
-        
-        {/* HEADER */}
-        <div className="mb-8 text-center">
-          <h2 className="text-2xl font-bold uppercase tracking-widest text-white mb-2">
-            {isLogin ? 'Welcome Back' : 'Join US'}
-          </h2>
-        </div>
-        
-        {/* ERROR MESSAGE */}
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={isLogin ? 'Welcome Back' : 'Join Us'}
+      size="sm"
+    >
+      <div className="space-y-[var(--space-6)]">
         {error && (
-          <div className="bg-error-500/10 border border-error-500/50 text-error-500 p-3 mb-6 text-xs font-medium text-center uppercase tracking-wide">
+          <div
+            className="rounded-[var(--radius-md)] border border-error-500/40 bg-error-500/10 px-[var(--space-3)] py-[var(--space-3)] text-xs font-medium uppercase tracking-wide text-error-400"
+            role="alert"
+          >
             {error}
           </div>
         )}
 
-        {/* FORM */}
-        <form onSubmit={handleAuth} className="space-y-5">
-          
-          {/* EMAIL INPUT */}
-          <div className="space-y-1">
-            <label className="text-[10px] uppercase font-bold tracking-widest text-neutral-500 ml-1">Email</label>
-            <input 
-              type="email" 
-              className="w-full p-4 bg-primary-800 border border-primary-700 text-white focus:outline-none focus:border-accent-500 focus:bg-primary-800/80 transition-all placeholder-primary-600 text-sm"
-              placeholder="name@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
+        <form onSubmit={handleAuth} className="space-y-[var(--space-4)]">
+          <TextInput
+            type="email"
+            label="Email"
+            placeholder="name@example.com"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            required
+            autoFocus
+          />
 
-          {/* PASSWORD INPUT */}
-          <div className="space-y-1">
-            <label className="text-[10px] uppercase font-bold tracking-widest text-neutral-500 ml-1">Password</label>
-            <input 
-              type="password" 
-              className="w-full p-4 bg-primary-800 border border-primary-700 text-white focus:outline-none focus:border-accent-500 focus:bg-primary-800/80 transition-all placeholder-primary-600 text-sm"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
+          <TextInput
+            type="password"
+            label="Password"
+            placeholder="••••••••"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            required
+          />
 
-          {/* SUBMIT BUTTON: High Contrast White */}
-          <button 
-            type="submit" 
-            disabled={loading}
-            className="w-full bg-white text-black py-4 mt-4 hover:bg-neutral-200 disabled:opacity-50 text-xs font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2"
-          >
-            {loading && <Loader2 size={14} className="animate-spin"/>}
+          <Button type="submit" fullWidth loading={loading}>
             {isLogin ? 'Log In' : 'Create Account'}
-          </button>
+          </Button>
         </form>
 
-        {/* FOOTER SWITCH */}
-        <div className="mt-8 pt-6 border-t border-primary-800 text-center">
-          <p className="text-neutral-500 text-xs uppercase tracking-wide">
-            {isLogin ? "Don't have an account?" : "Already have an account?"}
+        <div className="border-t border-primary-800 pt-[var(--space-4)] text-center">
+          <p className="text-xs uppercase tracking-wide text-neutral-500">
+            {isLogin ? "Don't have an account?" : 'Already have an account?'}
           </p>
-          <button 
-            onClick={() => setIsLogin(!isLogin)} 
-            className="mt-2 text-white text-xs font-bold uppercase tracking-widest hover:text-accent-500 hover:underline underline-offset-4 transition-all"
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mt-[var(--space-2)]"
+            onClick={() => setIsLogin((value) => !value)}
           >
             {isLogin ? 'Sign Up Here' : 'Log In Here'}
-          </button>
+          </Button>
         </div>
       </div>
-    </div>
+    </Modal>
   )
 }
