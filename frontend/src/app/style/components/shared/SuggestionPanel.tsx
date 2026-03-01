@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Sparkles, Lightbulb, Package, Plus, Check } from 'lucide-react'
+import { Sparkles, Lightbulb, Package, Plus } from 'lucide-react'
 import { useAuth } from '@/components/AuthProvider'
 import { getMatchingItems } from '@/lib/api'
 import type { CategoryRecommendation, RecommendedColor, ClothingItemResponse } from '@/types'
 import { FORMALITY_LEVELS } from '@/types'
+import { Badge, RecommendationCard, type BadgeTone } from '@/components/ui'
 
 interface SuggestionPanelProps {
   recommendation: CategoryRecommendation | null
@@ -14,19 +15,18 @@ interface SuggestionPanelProps {
   onQuickAdd?: (item: ClothingItemResponse) => void
 }
 
-// Harmony type styling
-const getHarmonyStyle = (type: string) => {
+const getHarmonyTone = (type: string): BadgeTone => {
   switch (type) {
     case 'complementary':
-      return 'bg-purple-500/20 text-purple-400 border-purple-500/30'
+      return 'accent'
     case 'analogous':
-      return 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+      return 'info'
     case 'triadic':
-      return 'bg-green-500/20 text-green-400 border-green-500/30'
+      return 'success'
     case 'neutral':
-      return 'bg-neutral-500/20 text-neutral-400 border-neutral-500/30'
+      return 'neutral'
     default:
-      return 'bg-neutral-500/20 text-neutral-400 border-neutral-500/30'
+      return 'neutral'
   }
 }
 
@@ -210,23 +210,14 @@ export default function SuggestionPanel({
           </label>
           <div className="space-y-2">
             {recommendation.colors.map((color, i) => (
-              <button
+              <RecommendationCard
                 key={i}
                 onClick={() => onColorClick?.(color)}
-                className="w-full group flex items-center gap-3 p-3 bg-primary-800 rounded-lg border border-primary-700 hover:border-primary-500 transition-all"
-              >
-                <div
-                  className="w-8 h-8 rounded-full border-2 border-primary-600 group-hover:scale-110 transition-transform"
-                  style={{ backgroundColor: color.hex }}
-                />
-                <div className="flex-1 text-left">
-                  <span className="text-sm text-white font-medium block">{color.name}</span>
-                  <span className="text-[10px] text-neutral-500 uppercase">{color.hex}</span>
-                </div>
-                <span className={`text-[9px] uppercase px-2 py-1 rounded border ${getHarmonyStyle(color.harmony_type)}`}>
-                  {color.harmony_type}
-                </span>
-              </button>
+                title={color.name}
+                description={color.hex}
+                swatchHex={color.hex}
+                meta={<Badge tone={getHarmonyTone(color.harmony_type)}>{color.harmony_type}</Badge>}
+              />
             ))}
           </div>
         </div>

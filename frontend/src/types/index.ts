@@ -67,7 +67,7 @@ export interface RecommendationRequest {
 export interface RecommendedColor {
   hex: string
   name: string
-  harmony_type: 'analogous' | 'complementary' | 'neutral'
+  harmony_type: 'analogous' | 'complementary' | 'triadic' | 'neutral'
 }
 
 export interface FormalityRange {

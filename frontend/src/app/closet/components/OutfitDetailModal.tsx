@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Package, Calendar, AlertTriangle, Sparkles, Trash2 } from 'lucide-react'
+import { Package, Calendar, AlertTriangle, Sparkles, Trash2 } from 'lucide-react'
 import type { OutfitSummary, OutfitResponse, ValidateOutfitResponse } from '@/types'
 import { getOutfit, validateOutfit } from '@/lib/api'
+import { Badge, Button, ConfirmationModal, Modal, Skeleton } from '@/components/ui'
 
 interface OutfitDetailModalProps {
   outfit: OutfitSummary
@@ -32,7 +33,7 @@ export default function OutfitDetailModal({ outfit, token, onClose, onDelete }: 
         if (outfitData.items.length > 0) {
           const baseItem = outfitData.items[0]
           const otherItems = outfitData.items.slice(1)
-          
+
           try {
             const validationResult = await validateOutfit(otherItems, baseItem)
             setValidation(validationResult)
@@ -43,7 +44,7 @@ export default function OutfitDetailModal({ outfit, token, onClose, onDelete }: 
               cohesion_score: 70,
               verdict: 'Validation unavailable',
               warnings: [],
-              color_strip: outfitData.items.map(item => item.color.hex)
+              color_strip: outfitData.items.map((item) => item.color.hex),
             })
           }
         }
@@ -63,7 +64,7 @@ export default function OutfitDetailModal({ outfit, token, onClose, onDelete }: 
       return new Date(dateString).toLocaleDateString('en-US', {
         month: 'long',
         day: 'numeric',
-        year: 'numeric'
+        year: 'numeric',
       })
     } catch {
       return dateString
@@ -85,258 +86,203 @@ export default function OutfitDetailModal({ outfit, token, onClose, onDelete }: 
   const handleDelete = async () => {
     if (!onDelete) return
     setIsDeleting(true)
+
     try {
       await onDelete(outfit.id)
       onClose()
     } catch (error) {
       console.error('Failed to delete outfit:', error)
+    } finally {
       setIsDeleting(false)
       setShowConfirm(false)
     }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-        onClick={onClose}
-      />
-      
-      {/* Modal */}
-      <div className="relative bg-primary-900 border border-primary-700 rounded-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-primary-800 shrink-0">
-          <div>
-            <h3 className="text-lg font-bold uppercase tracking-widest text-white">
-              {outfit.name}
-            </h3>
-            <div className="flex items-center gap-2 mt-1">
-              <Calendar size={12} className="text-neutral-500" />
-              <span className="text-[10px] text-neutral-500 uppercase tracking-wider">
-                {formatDate(outfit.created_at)}
-              </span>
-            </div>
+    <>
+      <Modal
+        isOpen={true}
+        onClose={onClose}
+        title={outfit.name}
+        description={formatDate(outfit.created_at)}
+        size="lg"
+        footer={
+          <div className="flex gap-[var(--space-3)]">
+            <Button variant="secondary" className="flex-1" onClick={onClose}>
+              Close
+            </Button>
+            {onDelete && (
+              <Button
+                variant="danger"
+                className="flex-1"
+                onClick={() => setShowConfirm(true)}
+                leftIcon={<Trash2 size={14} aria-hidden="true" />}
+              >
+                Delete
+              </Button>
+            )}
           </div>
-          <button onClick={onClose} className="p-1 text-neutral-500 hover:text-white transition-colors">
-            <X size={20} />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="overflow-y-auto p-6 scrollbar-hide">
-          {/* Loading State */}
-          {isLoading && (
-            <div className="flex flex-col items-center justify-center py-12">
-              <div className="animate-spin w-8 h-8 border-2 border-accent-500 border-t-transparent rounded-full mb-4" />
-              <p className="text-neutral-500 text-sm uppercase tracking-wide">Loading outfit details...</p>
+        }
+      >
+        {isLoading && (
+          <div className="space-y-[var(--space-4)]" aria-live="polite" aria-busy="true">
+            <div className="grid grid-cols-1 gap-[var(--space-4)] md:grid-cols-2">
+              <Skeleton className="aspect-[4/3] w-full" />
+              <div className="space-y-[var(--space-3)]">
+                <Skeleton className="h-6 w-1/2" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-5/6" />
+              </div>
             </div>
-          )}
+            <p className="text-sm uppercase tracking-wide text-neutral-500">Loading outfit details...</p>
+          </div>
+        )}
 
-          {/* Error State */}
-          {error && !isLoading && (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <AlertTriangle size={32} className="text-error-500 mb-4" />
-              <p className="text-white font-medium mb-2">Failed to load outfit</p>
-              <p className="text-neutral-500 text-sm">{error}</p>
+        {error && !isLoading && (
+          <div className="flex flex-col items-center justify-center py-[var(--space-12)] text-center">
+            <AlertTriangle size={32} className="mb-[var(--space-4)] text-error-500" />
+            <p className="mb-[var(--space-2)] font-medium text-white">Failed to load outfit</p>
+            <p className="text-sm text-neutral-500">{error}</p>
+          </div>
+        )}
+
+        {!isLoading && !error && fullOutfit && (
+          <div className="space-y-[var(--space-6)]">
+            <div className="relative aspect-[4/3] overflow-hidden rounded-[var(--radius-lg)] border border-primary-700 bg-primary-800">
+              {fullOutfit.generated_image_url ? (
+                <img
+                  src={fullOutfit.generated_image_url}
+                  alt={outfit.name}
+                  className="h-full w-full object-contain"
+                />
+              ) : (
+                <div className="flex h-full w-full flex-col items-center justify-center text-neutral-600">
+                  <Package size={48} strokeWidth={1} className="mb-[var(--space-2)]" aria-hidden="true" />
+                  <span className="text-xs uppercase tracking-wider">No generated image</span>
+                </div>
+              )}
+
+              <div className="absolute right-[var(--space-3)] top-[var(--space-3)]">
+                <Badge tone="info">
+                  {fullOutfit.items.length} {fullOutfit.items.length === 1 ? 'item' : 'items'}
+                </Badge>
+              </div>
             </div>
-          )}
 
-          {/* Loaded Content */}
-          {!isLoading && !error && fullOutfit && (
-            <div className="space-y-6">
-              {/* Hero Image */}
-              <div className="aspect-[4/3] bg-primary-800 rounded-lg overflow-hidden border border-primary-700 relative">
-                {fullOutfit.generated_image_url ? (
-                  <img 
-                    src={fullOutfit.generated_image_url} 
-                    alt={outfit.name}
-                    className="w-full h-full object-contain"
-                  />
-                ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center text-neutral-600">
-                    <Package size={48} strokeWidth={1} className="mb-2" />
-                    <span className="text-xs uppercase tracking-wider">No generated image</span>
+            <div>
+              <h4 className="mb-[var(--space-3)] text-xs font-bold uppercase tracking-widest text-neutral-500">
+                Items in this outfit
+              </h4>
+              <div className="grid grid-cols-4 gap-[var(--space-3)]">
+                {fullOutfit.items.map((item, index) => (
+                  <div
+                    key={item.id}
+                    className="overflow-hidden rounded-[var(--radius-lg)] border border-primary-700 bg-primary-800"
+                  >
+                    <div className="relative aspect-square bg-primary-900">
+                      {item.image_url ? (
+                        <img
+                          src={item.image_url}
+                          alt={item.category.l2}
+                          className="h-full w-full object-contain p-[var(--space-2)]"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center">
+                          <Package size={20} className="text-neutral-600" aria-hidden="true" />
+                        </div>
+                      )}
+
+                      <div
+                        className="absolute bottom-1 left-1 h-3 w-3 rounded-full border border-primary-900"
+                        style={{ backgroundColor: item.color.hex }}
+                        aria-hidden="true"
+                      />
+
+                      {index === 0 && <Badge className="absolute right-1 top-1">Base</Badge>}
+                    </div>
+                    <div className="border-t border-primary-700 p-[var(--space-2)]">
+                      <p className="truncate text-[10px] font-medium text-white">{item.category.l2}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {validation && (
+              <div className="rounded-[var(--radius-xl)] border border-primary-700 bg-primary-800/50 p-[var(--space-5)]">
+                <div className="mb-[var(--space-4)] text-center">
+                  <p className="mb-[var(--space-2)] text-[10px] uppercase tracking-widest text-neutral-500">
+                    Cohesion Score
+                  </p>
+                  <div className="flex items-center justify-center gap-[var(--space-3)]">
+                    <span className={`text-4xl font-bold ${getScoreColor(validation.cohesion_score)}`}>
+                      {validation.cohesion_score}
+                    </span>
+                    <span className="text-lg text-neutral-600">/100</span>
+                  </div>
+                  <div className="mx-auto mt-[var(--space-3)] h-1.5 max-w-xs overflow-hidden rounded-full bg-primary-700">
+                    <div
+                      className={`h-full transition-all duration-500 ${getScoreBgColor(validation.cohesion_score)}`}
+                      style={{ width: `${validation.cohesion_score}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div className="mb-[var(--space-4)] rounded-[var(--radius-md)] bg-primary-900/50 p-[var(--space-3)] text-center">
+                  <Sparkles size={16} className="mx-auto mb-[var(--space-1)] text-accent-500" aria-hidden="true" />
+                  <p className="text-sm font-medium text-white">{validation.verdict}</p>
+                </div>
+
+                {validation.color_strip && validation.color_strip.length > 0 && (
+                  <div className="mb-[var(--space-4)]">
+                    <p className="mb-[var(--space-2)] text-center text-[10px] uppercase tracking-widest text-neutral-500">
+                      Color Palette
+                    </p>
+                    <div className="flex h-8 overflow-hidden rounded-[var(--radius-md)]">
+                      {validation.color_strip.map((color, index) => (
+                        <div key={index} className="flex-1" style={{ backgroundColor: color }} />
+                      ))}
+                    </div>
                   </div>
                 )}
 
-                {/* Item count badge */}
-                <div className="absolute top-3 right-3 px-2.5 py-1 bg-primary-900/90 border border-primary-700 
-                  rounded text-[10px] font-bold uppercase tracking-wide text-white">
-                  {fullOutfit.items.length} {fullOutfit.items.length === 1 ? 'item' : 'items'}
-                </div>
-              </div>
-
-              {/* Items Grid */}
-              <div>
-                <h4 className="text-xs font-bold uppercase tracking-widest text-neutral-500 mb-3">
-                  Items in this outfit
-                </h4>
-                <div className="grid grid-cols-4 gap-3">
-                  {fullOutfit.items.map((item, index) => (
-                    <div 
-                      key={item.id}
-                      className="bg-primary-800 rounded-lg border border-primary-700 overflow-hidden"
-                    >
-                      <div className="aspect-square relative bg-primary-900">
-                        {item.image_url ? (
-                          <img
-                            src={item.image_url}
-                            alt={item.category.l2}
-                            className="w-full h-full object-contain p-2"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Package size={20} className="text-neutral-600" />
-                          </div>
-                        )}
-                        
-                        {/* Color dot */}
-                        <div
-                          className="absolute bottom-1 left-1 w-3 h-3 rounded-full border border-primary-900"
-                          style={{ backgroundColor: item.color.hex }}
-                        />
-
-                        {/* Base badge */}
-                        {index === 0 && (
-                          <div className="absolute top-1 right-1 px-1.5 py-0.5 bg-accent-500 text-[8px] uppercase font-bold rounded text-primary-900">
-                            Base
-                          </div>
-                        )}
+                {validation.warnings.length > 0 && (
+                  <div className="space-y-[var(--space-2)]">
+                    <p className="text-[10px] uppercase tracking-widest text-neutral-500">Notes</p>
+                    {validation.warnings.map((warning, index) => (
+                      <div
+                        key={index}
+                        className="flex items-start gap-[var(--space-2)] rounded-[var(--radius-md)] border border-warning-500/20 bg-warning-500/10 p-[var(--space-2)]"
+                      >
+                        <AlertTriangle size={12} className="mt-[2px] shrink-0 text-warning-500" aria-hidden="true" />
+                        <p className="text-xs text-neutral-300">{warning}</p>
                       </div>
-                      <div className="p-2 border-t border-primary-700">
-                        <p className="text-[10px] font-medium text-white truncate">
-                          {item.category.l2}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Validation Section */}
-              {validation && (
-                <div className="bg-primary-800/50 rounded-xl border border-primary-700 p-5">
-                  {/* Score */}
-                  <div className="text-center mb-4">
-                    <p className="text-[10px] uppercase tracking-widest text-neutral-500 mb-2">
-                      Cohesion Score
-                    </p>
-                    <div className="flex items-center justify-center gap-3">
-                      <span className={`text-4xl font-bold ${getScoreColor(validation.cohesion_score)}`}>
-                        {validation.cohesion_score}
-                      </span>
-                      <span className="text-lg text-neutral-600">/100</span>
-                    </div>
-                    {/* Progress bar */}
-                    <div className="mt-3 h-1.5 bg-primary-700 rounded-full overflow-hidden max-w-xs mx-auto">
-                      <div 
-                        className={`h-full transition-all duration-500 ${getScoreBgColor(validation.cohesion_score)}`}
-                        style={{ width: `${validation.cohesion_score}%` }}
-                      />
-                    </div>
+                    ))}
                   </div>
-
-                  {/* Verdict */}
-                  <div className="text-center p-3 bg-primary-900/50 rounded-lg mb-4">
-                    <Sparkles size={16} className="mx-auto mb-1 text-accent-500" />
-                    <p className="text-white text-sm font-medium">{validation.verdict}</p>
-                  </div>
-
-                  {/* Color Strip */}
-                  {validation.color_strip && validation.color_strip.length > 0 && (
-                    <div className="mb-4">
-                      <p className="text-[10px] uppercase tracking-widest text-neutral-500 mb-2 text-center">
-                        Color Palette
-                      </p>
-                      <div className="flex rounded-lg overflow-hidden h-8">
-                        {validation.color_strip.map((color, i) => (
-                          <div 
-                            key={i}
-                            className="flex-1"
-                            style={{ backgroundColor: color }}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Warnings */}
-                  {validation.warnings.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-[10px] uppercase tracking-widest text-neutral-500">Notes</p>
-                      {validation.warnings.map((warning, i) => (
-                        <div key={i} className="flex items-start gap-2 p-2.5 bg-warning-500/10 rounded border border-warning-500/20">
-                          <AlertTriangle size={12} className="text-warning-500 mt-0.5 flex-shrink-0" />
-                          <p className="text-xs text-neutral-300">{warning}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="p-4 border-t border-primary-800 bg-primary-900 shrink-0">
-          {showConfirm ? (
-            <div className="space-y-3">
-              <p className="text-sm text-neutral-300 text-center">
-                Delete this outfit? Items will remain in your closet.
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setShowConfirm(false)}
-                  disabled={isDeleting}
-                  className="flex-1 px-4 py-3 bg-primary-800 text-white hover:bg-primary-700
-                    text-xs font-bold uppercase tracking-widest transition-all rounded-lg border border-primary-700
-                    disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleDelete}
-                  disabled={isDeleting}
-                  className="flex-1 px-4 py-3 bg-error-500 text-white hover:bg-error-600
-                    text-xs font-bold uppercase tracking-widest transition-all rounded-lg
-                    disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {isDeleting ? (
-                    <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
-                  ) : (
-                    <>
-                      <Trash2 size={14} />
-                      Delete
-                    </>
-                  )}
-                </button>
+                )}
               </div>
+            )}
+
+            <div className="flex items-center gap-[var(--space-2)] text-[11px] uppercase tracking-wide text-neutral-500">
+              <Calendar size={12} aria-hidden="true" />
+              Created {formatDate(outfit.created_at)}
             </div>
-          ) : (
-            <div className="flex gap-2">
-              <button
-                onClick={onClose}
-                className="flex-1 px-4 py-3 bg-primary-800 text-white hover:bg-primary-700
-                  text-xs font-bold uppercase tracking-widest transition-all rounded-lg border border-primary-700"
-              >
-                Close
-              </button>
-              {onDelete && (
-                <button
-                  onClick={() => setShowConfirm(true)}
-                  className="px-4 py-3 bg-primary-800 text-error-400 hover:bg-error-500/20 hover:text-error-300
-                    text-xs font-bold uppercase tracking-widest transition-all rounded-lg border border-primary-700
-                    hover:border-error-500/50"
-                >
-                  <Trash2 size={16} />
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+          </div>
+        )}
+      </Modal>
+
+      {onDelete && (
+        <ConfirmationModal
+          isOpen={showConfirm}
+          onClose={() => setShowConfirm(false)}
+          onConfirm={handleDelete}
+          isConfirming={isDeleting}
+          title="Delete Outfit"
+          description="Delete this outfit? Items will remain in your closet."
+          confirmLabel="Delete"
+          tone="danger"
+        />
+      )}
+    </>
   )
 }

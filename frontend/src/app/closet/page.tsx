@@ -5,14 +5,19 @@ import { useAuth } from '@/components/AuthProvider'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { getCloset, deleteClothingItem, deleteOutfit } from '@/lib/api'
 import type { ClosetResponse, ClothingItemResponse, OutfitSummary } from '@/types'
-import { CATEGORY_TAXONOMY } from '@/types'
 import { Shirt, Package, AlertCircle } from 'lucide-react'
+import {
+  Button,
+  CardSkeleton,
+  ItemCard,
+  OutfitCard,
+  StatusBadge,
+} from '@/components/ui'
 import ItemDetailModal from './components/ItemDetailModal'
 import OutfitDetailModal from './components/OutfitDetailModal'
 
 type ViewMode = 'items' | 'outfits'
 
-// Category display order
 const CATEGORY_ORDER = ['Tops', 'Bottoms', 'Shoes', 'Outerwear', 'Accessories']
 
 export default function ClosetPage() {
@@ -21,17 +26,16 @@ export default function ClosetPage() {
   const [closetData, setClosetData] = useState<ClosetResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  
-  // Modal state
+
   const [selectedItem, setSelectedItem] = useState<ClothingItemResponse | null>(null)
   const [selectedOutfit, setSelectedOutfit] = useState<OutfitSummary | null>(null)
 
   const fetchCloset = async () => {
     if (!session?.access_token) return
-    
+
     setIsLoading(true)
     setError(null)
-    
+
     try {
       const data = await getCloset(session.access_token)
       setClosetData(data)
@@ -41,6 +45,7 @@ export default function ClosetPage() {
       setIsLoading(false)
     }
   }
+
   const handleDeleteItem = async (itemId: string) => {
     if (!session?.access_token) return
     await deleteClothingItem(itemId, session.access_token)
@@ -62,177 +67,118 @@ export default function ClosetPage() {
       return new Date(dateString).toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
-        year: 'numeric'
+        year: 'numeric',
       })
     } catch {
       return dateString
     }
   }
 
-  // Get sorted categories
   const getSortedCategories = () => {
     if (!closetData?.items_by_category) return []
-    
+
     const categories = Object.keys(closetData.items_by_category)
-    return CATEGORY_ORDER.filter(cat => categories.includes(cat))
-      .concat(categories.filter(cat => !CATEGORY_ORDER.includes(cat)).sort())
+    return CATEGORY_ORDER.filter((category) => categories.includes(category)).concat(
+      categories.filter((category) => !CATEGORY_ORDER.includes(category)).sort()
+    )
   }
 
   return (
     <ProtectedRoute>
-      <div className="min-h-[calc(100vh-80px)] w-full max-w-[1920px] mx-auto px-6 md:px-12 py-12">
-        
-        {/* HEADER */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8 border-b border-primary-800 pb-6">
+      <div className="min-h-[calc(100vh-80px)] w-full max-w-[1920px] mx-auto px-6 py-12 md:px-12">
+        <div className="mb-8 flex flex-col justify-between gap-6 border-b border-primary-800 pb-6 md:flex-row md:items-end">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold uppercase tracking-tighter text-white mb-2">
-              My Closet
-            </h1>
+            <h1 className="mb-2 text-3xl font-bold uppercase tracking-tighter text-white md:text-4xl">My Closet</h1>
             {closetData && (
-              <p className="text-neutral-500 font-mono text-xs uppercase tracking-widest">
+              <p className="font-mono text-xs uppercase tracking-widest text-neutral-500">
                 {closetData.total_items} Items • {closetData.total_outfits} Outfits
               </p>
             )}
           </div>
 
-          {/* VIEW TOGGLE */}
           <div className="flex gap-2">
-            <button
+            <Button
+              variant={activeView === 'items' ? 'primary' : 'secondary'}
+              size="sm"
               onClick={() => setActiveView('items')}
-              className={`px-6 py-3 border text-xs font-bold uppercase tracking-wider transition-colors ${
-                activeView === 'items'
-                  ? 'bg-white text-black border-white'
-                  : 'bg-transparent text-neutral-500 border-primary-700 hover:text-white hover:border-primary-500'
-              }`}
             >
               Items {closetData && `(${closetData.total_items})`}
-            </button>
-            <button
+            </Button>
+            <Button
+              variant={activeView === 'outfits' ? 'primary' : 'secondary'}
+              size="sm"
               onClick={() => setActiveView('outfits')}
-              className={`px-6 py-3 border text-xs font-bold uppercase tracking-wider transition-colors ${
-                activeView === 'outfits'
-                  ? 'bg-white text-black border-white'
-                  : 'bg-transparent text-neutral-500 border-primary-700 hover:text-white hover:border-primary-500'
-              }`}
             >
               Outfits {closetData && `(${closetData.total_outfits})`}
-            </button>
+            </Button>
           </div>
         </div>
 
-        {/* LOADING STATE */}
         {isLoading && (
-          <div className="flex flex-col items-center justify-center h-[500px] gap-4">
-            <div className="animate-spin w-8 h-8 border-2 border-accent-500 border-t-transparent rounded-full" />
-            <p className="text-neutral-500 text-sm uppercase tracking-wide">Loading closet...</p>
+          <div className="space-y-4" aria-live="polite" aria-busy="true">
+            <p className="text-sm uppercase tracking-wide text-neutral-500">Loading closet...</p>
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+              <CardSkeleton count={8} />
+            </div>
           </div>
         )}
 
-        {/* ERROR STATE */}
         {error && !isLoading && (
-          <div className="flex flex-col items-center justify-center h-[500px] gap-6 text-center">
-            <div className="bg-primary-800 p-6 rounded-full">
+          <div className="flex h-[500px] flex-col items-center justify-center gap-6 text-center">
+            <div className="rounded-full bg-primary-800 p-6">
               <AlertCircle size={48} className="text-error-500" />
             </div>
             <div>
-              <h3 className="text-xl font-bold uppercase tracking-widest text-white mb-2">
-                Failed to Load Closet
-              </h3>
-              <p className="text-neutral-500 text-sm mb-6">{error}</p>
-              <button
-                onClick={fetchCloset}
-                className="px-6 py-3 bg-accent-500 text-primary-900 hover:bg-accent-400 
-                  text-xs font-bold uppercase tracking-widest transition-all"
-              >
-                Try Again
-              </button>
+              <h3 className="mb-2 text-xl font-bold uppercase tracking-widest text-white">Failed to Load Closet</h3>
+              <p className="mb-6 text-sm text-neutral-500">{error}</p>
+              <Button onClick={fetchCloset}>Try Again</Button>
             </div>
           </div>
         )}
 
-        {/* CONTENT */}
         {!isLoading && !error && closetData && (
           <>
-            {/* ITEMS VIEW */}
             {activeView === 'items' && (
               <>
                 {closetData.total_items === 0 ? (
-                  // Empty state
-                  <div className="w-full h-[500px] border border-dashed border-primary-700 bg-primary-800/20 rounded-lg 
-                    flex flex-col items-center justify-center text-center">
-                    <div className="bg-primary-800 p-6 rounded-full mb-6 text-neutral-500">
+                  <div className="flex h-[500px] w-full flex-col items-center justify-center rounded-lg border border-dashed border-primary-700 bg-primary-800/20 text-center">
+                    <div className="mb-6 rounded-full bg-primary-800 p-6 text-neutral-500">
                       <Shirt size={48} strokeWidth={1} />
                     </div>
-                    <h3 className="text-xl font-bold uppercase tracking-widest text-white mb-2">
-                      Your closet is empty
-                    </h3>
-                    <p className="text-neutral-500 text-xs uppercase tracking-wide max-w-xs mx-auto">
+                    <h3 className="mb-2 text-xl font-bold uppercase tracking-widest text-white">Your closet is empty</h3>
+                    <p className="mx-auto max-w-xs text-xs uppercase tracking-wide text-neutral-500">
                       Start building outfits to add items to your closet
                     </p>
                   </div>
                 ) : (
-                  // Items grid by category
                   <div className="space-y-12">
                     {getSortedCategories().map((categoryL1) => {
                       const items = closetData.items_by_category[categoryL1] || []
                       if (items.length === 0) return null
-                      
+
                       return (
                         <div key={categoryL1}>
-                          {/* Category header */}
-                          <h2 className="text-xs font-bold uppercase tracking-widest text-neutral-500 mb-4">
+                          <h2 className="mb-4 text-xs font-bold uppercase tracking-widest text-neutral-500">
                             {categoryL1} ({items.length})
                           </h2>
-                          
-                          {/* Items grid */}
-                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+
+                          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
                             {items.map((item) => (
-                              <div
+                              <ItemCard
                                 key={item.id}
                                 onClick={() => setSelectedItem(item)}
-                                className="bg-primary-800 rounded-lg border border-primary-700 overflow-hidden 
-                                  transition-all hover:border-primary-600 cursor-pointer hover:scale-[1.02]"
-                              >
-                                {/* Image */}
-                                <div className="aspect-[3/4] relative bg-primary-900">
-                                  {item.image_url ? (
-                                    <img
-                                      src={item.image_url}
-                                      alt={item.category.l2}
-                                      className="w-full h-full object-contain p-3"
-                                    />
-                                  ) : (
-                                    <div className="w-full h-full flex items-center justify-center">
-                                      <Shirt size={32} className="text-neutral-600" />
-                                    </div>
-                                  )}
-                                  
-                                  {/* Color dot */}
-                                  {item.color?.hex && (
-                                    <div
-                                      className="absolute bottom-2 left-2 w-5 h-5 rounded-full border-2 border-primary-900 shadow-md"
-                                      style={{ backgroundColor: item.color.hex }}
-                                    />
-                                  )}
-                                  
-                                  {/* Wishlist badge */}
-                                  {item.ownership === 'wishlist' && (
-                                    <div className="absolute top-2 right-2 px-2 py-1 bg-accent-500/90 text-primary-900 border border-accent-600 rounded text-[10px] font-bold uppercase tracking-wider shadow-md">
-                                      Wishlist
-                                    </div>
-                                  )}
-                                </div>
-                                
-                                {/* Details */}
-                                <div className="p-3 border-t border-primary-700">
-                                  <p className="text-xs font-medium text-white truncate">
-                                    {item.category.l2}
-                                  </p>
-                                  <p className="text-[10px] text-neutral-500 uppercase truncate mt-0.5">
-                                    {item.category.l1}
-                                  </p>
-                                </div>
-                              </div>
+                                title={item.category.l2}
+                                subtitle={item.category.l1}
+                                imageUrl={item.image_url}
+                                imageAlt={item.category.l2}
+                                colorHex={item.color?.hex}
+                                fallbackIcon={<Shirt size={32} className="text-neutral-600" aria-hidden="true" />}
+                                badge={
+                                  item.ownership === 'wishlist' ? (
+                                    <StatusBadge status="wishlist" size="sm" />
+                                  ) : undefined
+                                }
+                              />
                             ))}
                           </div>
                         </div>
@@ -243,64 +189,29 @@ export default function ClosetPage() {
               </>
             )}
 
-            {/* OUTFITS VIEW */}
             {activeView === 'outfits' && (
               <>
                 {closetData.total_outfits === 0 ? (
-                  // Empty state
-                  <div className="w-full h-[500px] border border-dashed border-primary-700 bg-primary-800/20 rounded-lg 
-                    flex flex-col items-center justify-center text-center">
-                    <div className="bg-primary-800 p-6 rounded-full mb-6 text-neutral-500">
+                  <div className="flex h-[500px] w-full flex-col items-center justify-center rounded-lg border border-dashed border-primary-700 bg-primary-800/20 text-center">
+                    <div className="mb-6 rounded-full bg-primary-800 p-6 text-neutral-500">
                       <Package size={48} strokeWidth={1} />
                     </div>
-                    <h3 className="text-xl font-bold uppercase tracking-widest text-white mb-2">
-                      No saved outfits yet
-                    </h3>
-                    <p className="text-neutral-500 text-xs uppercase tracking-wide max-w-xs mx-auto">
+                    <h3 className="mb-2 text-xl font-bold uppercase tracking-widest text-white">No saved outfits yet</h3>
+                    <p className="mx-auto max-w-xs text-xs uppercase tracking-wide text-neutral-500">
                       Build your first outfit to save it here
                     </p>
                   </div>
                 ) : (
-                  // Outfits grid
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
                     {closetData.outfits.map((outfit) => (
-                      <div
+                      <OutfitCard
                         key={outfit.id}
                         onClick={() => setSelectedOutfit(outfit)}
-                        className="bg-primary-800 rounded-lg border border-primary-700 overflow-hidden 
-                          transition-all hover:border-primary-600 cursor-pointer hover:scale-[1.02]"
-                      >
-                        {/* Thumbnail */}
-                        <div className="aspect-[3/4] relative bg-primary-900">
-                          {outfit.thumbnail_url ? (
-                            <img
-                              src={outfit.thumbnail_url}
-                              alt={outfit.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <Package size={32} className="text-neutral-600" />
-                            </div>
-                          )}
-                          
-                          {/* Item count badge */}
-                          <div className="absolute top-2 right-2 px-2 py-1 bg-primary-900/90 border border-primary-700 
-                            rounded text-[10px] font-bold uppercase tracking-wide text-white">
-                            {outfit.item_count} {outfit.item_count === 1 ? 'item' : 'items'}
-                          </div>
-                        </div>
-                        
-                        {/* Details */}
-                        <div className="p-3 border-t border-primary-700">
-                          <p className="text-xs font-medium text-white truncate mb-1">
-                            {outfit.name}
-                          </p>
-                          <p className="text-[10px] text-neutral-500 uppercase">
-                            {formatDate(outfit.created_at)}
-                          </p>
-                        </div>
-                      </div>
+                        name={outfit.name}
+                        createdAt={formatDate(outfit.created_at)}
+                        thumbnailUrl={outfit.thumbnail_url}
+                        itemCount={outfit.item_count}
+                      />
                     ))}
                   </div>
                 )}
@@ -309,7 +220,6 @@ export default function ClosetPage() {
           </>
         )}
 
-        {/* Item Detail Modal */}
         {selectedItem && (
           <ItemDetailModal
             item={selectedItem}
@@ -318,7 +228,6 @@ export default function ClosetPage() {
           />
         )}
 
-        {/* Outfit Detail Modal */}
         {selectedOutfit && session?.access_token && (
           <OutfitDetailModal
             outfit={selectedOutfit}
