@@ -1,5 +1,9 @@
 """Constants for SIY application - categories, formality, aesthetics, and compatibility rules."""
 
+#=====================|
+# Algorithm Constants |
+#=====================|
+
 # Category Taxonomy (L1 -> L2)
 CATEGORY_TAXONOMY: dict[str, list[str]] = {
     "Tops": ["T-Shirts", "Polos", "Casual Shirts", "Dress Shirts", "Sweaters", "Hoodies", "Blazers"],
@@ -30,6 +34,8 @@ AESTHETIC_TAGS: list[str] = [
     "Vintage",
     "Edgy",
 ]
+
+# Color constants
 
 # Neutral colors that always work together
 # todo: some of these neutral colors don't have canonical HSL values
@@ -70,3 +76,42 @@ REQUIRED_CATEGORIES_FULLBODY: list[str] = ["Full Body", "Shoes"]
 MAX_OUTFIT_ITEMS: int = 6
 MAX_ACCESSORIES: int = 3
 MAX_OUTERWEAR: int = 1
+
+
+# Sizing
+STANDARD_SIZES: list[str] = ["XS", "S", "M", "L", "XL", "XXL"]
+
+STANDARD_SIZE_ORDER: dict[str, int] = {
+    "XS": 1,
+    "S": 2,
+    "M": 3,
+    "L": 4,
+    "XL": 5,
+    "XXL": 6,
+}
+
+SIZE_INPUT_MODES: list[str] = [
+    "standard",
+    "numeric",
+    "measurements",
+    "brand_specific",
+    "hybrid",
+]
+
+NUMERIC_SIZE_TYPES: list[str] = ["dress", "pants_waist", "pants_waist_inseam"]
+NUMERIC_SIZE_SYSTEMS: list[str] = ["US", "UK", "EU"]
+
+MEASUREMENT_UNITS: list[str] = ["cm", "in"]
+MEASUREMENT_FIELDS_CM: list[str] = ["chest_cm", "waist_cm", "hips_cm", "inseam_cm"]
+
+INCH_TO_CM: float = 2.54
+CM_TO_INCH: float = 1 / INCH_TO_CM
+
+MEASUREMENT_RANGE_CM: dict[str, tuple[float, float]] = {
+    "chest_cm": (70.0, 155.0),
+    "waist_cm": (50.0, 150.0),
+    "hips_cm": (75.0, 155.0),
+    "inseam_cm": (55.0, 100.0),
+}
+
+BRAND_SIZE_LABEL_MAX_LENGTH: int = 20
