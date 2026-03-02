@@ -27,6 +27,7 @@ from app.models.schemas import (
     Category,
     Color,
     HSL,
+    Sizing,
 )
 
 
@@ -99,6 +100,7 @@ async def create_clothing_item(
         "formality": item.formality,
         "aesthetics": item.aesthetics or [],
         "brand": item.brand,
+        "sizing": item.sizing.model_dump(exclude_none=True) if item.sizing else None,
         "price": item.price,
         "source_url": item.source_url,
         "ownership": item.ownership or "owned",
@@ -205,6 +207,13 @@ async def update_clothing_item(
             category = category.model_dump()
         updates["category_l1"] = category["l1"]
         updates["category_l2"] = category["l2"]
+
+    # Handle nested Sizing object
+    if "sizing" in updates:
+        sizing = updates["sizing"]
+        if hasattr(sizing, "model_dump"):
+            sizing = sizing.model_dump(exclude_none=True)
+        updates["sizing"] = sizing
     
     result = await (
         supabase.table("clothing_items")
@@ -531,7 +540,7 @@ async def upload_image(
         {"content-type": content_type}
     )
     
-    # get_public_url is sync (just builds URL string)
+    # get_public_url is async for this client
     public_url = await supabase.storage.from_(bucket).get_public_url(path)
     
     return public_url
@@ -636,6 +645,8 @@ async def update_user_profile(user_id: str, updates: dict) -> Optional[dict]:
 def _row_to_clothing_item(row: dict) -> ClothingItemResponse:
     """Convert database row to ClothingItemResponse."""
     hsl_data = row["color_hsl"]
+    sizing_data = row.get("sizing")
+    sizing = Sizing(**sizing_data) if isinstance(sizing_data, dict) else None
     
     return ClothingItemResponse(
         id=row["id"],
@@ -658,6 +669,7 @@ def _row_to_clothing_item(row: dict) -> ClothingItemResponse:
         formality=row["formality"],
         aesthetics=row.get("aesthetics") or [],
         brand=row.get("brand"),
+        sizing=sizing,
         price=float(row["price"]) if row.get("price") else None,
         source_url=row.get("source_url"),
         ownership=row.get("ownership", "owned"),

@@ -65,6 +65,7 @@ async def create_clothing_item(
             formality=item_data.formality,
             aesthetics=item_data.aesthetics,
             brand=item_data.brand,
+            sizing=item_data.sizing,
             price=item_data.price,
             source_url=item_data.source_url,
             ownership=item_data.ownership,

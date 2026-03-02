@@ -36,6 +36,7 @@ from app.models.schemas import (
     Category,
     Color,
     HSL,
+    Sizing,
 )
 
 
@@ -117,13 +118,25 @@ def sample_category():
 
 
 @pytest.fixture
-def sample_clothing_item_create(sample_color, sample_category):
+def sample_sizing():
+    return Sizing(
+        mode="standard",
+        standard_size="M",
+        measurement_unit="cm",
+        chest=96.0,
+        waist=78.0,
+    )
+
+
+@pytest.fixture
+def sample_clothing_item_create(sample_color, sample_category, sample_sizing):
     return ClothingItemCreate(
         color=sample_color,
         category=sample_category,
         formality=2.5,
         aesthetics=["casual", "minimalist"],
         brand="TestBrand",
+        sizing=sample_sizing,
         price=29.99,
         source_url="https://example.com/item",
         ownership="owned",
@@ -146,6 +159,13 @@ def sample_db_row(sample_user_id, sample_item_id):
         "formality": 2.5,
         "aesthetics": ["casual", "minimalist"],
         "brand": "TestBrand",
+        "sizing": {
+            "mode": "standard",
+            "standard_size": "M",
+            "measurement_unit": "cm",
+            "chest": 96.0,
+            "waist": 78.0,
+        },
         "price": 29.99,
         "source_url": "https://example.com/item",
         "ownership": "owned",
@@ -179,6 +199,9 @@ class TestRowToClothingItem:
         assert isinstance(result, ClothingItemResponse)
         assert result.id == sample_db_row["id"]
         assert result.color.hex == sample_db_row["color_hex"]
+        assert result.sizing is not None
+        assert result.sizing.mode == "standard"
+        assert result.sizing.standard_size == "M"
     
     def test_handles_missing_optional_fields(self, sample_db_row):
         """Test conversion with missing optional fields."""
@@ -186,11 +209,13 @@ class TestRowToClothingItem:
         sample_db_row["brand"] = None
         sample_db_row["price"] = None
         sample_db_row["aesthetics"] = None
+        sample_db_row["sizing"] = None
         
         result = _row_to_clothing_item(sample_db_row)
         
         assert result.brand is None
         assert result.price is None
+        assert result.sizing is None
         assert result.aesthetics == []  # Should now return empty list instead of failing
     
     def test_handles_is_neutral_default(self, sample_db_row):
@@ -221,6 +246,9 @@ class TestCreateClothingItem:
         
         assert result.id == sample_db_row["id"]
         mock_supabase.table.assert_called_with("clothing_items")
+        inserted_data = mock_supabase.insert.call_args.args[0]
+        assert inserted_data["sizing"]["mode"] == "standard"
+        assert inserted_data["sizing"]["standard_size"] == "M"
     
     @pytest.mark.asyncio
     async def test_create_failure_no_data(self, mock_supabase, sample_user_id, sample_clothing_item_create):
@@ -338,6 +366,18 @@ class TestUpdateClothingItem:
             await update_clothing_item(sample_item_id, sample_user_id, {"color": sample_color})
             
         mock_supabase.update.assert_called()
+
+    @pytest.mark.asyncio
+    async def test_update_with_sizing_object(self, mock_supabase, sample_user_id, sample_item_id, sample_db_row, sample_sizing):
+        mock_supabase.execute.return_value = MagicMock(data=[sample_db_row])
+
+        with patch("app.services.supabase.get_supabase_client", new_callable=AsyncMock) as mock_get:
+            mock_get.return_value = mock_supabase
+            await update_clothing_item(sample_item_id, sample_user_id, {"sizing": sample_sizing})
+
+        update_payload = mock_supabase.update.call_args.args[0]
+        assert update_payload["sizing"]["mode"] == "standard"
+        assert update_payload["sizing"]["standard_size"] == "M"
 
 
 class TestDeleteClothingItem:
