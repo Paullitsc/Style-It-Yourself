@@ -31,12 +31,23 @@ export function CardFooter({ className, ...props }: HTMLAttributes<HTMLDivElemen
   return <div className={cn('border-t border-primary-700 p-[var(--space-4)]', className)} {...props} />
 }
 
+const FORMALITY_LABELS: Record<number, string> = {
+  1: 'Casual',
+  2: 'Smart Casual',
+  3: 'Business Casual',
+  4: 'Formal',
+  5: 'Black Tie',
+}
+
 interface ItemCardProps {
   title: string
   subtitle?: string
   imageUrl?: string | null
   imageAlt: string
   colorHex?: string
+  colorName?: string
+  formality?: number
+  aesthetics?: string[]
   badge?: ReactNode
   onClick?: () => void
   className?: string
@@ -45,42 +56,68 @@ interface ItemCardProps {
 
 export function ItemCard({
   title,
-  subtitle,
   imageUrl,
   imageAlt,
   colorHex,
+  colorName,
+  formality,
+  aesthetics,
   badge,
   onClick,
   className,
   fallbackIcon,
 }: ItemCardProps) {
-  const content = (
-    <>
-      <div className="relative aspect-[3/4] bg-primary-900">
-        {imageUrl ? (
-          <img src={imageUrl} alt={imageAlt} className="h-full w-full object-contain p-[var(--space-3)]" />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-neutral-600">
-            {fallbackIcon ?? <Shirt size={30} strokeWidth={1.5} aria-hidden="true" />}
+  const imageArea = (
+    <div className="relative aspect-[3/4] overflow-hidden bg-primary-900">
+      {imageUrl ? (
+        <img src={imageUrl} alt={imageAlt} className="h-full w-full object-cover" />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center text-neutral-600">
+          {fallbackIcon ?? <Shirt size={30} strokeWidth={1.5} aria-hidden="true" />}
+        </div>
+      )}
+
+      {badge && <div className="absolute right-[var(--space-2)] top-[var(--space-2)]">{badge}</div>}
+
+      {/* Hover overlay — slides up from bottom */}
+      <div
+        className={cn(
+          'absolute inset-x-0 bottom-0 translate-y-full transition-transform duration-300 ease-out',
+          'bg-gradient-to-t from-primary-900/95 via-primary-900/60 to-transparent',
+          'px-[var(--space-3)] pb-[var(--space-3)] pt-10',
+          onClick && 'group-hover:translate-y-0'
+        )}
+      >
+        <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-white">{title}</p>
+        {colorHex && colorName && (
+          <div className="mb-1.5 flex items-center gap-1.5">
+            <div
+              className="h-2.5 w-2.5 rounded-full border border-primary-700"
+              style={{ backgroundColor: colorHex }}
+              aria-hidden="true"
+            />
+            <span className="font-mono text-[9px] uppercase tracking-wider text-neutral-700">
+              {colorName}
+            </span>
           </div>
         )}
-
-        {colorHex && (
-          <div
-            className="absolute bottom-[var(--space-2)] left-[var(--space-2)] h-5 w-5 rounded-full border-2 border-primary-900"
-            style={{ backgroundColor: colorHex }}
-            aria-hidden="true"
-          />
-        )}
-
-        {badge && <div className="absolute right-[var(--space-2)] top-[var(--space-2)]">{badge}</div>}
+        <div className="flex flex-wrap gap-1">
+          {formality !== undefined && (
+            <span className="rounded-[2px] border border-accent-700 bg-accent-900/30 px-1.5 py-0.5 font-mono text-[8px] font-bold uppercase tracking-wider text-accent-500">
+              {FORMALITY_LABELS[formality] ?? `Lvl ${formality}`}
+            </span>
+          )}
+          {aesthetics?.slice(0, 2).map((tag) => (
+            <span
+              key={tag}
+              className="rounded-[2px] border border-primary-600 bg-primary-800/80 px-1.5 py-0.5 font-mono text-[8px] uppercase tracking-wider text-neutral-700"
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
       </div>
-
-      <div className="border-t border-primary-700 p-[var(--space-3)] text-left">
-        <p className="truncate text-xs font-medium text-white">{title}</p>
-        {subtitle && <p className="mt-[2px] truncate text-[10px] uppercase text-neutral-500">{subtitle}</p>}
-      </div>
-    </>
+    </div>
   )
 
   if (onClick) {
@@ -89,19 +126,23 @@ export function ItemCard({
         type="button"
         onClick={onClick}
         className={cn(
-          'w-full overflow-hidden rounded-[var(--radius-lg)] border border-primary-700 bg-primary-800 text-left',
+          'group w-full overflow-hidden rounded-[var(--radius-lg)] border border-primary-700 bg-primary-800 text-left',
           'transition-all hover:scale-[1.02] hover:border-primary-600',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 focus-visible:ring-offset-primary-900',
           className
         )}
         aria-label={`Open item details for ${title}`}
       >
-        {content}
+        {imageArea}
       </button>
     )
   }
 
-  return <Card className={className}>{content}</Card>
+  return (
+    <Card className={className}>
+      {imageArea}
+    </Card>
+  )
 }
 
 interface OutfitCardProps {
