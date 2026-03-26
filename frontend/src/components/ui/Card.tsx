@@ -82,10 +82,9 @@ export function ItemCard({
       {/* Hover overlay — slides up from bottom */}
       <div
         className={cn(
-          'absolute inset-x-0 bottom-0 translate-y-full transition-transform duration-300 ease-out',
+          'absolute inset-x-0 bottom-0 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out',
           'bg-gradient-to-t from-primary-900/95 via-primary-900/60 to-transparent',
-          'px-[var(--space-3)] pb-[var(--space-3)] pt-10',
-          onClick && 'group-hover:translate-y-0'
+          'px-[var(--space-3)] pb-[var(--space-3)] pt-10'
         )}
       >
         <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-white">{title}</p>
