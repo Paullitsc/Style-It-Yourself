@@ -626,14 +626,23 @@ export const useStyleStore = create<StyleState>((set, get) => ({
       item: newItem,
       imageBlob: addingItem.croppedImage.croppedBlob,
     }
-    
-    set((s) => ({
-      outfitItems: [...s.outfitItems, outfitItemWithBlob],
-      addingCategory: null,
-      addItemStep: null,
-      addingItem: { ...initialAddingItemState },
-      itemValidation: null,
-    }))
+
+    set((s) => {
+      // Replace existing item for the same category (prevents duplicates)
+      const existingIndex = s.outfitItems.findIndex(
+        oi => oi.item.category.l1 === outfitItemWithBlob.item.category.l1
+      )
+      const newOutfitItems = existingIndex >= 0
+        ? s.outfitItems.map((oi, i) => i === existingIndex ? outfitItemWithBlob : oi)
+        : [...s.outfitItems, outfitItemWithBlob]
+      return {
+        outfitItems: newOutfitItems,
+        addingCategory: null,
+        addItemStep: null,
+        addingItem: { ...initialAddingItemState },
+        itemValidation: null,
+      }
+    })
   },
 
   removeOutfitItem: (categoryL1) => {

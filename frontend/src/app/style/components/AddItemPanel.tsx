@@ -67,6 +67,7 @@ export default function AddItemPanel({
   const [showColorPicker, setShowColorPicker] = useState(false)
   const [showTryOnModal, setShowTryOnModal] = useState(false)
   const [showAuthModal, setShowAuthModal] = useState(false)
+  const [isAdding, setIsAdding] = useState(false)
   const [showOptional, setShowOptional] = useState(false)
   const [isExtracting, setIsExtracting] = useState(false)
   const [isValidating, setIsValidating] = useState(false)
@@ -421,10 +422,12 @@ export default function AddItemPanel({
   }, [baseItem, addingItem, outfitItems, setItemValidation])
 
   const handleConfirmAdd = useCallback(() => {
+    if (isAdding) return
+    setIsAdding(true)
     if (pendingTryOnUrl) setTryOnResult(categoryL1, pendingTryOnUrl)
     confirmAddItem()
     onClose()
-  }, [confirmAddItem, onClose, pendingTryOnUrl, categoryL1, setTryOnResult])
+  }, [isAdding, confirmAddItem, onClose, pendingTryOnUrl, categoryL1, setTryOnResult])
 
   // Status badge helper
   const getStatusBadge = (label: string, status: string) => {
@@ -812,9 +815,10 @@ export default function AddItemPanel({
               >
                 <ArrowLeft size={14} /> Back
               </button>
-              <button 
-                onClick={handleConfirmAdd} 
-                className="flex-1 flex items-center justify-center gap-2 bg-white text-primary-900 hover:bg-neutral-200 text-xs font-bold uppercase px-6 py-3 rounded-lg transition-colors"
+              <button
+                onClick={handleConfirmAdd}
+                disabled={isAdding}
+                className="flex-1 flex items-center justify-center gap-2 bg-white text-primary-900 hover:bg-neutral-200 text-xs font-bold uppercase px-6 py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Check size={14} />
                 {itemValidation.warnings.length > 0 ? 'Add Anyway' : 'Add to Outfit'}
