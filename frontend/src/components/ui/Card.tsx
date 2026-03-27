@@ -84,7 +84,7 @@ export function ItemCard({
         className={cn(
           'absolute inset-x-0 bottom-0 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out',
           'bg-gradient-to-t from-primary-900/95 via-primary-900/60 to-transparent',
-          'px-[var(--space-3)] pb-[var(--space-3)] pt-10'
+          'px-[var(--space-3)] pb-[var(--space-3)] pt-[var(--space-10)]'
         )}
       >
         <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-white">{title}</p>
@@ -138,7 +138,7 @@ export function ItemCard({
   }
 
   return (
-    <Card className={className}>
+    <Card className={cn('group', className)}>
       {imageArea}
     </Card>
   )
