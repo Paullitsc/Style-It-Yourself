@@ -253,9 +253,12 @@ export default function ClosetPage() {
 
                           return (
                             <div key={categoryL1}>
-                              <h2 className="mb-4 text-xs font-bold uppercase tracking-widest text-neutral-500">
-                                {categoryL1} ({items.length})
-                              </h2>
+                              <div className="mb-4 flex items-center gap-3">
+                                <div className="h-5 w-[3px] flex-shrink-0 rounded-sm bg-accent-500" aria-hidden="true" />
+                                <span className="text-xs font-extrabold uppercase tracking-widest text-white">{categoryL1}</span>
+                                <span className="font-mono text-xs text-neutral-900">{String(items.length).padStart(2, '0')}</span>
+                                <div className="h-px flex-1 bg-gradient-to-r from-primary-700 to-transparent" aria-hidden="true" />
+                              </div>
 
                               <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
                                 {items.map((item) => (
@@ -284,9 +287,14 @@ export default function ClosetPage() {
                       </div>
                     ) : (
                       <div>
-                        <h2 className="mb-4 text-xs font-bold uppercase tracking-widest text-neutral-500">
-                          {activeCategory} ({(closetData.items_by_category[activeCategory] || []).length})
-                        </h2>
+                        <div className="mb-4 flex items-center gap-3">
+                          <div className="h-5 w-[3px] flex-shrink-0 rounded-sm bg-accent-500" aria-hidden="true" />
+                          <span className="text-xs font-extrabold uppercase tracking-widest text-white">{activeCategory}</span>
+                          <span className="font-mono text-xs text-neutral-900">
+                            {String((closetData.items_by_category[activeCategory] || []).length).padStart(2, '0')}
+                          </span>
+                          <div className="h-px flex-1 bg-gradient-to-r from-primary-700 to-transparent" aria-hidden="true" />
+                        </div>
                         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
                           {getSortedItems(closetData.items_by_category[activeCategory] || []).map((item) => (
                             <ItemCard
