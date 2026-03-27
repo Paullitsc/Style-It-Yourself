@@ -185,40 +185,63 @@ export default function ClosetPage() {
                   <>
                     {/* Filter + Sort bar */}
                     <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+                      {/* Category filter pills */}
                       <div className="flex flex-wrap gap-2">
-                        <Button
-                          variant={activeCategory === 'All' ? 'primary' : 'secondary'}
-                          size="sm"
+                        <button
+                          type="button"
                           onClick={() => setActiveCategory('All')}
+                          className={cn(
+                            'rounded-[2px] border px-3 py-1 text-[10px] font-bold uppercase tracking-widest transition-colors',
+                            activeCategory === 'All'
+                              ? 'border-accent-500 bg-accent-500/10 text-accent-500'
+                              : 'border-primary-600 bg-transparent text-neutral-900 hover:border-primary-500 hover:text-white'
+                          )}
                         >
                           All
-                        </Button>
+                        </button>
                         {getSortedCategories().map((cat) => (
-                          <Button
+                          <button
                             key={cat}
-                            variant={activeCategory === cat ? 'primary' : 'secondary'}
-                            size="sm"
+                            type="button"
                             onClick={() => setActiveCategory(cat)}
+                            className={cn(
+                              'rounded-[2px] border px-3 py-1 text-[10px] font-bold uppercase tracking-widest transition-colors',
+                              activeCategory === cat
+                                ? 'border-accent-500 bg-accent-500/10 text-accent-500'
+                                : 'border-primary-600 bg-transparent text-neutral-900 hover:border-primary-500 hover:text-white'
+                            )}
                           >
                             {cat}
-                          </Button>
+                          </button>
                         ))}
                       </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant={sortOrder === 'newest' ? 'primary' : 'secondary'}
-                          size="sm"
+
+                      {/* Sort segmented control */}
+                      <div className="flex">
+                        <button
+                          type="button"
                           onClick={() => setSortOrder('newest')}
+                          className={cn(
+                            'rounded-l-[2px] rounded-r-none border px-3 py-1 text-[10px] font-bold uppercase tracking-widest transition-colors',
+                            sortOrder === 'newest'
+                              ? 'border-accent-500 bg-accent-500/10 text-accent-500'
+                              : 'border-primary-600 bg-transparent text-neutral-900 hover:text-white'
+                          )}
                         >
                           Newest
-                        </Button>
-                        <Button
-                          variant={sortOrder === 'oldest' ? 'primary' : 'secondary'}
-                          size="sm"
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => setSortOrder('oldest')}
+                          className={cn(
+                            'rounded-r-[2px] rounded-l-none border border-l-0 px-3 py-1 text-[10px] font-bold uppercase tracking-widest transition-colors',
+                            sortOrder === 'oldest'
+                              ? 'border-accent-500 bg-accent-500/10 text-accent-500'
+                              : 'border-primary-600 bg-transparent text-neutral-900 hover:text-white'
+                          )}
                         >
                           Oldest
-                        </Button>
+                        </button>
                       </div>
                     </div>
 
