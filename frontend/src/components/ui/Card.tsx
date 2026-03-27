@@ -161,27 +161,31 @@ export function OutfitCard({
   onClick,
   className,
 }: OutfitCardProps) {
-  const content = (
-    <>
-      <div className="relative aspect-[3/4] bg-primary-900">
-        {thumbnailUrl ? (
-          <img src={thumbnailUrl} alt={`${name} preview`} className="h-full w-full object-cover" />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-neutral-600">
-            <Package size={30} strokeWidth={1.5} aria-hidden="true" />
-          </div>
-        )}
-
-        <div className="absolute right-[var(--space-2)] top-[var(--space-2)] rounded-[var(--radius-sm)] border border-primary-700 bg-primary-900/90 px-[var(--space-2)] py-[2px] text-[10px] font-bold uppercase tracking-wider text-white">
-          {itemCount} {itemCount === 1 ? 'item' : 'items'}
+  const imageArea = (
+    <div className="relative aspect-[3/4] overflow-hidden bg-primary-900">
+      {thumbnailUrl ? (
+        <img src={thumbnailUrl} alt={`${name} preview`} className="h-full w-full object-cover" />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center text-neutral-600">
+          <Package size={30} strokeWidth={1.5} aria-hidden="true" />
         </div>
-      </div>
+      )}
 
-      <div className="border-t border-primary-700 p-[var(--space-3)] text-left">
-        <p className="truncate text-xs font-medium text-white">{name}</p>
-        {createdAt && <p className="mt-[2px] text-[10px] uppercase text-neutral-500">{createdAt}</p>}
+      {/* Hover overlay — slides up from bottom */}
+      <div
+        className={cn(
+          'absolute inset-x-0 bottom-0 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out',
+          'bg-gradient-to-t from-primary-900/95 via-primary-900/60 to-transparent',
+          'px-[var(--space-3)] pb-[var(--space-3)] pt-[var(--space-10)]'
+        )}
+      >
+        <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-white">{name}</p>
+        <p className="font-mono text-[9px] uppercase tracking-wider text-neutral-700">
+          {itemCount} {itemCount === 1 ? 'item' : 'items'}
+          {createdAt ? ` · ${createdAt}` : ''}
+        </p>
       </div>
-    </>
+    </div>
   )
 
   if (onClick) {
@@ -190,19 +194,23 @@ export function OutfitCard({
         type="button"
         onClick={onClick}
         className={cn(
-          'w-full overflow-hidden rounded-[var(--radius-lg)] border border-primary-700 bg-primary-800 text-left',
+          'group w-full overflow-hidden rounded-[var(--radius-lg)] border border-primary-700 bg-primary-800 text-left',
           'transition-all hover:scale-[1.02] hover:border-primary-600',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 focus-visible:ring-offset-primary-900',
           className
         )}
         aria-label={`Open outfit details for ${name}`}
       >
-        {content}
+        {imageArea}
       </button>
     )
   }
 
-  return <Card className={className}>{content}</Card>
+  return (
+    <Card className={cn('group', className)}>
+      {imageArea}
+    </Card>
+  )
 }
 
 interface RecommendationCardProps {
