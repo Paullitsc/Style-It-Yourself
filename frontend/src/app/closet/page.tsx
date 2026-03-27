@@ -30,6 +30,9 @@ export default function ClosetPage() {
   const [selectedItem, setSelectedItem] = useState<ClothingItemResponse | null>(null)
   const [selectedOutfit, setSelectedOutfit] = useState<OutfitSummary | null>(null)
 
+  const [activeCategory, setActiveCategory] = useState<string>('All')
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest')
+
   const fetchCloset = async () => {
     if (!session?.access_token) return
 
@@ -83,6 +86,12 @@ export default function ClosetPage() {
     )
   }
 
+  const getSortedItems = (items: ClothingItemResponse[]) =>
+    [...items].sort((a, b) => {
+      const diff = new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      return sortOrder === 'newest' ? diff : -diff
+    })
+
   return (
     <ProtectedRoute>
       <div className="min-h-[calc(100vh-80px)] w-full max-w-[1920px] mx-auto px-6 py-12 md:px-12">
@@ -100,7 +109,7 @@ export default function ClosetPage() {
             <Button
               variant={activeView === 'items' ? 'primary' : 'secondary'}
               size="sm"
-              onClick={() => setActiveView('items')}
+              onClick={() => { setActiveView('items'); setActiveCategory('All') }}
             >
               Items {closetData && `(${closetData.total_items})`}
             </Button>
@@ -117,7 +126,7 @@ export default function ClosetPage() {
         {isLoading && (
           <div className="space-y-4" aria-live="polite" aria-busy="true">
             <p className="text-sm uppercase tracking-wide text-neutral-500">Loading closet...</p>
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
               <CardSkeleton count={8} />
             </div>
           </div>
@@ -151,40 +160,112 @@ export default function ClosetPage() {
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-12">
-                    {getSortedCategories().map((categoryL1) => {
-                      const items = closetData.items_by_category[categoryL1] || []
-                      if (items.length === 0) return null
+                  <>
+                    {/* Filter + Sort bar */}
+                    <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          variant={activeCategory === 'All' ? 'primary' : 'secondary'}
+                          size="sm"
+                          onClick={() => setActiveCategory('All')}
+                        >
+                          All
+                        </Button>
+                        {getSortedCategories().map((cat) => (
+                          <Button
+                            key={cat}
+                            variant={activeCategory === cat ? 'primary' : 'secondary'}
+                            size="sm"
+                            onClick={() => setActiveCategory(cat)}
+                          >
+                            {cat}
+                          </Button>
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant={sortOrder === 'newest' ? 'primary' : 'secondary'}
+                          size="sm"
+                          onClick={() => setSortOrder('newest')}
+                        >
+                          Newest
+                        </Button>
+                        <Button
+                          variant={sortOrder === 'oldest' ? 'primary' : 'secondary'}
+                          size="sm"
+                          onClick={() => setSortOrder('oldest')}
+                        >
+                          Oldest
+                        </Button>
+                      </div>
+                    </div>
 
-                      return (
-                        <div key={categoryL1}>
-                          <h2 className="mb-4 text-xs font-bold uppercase tracking-widest text-neutral-500">
-                            {categoryL1} ({items.length})
-                          </h2>
+                    {activeCategory === 'All' ? (
+                      <div className="space-y-12">
+                        {getSortedCategories().map((categoryL1) => {
+                          const items = getSortedItems(closetData.items_by_category[categoryL1] || [])
+                          if (items.length === 0) return null
 
-                          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-                            {items.map((item) => (
-                              <ItemCard
-                                key={item.id}
-                                onClick={() => setSelectedItem(item)}
-                                title={item.category.l2}
-                                subtitle={item.category.l1}
-                                imageUrl={item.image_url}
-                                imageAlt={item.category.l2}
-                                colorHex={item.color?.hex}
-                                fallbackIcon={<Shirt size={32} className="text-neutral-600" aria-hidden="true" />}
-                                badge={
-                                  item.ownership === 'wishlist' ? (
-                                    <StatusBadge status="wishlist" size="sm" />
-                                  ) : undefined
-                                }
-                              />
-                            ))}
-                          </div>
+                          return (
+                            <div key={categoryL1}>
+                              <h2 className="mb-4 text-xs font-bold uppercase tracking-widest text-neutral-500">
+                                {categoryL1} ({items.length})
+                              </h2>
+
+                              <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
+                                {items.map((item) => (
+                                  <ItemCard
+                                    key={item.id}
+                                    onClick={() => setSelectedItem(item)}
+                                    title={item.category.l2}
+                                    imageUrl={item.image_url}
+                                    imageAlt={item.category.l2}
+                                    colorHex={item.color?.hex}
+                                    colorName={item.color?.name}
+                                    formality={item.formality}
+                                    aesthetics={item.aesthetics}
+                                    fallbackIcon={<Shirt size={32} className="text-neutral-600" aria-hidden="true" />}
+                                    badge={
+                                      item.ownership === 'wishlist' ? (
+                                        <StatusBadge status="wishlist" size="sm" />
+                                      ) : undefined
+                                    }
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    ) : (
+                      <div>
+                        <h2 className="mb-4 text-xs font-bold uppercase tracking-widest text-neutral-500">
+                          {activeCategory} ({(closetData.items_by_category[activeCategory] || []).length})
+                        </h2>
+                        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
+                          {getSortedItems(closetData.items_by_category[activeCategory] || []).map((item) => (
+                            <ItemCard
+                              key={item.id}
+                              onClick={() => setSelectedItem(item)}
+                              title={item.category.l2}
+                              imageUrl={item.image_url}
+                              imageAlt={item.category.l2}
+                              colorHex={item.color?.hex}
+                              colorName={item.color?.name}
+                              formality={item.formality}
+                              aesthetics={item.aesthetics}
+                              fallbackIcon={<Shirt size={32} className="text-neutral-600" aria-hidden="true" />}
+                              badge={
+                                item.ownership === 'wishlist' ? (
+                                  <StatusBadge status="wishlist" size="sm" />
+                                ) : undefined
+                              }
+                            />
+                          ))}
                         </div>
-                      )
-                    })}
-                  </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </>
             )}
@@ -202,7 +283,7 @@ export default function ClosetPage() {
                     </p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+                  <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
                     {closetData.outfits.map((outfit) => (
                       <OutfitCard
                         key={outfit.id}
