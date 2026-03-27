@@ -6,6 +6,7 @@ import ProtectedRoute from '@/components/ProtectedRoute'
 import { getCloset, deleteClothingItem, deleteOutfit } from '@/lib/api'
 import type { ClosetResponse, ClothingItemResponse, OutfitSummary } from '@/types'
 import { Shirt, Package, AlertCircle } from 'lucide-react'
+import { cn } from '@/lib/cn'
 import {
   Button,
   CardSkeleton,
@@ -97,29 +98,50 @@ export default function ClosetPage() {
       <div className="min-h-[calc(100vh-80px)] w-full max-w-[1920px] mx-auto px-6 py-12 md:px-12">
         <div className="mb-8 flex flex-col justify-between gap-6 border-b border-primary-800 pb-6 md:flex-row md:items-end">
           <div>
-            <h1 className="mb-2 text-3xl font-bold uppercase tracking-tighter text-white md:text-4xl">My Closet</h1>
+            <p className="mb-1 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-accent-500">
+              Your Wardrobe
+            </p>
+            <h1 className="mb-2 text-4xl font-black uppercase tracking-tighter text-white md:text-5xl">
+              My <span className="text-accent-500">Closet</span>
+            </h1>
             {closetData && (
-              <p className="font-mono text-xs uppercase tracking-widest text-neutral-500">
-                {closetData.total_items} Items • {closetData.total_outfits} Outfits
-              </p>
+              <div className="flex items-center gap-3">
+                <span className="font-mono text-[10px] uppercase tracking-widest text-neutral-900">
+                  {closetData.total_items} Items
+                </span>
+                <span className="h-3 w-px bg-primary-700" aria-hidden="true" />
+                <span className="font-mono text-[10px] uppercase tracking-widest text-neutral-900">
+                  {closetData.total_outfits} Outfits
+                </span>
+              </div>
             )}
           </div>
 
-          <div className="flex gap-2">
-            <Button
-              variant={activeView === 'items' ? 'primary' : 'secondary'}
-              size="sm"
+          <div className="flex">
+            <button
+              type="button"
               onClick={() => { setActiveView('items'); setActiveCategory('All') }}
+              className={cn(
+                'rounded-l-[var(--radius-sm)] rounded-r-none border px-4 py-1.5 text-[11px] font-bold uppercase tracking-wide transition-colors',
+                activeView === 'items'
+                  ? 'border-accent-500 bg-accent-500 text-primary-900'
+                  : 'border-primary-700 bg-transparent text-neutral-700 hover:text-white'
+              )}
             >
               Items {closetData && `(${closetData.total_items})`}
-            </Button>
-            <Button
-              variant={activeView === 'outfits' ? 'primary' : 'secondary'}
-              size="sm"
+            </button>
+            <button
+              type="button"
               onClick={() => setActiveView('outfits')}
+              className={cn(
+                'rounded-r-[var(--radius-sm)] rounded-l-none border border-l-0 px-4 py-1.5 text-[11px] font-bold uppercase tracking-wide transition-colors',
+                activeView === 'outfits'
+                  ? 'border-accent-500 bg-accent-500 text-primary-900'
+                  : 'border-primary-700 bg-transparent text-neutral-700 hover:text-white'
+              )}
             >
               Outfits {closetData && `(${closetData.total_outfits})`}
-            </Button>
+            </button>
           </div>
         </div>
 
