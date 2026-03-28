@@ -58,7 +58,7 @@ export default function AddItemPanel({
     toggleAddingItemAesthetic, setAddingItemDetectedColors,
     selectAddingItemColor, setAddingItemAdjustedColor, setItemValidation, 
     confirmAddItem, setTryOnResult,
-    setAddingItemBrand, setAddingItemPrice, setAddingItemSourceUrl,
+    setAddingItemBrand, setAddingItemPrice, setAddingItemSourceUrl, setAddingItemOwnership,
   } = useStyleStore()
 
   const [currentStep, setCurrentStep] = useState<PanelStep>('upload')
@@ -581,11 +581,46 @@ export default function AddItemPanel({
               onChange={setAddingItemFormality} 
             />
             
-            <AestheticsSelector 
-              selected={addingItem.aesthetics} 
-              onToggle={toggleAddingItemAesthetic} 
+            <AestheticsSelector
+              selected={addingItem.aesthetics}
+              onToggle={toggleAddingItemAesthetic}
             />
-            
+
+            {/* Ownership */}
+            <div>
+              <label className="block text-[10px] uppercase font-bold tracking-widest text-neutral-500 mb-3">
+                Ownership
+              </label>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setAddingItemOwnership('owned')}
+                  className={`
+                    flex-1 px-4 py-3 text-xs font-bold uppercase tracking-widest
+                    border transition-all duration-200
+                    ${addingItem.ownership === 'owned'
+                      ? 'bg-white text-primary-900 border-white'
+                      : 'bg-transparent text-neutral-400 border-primary-600 hover:border-neutral-400'
+                    }
+                  `}
+                >
+                  I Own This
+                </button>
+                <button
+                  onClick={() => setAddingItemOwnership('wishlist')}
+                  className={`
+                    flex-1 px-4 py-3 text-xs font-bold uppercase tracking-widest
+                    border transition-all duration-200
+                    ${addingItem.ownership === 'wishlist'
+                      ? 'bg-white text-primary-900 border-white'
+                      : 'bg-transparent text-neutral-400 border-primary-600 hover:border-neutral-400'
+                    }
+                  `}
+                >
+                  Wishlist
+                </button>
+              </div>
+            </div>
+
             {/* Optional Details Toggle */}
             <div className="border-t border-primary-800 pt-4">
               <button

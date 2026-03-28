@@ -33,6 +33,7 @@ export default function ClosetPage() {
 
   const [activeCategory, setActiveCategory] = useState<string>('All')
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest')
+  const [ownershipFilter, setOwnershipFilter] = useState<'all' | 'owned' | 'wishlist'>('all')
 
   const fetchCloset = async () => {
     if (!session?.access_token) return
@@ -88,10 +89,12 @@ export default function ClosetPage() {
   }
 
   const getSortedItems = (items: ClothingItemResponse[]) =>
-    [...items].sort((a, b) => {
-      const diff = new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      return sortOrder === 'newest' ? diff : -diff
-    })
+    [...items]
+      .filter((item) => ownershipFilter === 'all' || item.ownership === ownershipFilter)
+      .sort((a, b) => {
+        const diff = new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        return sortOrder === 'newest' ? diff : -diff
+      })
 
   return (
     <ProtectedRoute>
@@ -120,7 +123,7 @@ export default function ClosetPage() {
           <div className="flex">
             <button
               type="button"
-              onClick={() => { setActiveView('items'); setActiveCategory('All') }}
+              onClick={() => { setActiveView('items'); setActiveCategory('All'); setOwnershipFilter('all') }}
               className={cn(
                 'rounded-l-[var(--radius-sm)] rounded-r-none border px-4 py-1.5 text-[11px] font-bold uppercase tracking-wide transition-colors',
                 activeView === 'items'
@@ -186,7 +189,7 @@ export default function ClosetPage() {
                     {/* Filter + Sort bar */}
                     <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
                       {/* Category filter pills */}
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-2 flex-1">
                         <button
                           type="button"
                           onClick={() => setActiveCategory('All')}
@@ -212,6 +215,26 @@ export default function ClosetPage() {
                             )}
                           >
                             {cat}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Ownership filter */}
+                      <div className="flex">
+                        {(['all', 'owned', 'wishlist'] as const).map((opt, i) => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => setOwnershipFilter(opt)}
+                            className={cn(
+                              'border px-3 py-1 text-[10px] font-bold uppercase tracking-widest transition-colors',
+                              i === 0 ? 'rounded-l-[2px] rounded-r-none' : i === 2 ? 'rounded-r-[2px] rounded-l-none border-l-0' : 'rounded-none border-l-0',
+                              ownershipFilter === opt
+                                ? 'border-accent-500 bg-accent-500/10 text-accent-500'
+                                : 'border-primary-600 bg-transparent text-neutral-900 hover:text-white'
+                            )}
+                          >
+                            {opt === 'all' ? 'All' : opt === 'owned' ? 'Owned' : 'Wishlist'}
                           </button>
                         ))}
                       </div>

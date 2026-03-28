@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { Package, Calendar, AlertTriangle, Sparkles, Trash2 } from 'lucide-react'
-import type { OutfitSummary, OutfitResponse, ValidateOutfitResponse } from '@/types'
+import type { OutfitSummary, OutfitResponse, ValidateOutfitResponse, ClothingItemResponse } from '@/types'
 import { getOutfit, validateOutfit } from '@/lib/api'
 import { Badge, Button, ConfirmationModal, Modal, Skeleton } from '@/components/ui'
+import ItemDetailModal from './ItemDetailModal'
 
 interface OutfitDetailModalProps {
   outfit: OutfitSummary
@@ -20,6 +21,7 @@ export default function OutfitDetailModal({ outfit, token, onClose, onDelete }: 
   const [error, setError] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
+  const [selectedItem, setSelectedItem] = useState<ClothingItemResponse | null>(null)
 
   useEffect(() => {
     async function fetchOutfitDetails() {
@@ -175,9 +177,11 @@ export default function OutfitDetailModal({ outfit, token, onClose, onDelete }: 
               </h4>
               <div className="grid grid-cols-4 gap-[var(--space-3)]">
                 {fullOutfit.items.map((item, index) => (
-                  <div
+                  <button
                     key={item.id}
-                    className="overflow-hidden rounded-[var(--radius-lg)] border border-primary-700 bg-primary-800"
+                    type="button"
+                    onClick={() => setSelectedItem(item)}
+                    className="overflow-hidden rounded-[var(--radius-lg)] border border-primary-700 bg-primary-800 text-left transition-colors hover:border-accent-500/60"
                   >
                     <div className="relative aspect-square bg-primary-900">
                       {item.image_url ? (
@@ -203,7 +207,7 @@ export default function OutfitDetailModal({ outfit, token, onClose, onDelete }: 
                     <div className="border-t border-primary-700 p-[var(--space-2)]">
                       <p className="truncate text-[10px] font-medium text-white">{item.category.l2}</p>
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>
@@ -281,6 +285,13 @@ export default function OutfitDetailModal({ outfit, token, onClose, onDelete }: 
           description="Delete this outfit? Items will remain in your closet."
           confirmLabel="Delete"
           tone="danger"
+        />
+      )}
+
+      {selectedItem && (
+        <ItemDetailModal
+          item={selectedItem}
+          onClose={() => setSelectedItem(null)}
         />
       )}
     </>
