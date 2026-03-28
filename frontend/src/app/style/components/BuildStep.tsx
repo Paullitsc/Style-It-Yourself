@@ -291,16 +291,9 @@ export default function BuildStep() {
                       <h3 className="text-lg font-bold uppercase tracking-widest text-white mb-2">
                         Outfit Complete
                       </h3>
-                      <p className="text-neutral-500 text-sm max-w-md mx-auto mb-6">
+                      <p className="text-neutral-500 text-sm max-w-md mx-auto">
                         Review your outfit to see the cohesion score and save it to your closet.
                       </p>
-                      <button
-                        onClick={handleReviewOutfit}
-                        className="group inline-flex items-center gap-3 px-8 py-3 bg-white text-primary-900 hover:bg-neutral-200 text-xs font-bold uppercase tracking-widest transition-all rounded-lg"
-                      >
-                        Review Outfit
-                        <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                      </button>
                     </>
                   ) : (
                     <p className="text-neutral-500 text-sm">
