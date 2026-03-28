@@ -59,10 +59,10 @@ export default function ImageUploadZone({
           onClear={onClear}
           selectedFile={previewFile}
           disabled={disabled}
-          accept="image/png,image/jpeg,image/webp,image/heic,image/heif"
+          accept="image/png,image/jpeg,image/webp,image/heic,image/heif,image/avif"
           maxSizeMB={10}
           className={compact ? '' : 'max-w-xl'}
-          hint="PNG, JPG, WEBP • Max 10MB"
+          hint="PNG, JPG, WEBP, AVIF • Max 10MB"
         />
       )}
     </div>
