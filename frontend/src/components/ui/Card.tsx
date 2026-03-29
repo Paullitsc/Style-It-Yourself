@@ -81,23 +81,6 @@ export function ItemCard({
 
       {badge && <div className="absolute right-[var(--space-2)] top-[var(--space-2)]">{badge}</div>}
 
-      {onTryOn && (
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); onTryOn() }}
-          className={cn(
-            'absolute left-[var(--space-2)] top-[var(--space-2)]',
-            'flex h-7 w-7 items-center justify-center rounded-full',
-            'border border-primary-600 bg-primary-900/80 backdrop-blur',
-            'opacity-0 group-hover:opacity-100 transition-opacity duration-200',
-            'text-accent-500 hover:bg-accent-500 hover:text-primary-900 hover:border-accent-500',
-          )}
-          aria-label="Try on this item"
-        >
-          <Sparkles size={13} aria-hidden="true" />
-        </button>
-      )}
-
       {/* Hover overlay — slides up from bottom */}
       <div
         className={cn(
@@ -151,14 +134,50 @@ export function ItemCard({
         )}
         aria-label={`Open item details for ${title}`}
       >
-        {imageArea}
+        <div className="relative">
+          {imageArea}
+          {onTryOn && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onTryOn() }}
+              className={cn(
+                'absolute left-[var(--space-2)] top-[var(--space-2)]',
+                'flex h-7 w-7 items-center justify-center rounded-full',
+                'border border-primary-600 bg-primary-900/80 backdrop-blur',
+                'opacity-0 group-hover:opacity-100 transition-opacity duration-200',
+                'text-accent-500 hover:bg-accent-500 hover:text-primary-900 hover:border-accent-500',
+              )}
+              aria-label="Try on this item"
+            >
+              <Sparkles size={13} aria-hidden="true" />
+            </button>
+          )}
+        </div>
       </button>
     )
   }
 
   return (
     <Card className={cn('group', className)}>
-      {imageArea}
+      <div className="relative">
+        {imageArea}
+        {onTryOn && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onTryOn() }}
+            className={cn(
+              'absolute left-[var(--space-2)] top-[var(--space-2)]',
+              'flex h-7 w-7 items-center justify-center rounded-full',
+              'border border-primary-600 bg-primary-900/80 backdrop-blur',
+              'opacity-0 group-hover:opacity-100 transition-opacity duration-200',
+              'text-accent-500 hover:bg-accent-500 hover:text-primary-900 hover:border-accent-500',
+            )}
+            aria-label="Try on this item"
+          >
+            <Sparkles size={13} aria-hidden="true" />
+          </button>
+        )}
+      </div>
     </Card>
   )
 }
