@@ -283,7 +283,7 @@ export default function ClosetPage() {
                                   <ItemCard
                                     key={item.id}
                                     onClick={() => setSelectedItem(item)}
-                                    onTryOn={() => setTryOnItem(item)}
+                                    onTryOn={() => { setSelectedItem(null); setTryOnItem(item) }}
                                     title={item.category.l2}
                                     imageUrl={item.image_url}
                                     imageAlt={item.category.l2}
@@ -319,7 +319,7 @@ export default function ClosetPage() {
                             <ItemCard
                               key={item.id}
                               onClick={() => setSelectedItem(item)}
-                              onTryOn={() => setTryOnItem(item)}
+                              onTryOn={() => { setSelectedItem(null); setTryOnItem(item) }}
                               title={item.category.l2}
                               imageUrl={item.image_url}
                               imageAlt={item.category.l2}
