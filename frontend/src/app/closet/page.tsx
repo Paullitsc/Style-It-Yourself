@@ -16,6 +16,7 @@ import {
 } from '@/components/ui'
 import ItemDetailModal from './components/ItemDetailModal'
 import OutfitDetailModal from './components/OutfitDetailModal'
+import TryOnModal from '@/app/style/components/TryOnModal'
 
 type ViewMode = 'items' | 'outfits'
 
@@ -29,10 +30,11 @@ export default function ClosetPage() {
   const [error, setError] = useState<string | null>(null)
 
   const [selectedItem, setSelectedItem] = useState<ClothingItemResponse | null>(null)
+  const [tryOnItem, setTryOnItem] = useState<ClothingItemResponse | null>(null)
   const [selectedOutfit, setSelectedOutfit] = useState<OutfitSummary | null>(null)
 
   const [activeCategory, setActiveCategory] = useState<string>('All')
-  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest')
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'color'>('newest')
   const [ownershipFilter, setOwnershipFilter] = useState<'all' | 'owned' | 'wishlist'>('all')
 
   const fetchCloset = async () => {
@@ -92,6 +94,7 @@ export default function ClosetPage() {
     [...items]
       .filter((item) => ownershipFilter === 'all' || item.ownership === ownershipFilter)
       .sort((a, b) => {
+        if (sortOrder === 'color') return a.color.hsl.h - b.color.hsl.h
         const diff = new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         return sortOrder === 'newest' ? diff : -diff
       })
@@ -241,30 +244,22 @@ export default function ClosetPage() {
 
                       {/* Sort segmented control */}
                       <div className="flex">
-                        <button
-                          type="button"
-                          onClick={() => setSortOrder('newest')}
-                          className={cn(
-                            'rounded-l-[2px] rounded-r-none border px-3 py-1 text-[10px] font-bold uppercase tracking-widest transition-colors',
-                            sortOrder === 'newest'
-                              ? 'border-accent-500 bg-accent-500/10 text-accent-500'
-                              : 'border-primary-600 bg-transparent text-neutral-900 hover:text-white'
-                          )}
-                        >
-                          Newest
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setSortOrder('oldest')}
-                          className={cn(
-                            'rounded-r-[2px] rounded-l-none border border-l-0 px-3 py-1 text-[10px] font-bold uppercase tracking-widest transition-colors',
-                            sortOrder === 'oldest'
-                              ? 'border-accent-500 bg-accent-500/10 text-accent-500'
-                              : 'border-primary-600 bg-transparent text-neutral-900 hover:text-white'
-                          )}
-                        >
-                          Oldest
-                        </button>
+                        {(['newest', 'oldest', 'color'] as const).map((opt, i) => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => setSortOrder(opt)}
+                            className={cn(
+                              'border px-3 py-1 text-[10px] font-bold uppercase tracking-widest transition-colors',
+                              i === 0 ? 'rounded-l-[2px] rounded-r-none' : i === 2 ? 'rounded-r-[2px] rounded-l-none border-l-0' : 'rounded-none border-l-0',
+                              sortOrder === opt
+                                ? 'border-accent-500 bg-accent-500/10 text-accent-500'
+                                : 'border-primary-600 bg-transparent text-neutral-900 hover:text-white'
+                            )}
+                          >
+                            {opt === 'newest' ? 'Newest' : opt === 'oldest' ? 'Oldest' : 'Color'}
+                          </button>
+                        ))}
                       </div>
                     </div>
 
@@ -288,6 +283,7 @@ export default function ClosetPage() {
                                   <ItemCard
                                     key={item.id}
                                     onClick={() => setSelectedItem(item)}
+                                    onTryOn={() => setTryOnItem(item)}
                                     title={item.category.l2}
                                     imageUrl={item.image_url}
                                     imageAlt={item.category.l2}
@@ -323,6 +319,7 @@ export default function ClosetPage() {
                             <ItemCard
                               key={item.id}
                               onClick={() => setSelectedItem(item)}
+                              onTryOn={() => setTryOnItem(item)}
                               title={item.category.l2}
                               imageUrl={item.image_url}
                               imageAlt={item.category.l2}
@@ -391,6 +388,15 @@ export default function ClosetPage() {
             token={session.access_token}
             onClose={() => setSelectedOutfit(null)}
             onDelete={handleDeleteOutfit}
+          />
+        )}
+
+        {tryOnItem && session?.access_token && (
+          <TryOnModal
+            item={tryOnItem}
+            itemImageUrl={tryOnItem.image_url}
+            token={session.access_token}
+            onClose={() => setTryOnItem(null)}
           />
         )}
       </div>
