@@ -11,7 +11,7 @@ import { Button, Card, Modal, StatusBadge } from '@/components/ui'
 interface TryOnModalProps {
   item: ClothingItemBase
   itemImageUrl: string
-  itemImageBlob: Blob
+  itemImageBlob?: Blob
   token: string
   onClose: () => void
   viewOnly?: boolean
@@ -45,26 +45,30 @@ export default function TryOnModal({
     try {
       const userPhotoUrl = await uploadUserPhoto(userPhotoFile, token)
 
-      const itemUploadFormData = new FormData()
-      itemUploadFormData.append('image', itemImageBlob)
+      let itemUploadUrl = itemImageUrl
 
-      const itemUploadResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/try-on/upload-photo`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          body: itemUploadFormData,
+      if (itemImageBlob) {
+        const itemUploadFormData = new FormData()
+        itemUploadFormData.append('image', itemImageBlob)
+
+        const itemUploadResponse = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/try-on/upload-photo`,
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            body: itemUploadFormData,
+          }
+        )
+
+        if (!itemUploadResponse.ok) {
+          throw new Error('Failed to upload item image')
         }
-      )
 
-      if (!itemUploadResponse.ok) {
-        throw new Error('Failed to upload item image')
+        const itemUploadData = await itemUploadResponse.json()
+        itemUploadUrl = itemUploadData.url
       }
-
-      const itemUploadData = await itemUploadResponse.json()
-      const itemUploadUrl = itemUploadData.url
 
       const response = await tryOnSingle(
         {
