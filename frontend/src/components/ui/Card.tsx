@@ -122,21 +122,27 @@ export function ItemCard({
   )
 
   if (onClick) {
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        className={cn(
-          'group w-full overflow-hidden rounded-[var(--radius-lg)] border border-primary-700 bg-primary-800 text-left',
-          'transition-all hover:scale-[1.02] hover:border-primary-600',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 focus-visible:ring-offset-primary-900',
-          className
-        )}
-        aria-label={`Open item details for ${title}`}
-      >
-        <div className="relative">
-          {imageArea}
-          {onTryOn && (
+    const cardClasses = cn(
+      'group w-full overflow-hidden rounded-[var(--radius-lg)] border border-primary-700 bg-primary-800 text-left',
+      'transition-all hover:scale-[1.02] hover:border-primary-600',
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 focus-visible:ring-offset-primary-900',
+      className
+    )
+
+    // When onTryOn is present the card contains a <button>, so the wrapper must be a
+    // <div role="button"> — HTML forbids <button> inside <button>.
+    if (onTryOn) {
+      return (
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={onClick}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick() } }}
+          className={cardClasses}
+          aria-label={`Open item details for ${title}`}
+        >
+          <div className="relative">
+            {imageArea}
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); onTryOn() }}
@@ -151,8 +157,19 @@ export function ItemCard({
             >
               <Sparkles size={13} aria-hidden="true" />
             </button>
-          )}
+          </div>
         </div>
+      )
+    }
+
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className={cardClasses}
+        aria-label={`Open item details for ${title}`}
+      >
+        {imageArea}
       </button>
     )
   }
