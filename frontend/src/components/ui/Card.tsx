@@ -1,5 +1,5 @@
 import type { HTMLAttributes, ReactNode } from 'react'
-import { Shirt, Package } from 'lucide-react'
+import { Shirt, Package, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/cn'
 
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
@@ -52,6 +52,7 @@ interface ItemCardProps {
   onClick?: () => void
   className?: string
   fallbackIcon?: ReactNode
+  onTryOn?: () => void
 }
 
 export function ItemCard({
@@ -66,6 +67,7 @@ export function ItemCard({
   onClick,
   className,
   fallbackIcon,
+  onTryOn,
 }: ItemCardProps) {
   const imageArea = (
     <div className="relative aspect-[3/4] overflow-hidden bg-primary-900">
@@ -78,6 +80,23 @@ export function ItemCard({
       )}
 
       {badge && <div className="absolute right-[var(--space-2)] top-[var(--space-2)]">{badge}</div>}
+
+      {onTryOn && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onTryOn() }}
+          className={cn(
+            'absolute left-[var(--space-2)] top-[var(--space-2)]',
+            'flex h-7 w-7 items-center justify-center rounded-full',
+            'border border-primary-600 bg-primary-900/80 backdrop-blur',
+            'opacity-0 group-hover:opacity-100 transition-opacity duration-200',
+            'text-accent-500 hover:bg-accent-500 hover:text-primary-900 hover:border-accent-500',
+          )}
+          aria-label="Try on this item"
+        >
+          <Sparkles size={13} aria-hidden="true" />
+        </button>
+      )}
 
       {/* Hover overlay — slides up from bottom */}
       <div
