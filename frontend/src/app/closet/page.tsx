@@ -282,7 +282,7 @@ export default function ClosetPage() {
                                 {items.map((item) => (
                                   <ItemCard
                                     key={item.id}
-                                    onClick={() => setSelectedItem(item)}
+                                    onClick={() => { setTryOnItem(null); setSelectedItem(item) }}
                                     onTryOn={() => { setSelectedItem(null); setTryOnItem(item) }}
                                     title={item.category.l2}
                                     imageUrl={item.image_url}
@@ -318,7 +318,7 @@ export default function ClosetPage() {
                           {getSortedItems(closetData.items_by_category[activeCategory] || []).map((item) => (
                             <ItemCard
                               key={item.id}
-                              onClick={() => setSelectedItem(item)}
+                              onClick={() => { setTryOnItem(null); setSelectedItem(item) }}
                               onTryOn={() => { setSelectedItem(null); setTryOnItem(item) }}
                               title={item.category.l2}
                               imageUrl={item.image_url}
