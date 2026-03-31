@@ -47,7 +47,13 @@ async function fetchApi<T>(
   
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: 'Unknown error' }))
-    throw new Error(error.detail || `API error: ${response.status}`)
+    const detail = error.detail
+    const message = typeof detail === 'string'
+      ? detail
+      : Array.isArray(detail)
+        ? detail.map((d: { msg?: string }) => d.msg ?? JSON.stringify(d)).join('; ')
+        : `API error: ${response.status}`
+    throw new Error(message)
   }
   
   return response.json()
@@ -174,7 +180,13 @@ export async function uploadUserPhoto(
   
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: 'Unknown error' }))
-    throw new Error(error.detail || `API error: ${response.status}`)
+    const detail = error.detail
+    const message = typeof detail === 'string'
+      ? detail
+      : Array.isArray(detail)
+        ? detail.map((d: { msg?: string }) => d.msg ?? JSON.stringify(d)).join('; ')
+        : `API error: ${response.status}`
+    throw new Error(message)
   }
   
   const data = await response.json()
@@ -202,7 +214,13 @@ export async function uploadItemImage(
   
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: 'Unknown error' }))
-    throw new Error(error.detail || `API error: ${response.status}`)
+    const detail = error.detail
+    const message = typeof detail === 'string'
+      ? detail
+      : Array.isArray(detail)
+        ? detail.map((d: { msg?: string }) => d.msg ?? JSON.stringify(d)).join('; ')
+        : `API error: ${response.status}`
+    throw new Error(message)
   }
   
   const data = await response.json()
@@ -356,7 +374,13 @@ export async function createClothingItem(
   
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: 'Unknown error' }))
-    throw new Error(error.detail || `API error: ${response.status}`)
+    const detail = error.detail
+    const message = typeof detail === 'string'
+      ? detail
+      : Array.isArray(detail)
+        ? detail.map((d: { msg?: string }) => d.msg ?? JSON.stringify(d)).join('; ')
+        : `API error: ${response.status}`
+    throw new Error(message)
   }
   
   return response.json()
@@ -382,7 +406,13 @@ export async function deleteClothingItem(
   
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: 'Unknown error' }))
-    throw new Error(error.detail || `API error: ${response.status}`)
+    const detail = error.detail
+    const message = typeof detail === 'string'
+      ? detail
+      : Array.isArray(detail)
+        ? detail.map((d: { msg?: string }) => d.msg ?? JSON.stringify(d)).join('; ')
+        : `API error: ${response.status}`
+    throw new Error(message)
   }
 }
 
@@ -402,6 +432,12 @@ export async function deleteOutfit(
   
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: 'Unknown error' }))
-    throw new Error(error.detail || `API error: ${response.status}`)
+    const detail = error.detail
+    const message = typeof detail === 'string'
+      ? detail
+      : Array.isArray(detail)
+        ? detail.map((d: { msg?: string }) => d.msg ?? JSON.stringify(d)).join('; ')
+        : `API error: ${response.status}`
+    throw new Error(message)
   }
 }

@@ -38,11 +38,11 @@ export default function ImageUploadZone({
     <div className="space-y-[var(--space-3)]">
       {previewUrl ? (
         <div
-          className={`relative overflow-y-auto rounded-[var(--radius-lg)] border border-primary-700 bg-primary-800 scrollbar-hide ${
-            compact ? 'max-h-64' : 'max-h-96'
-          }`}
+          className={`relative rounded-[var(--radius-lg)] border border-primary-700 bg-primary-800 ${
+            compact ? 'max-h-80' : 'max-h-[28rem]'
+          } flex items-center justify-center`}
         >
-          <img src={previewUrl} alt="Preview" className="h-auto w-full" />
+          <img src={previewUrl} alt="Preview" className="max-h-80 w-full object-contain" />
           {onClear && (
             <div className="absolute right-[var(--space-3)] top-[var(--space-3)]">
               <Button variant="secondary" size="sm" onClick={onClear}>

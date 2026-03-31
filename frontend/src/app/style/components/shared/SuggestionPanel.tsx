@@ -58,7 +58,7 @@ export default function SuggestionPanel({
           category_l1: categoryL1,
           recommended_colors: recommendation.colors,
           formality_range: recommendation.formality_range,
-          limit: 5,
+          limit: 50,
         }, session.access_token)
 
         setMatchingItems(response.items)
@@ -131,7 +131,7 @@ export default function SuggestionPanel({
                 <p className="text-xs text-neutral-500">{matchError}</p>
               </div>
             ) : matchingItems.length > 0 ? (
-              <div className="space-y-2">
+              <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
                 {matchingItems.map((item) => (
                   <button
                     key={item.id}
@@ -170,11 +170,6 @@ export default function SuggestionPanel({
                   </button>
                 ))}
                 
-                {totalInCategory > matchingItems.length && (
-                  <p className="text-[10px] text-neutral-600 text-center pt-2">
-                    Showing top {matchingItems.length} of {totalInCategory} items in {categoryL1}
-                  </p>
-                )}
               </div>
             ) : totalInCategory > 0 ? (
               <div className="p-4 bg-primary-800/50 rounded-lg border border-primary-700/50">

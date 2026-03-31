@@ -31,7 +31,7 @@ class MatchingItemsRequest(BaseModel):
     category_l1: str = Field(..., description="Category to search (e.g., 'Bottoms')")
     recommended_colors: List[RecommendedColor] = Field(..., description="Colors to match against")
     formality_range: FormalityRange = Field(..., description="Acceptable formality range")
-    limit: int = Field(default=5, ge=1, le=10, description="Max items to return")
+    limit: int = Field(default=5, ge=1, le=50, description="Max items to return")
 
 
 class MatchingItemsResponse(BaseModel):
