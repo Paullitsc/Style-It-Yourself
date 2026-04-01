@@ -4,15 +4,24 @@ Uses Supabase Auth to verify JWT tokens and extract user info.
 """
 
 from fastapi import HTTPException, Depends
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.services.supabase import get_supabase_client_anon
 from app.models.schemas import User
 
 
-# Security schemes
-security = HTTPBearer()
-security_optional = HTTPBearer(auto_error=False)  # ← auto_error goes here
+# Security schemes for OpenAPI documentation + request auth parsing
+security = HTTPBearer(
+    scheme_name="SupabaseBearerAuth",
+    bearerFormat="JWT",
+    description="Supabase access token. Use: Bearer <access_token>.",
+)
+security_optional = HTTPBearer(
+    auto_error=False,
+    scheme_name="SupabaseBearerAuth",
+    bearerFormat="JWT",
+    description="Optional Supabase access token. Use: Bearer <access_token>.",
+)
 
 
 async def get_current_user(
@@ -57,7 +66,7 @@ async def get_current_user(
 
 
 async def get_optional_user(
-    credentials: HTTPAuthorizationCredentials | None = Depends(security_optional) #Use optional scheme
+    credentials: HTTPAuthorizationCredentials | None = Depends(security_optional)
 ) -> User | None:
     """
     Optionally get the current user if a valid token is provided.
