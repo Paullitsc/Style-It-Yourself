@@ -75,6 +75,7 @@ CREATE TABLE IF NOT EXISTS public.clothing_items (
     
     -- Optional metadata
     brand TEXT,
+    sizing JSONB,
     price DECIMAL(10, 2),
     source_url TEXT,
     ownership TEXT DEFAULT 'owned' CHECK (ownership IN ('owned', 'wishlist')),
@@ -85,6 +86,11 @@ CREATE TABLE IF NOT EXISTS public.clothing_items (
 -- Indexes for clothing_items
 CREATE INDEX idx_clothing_items_user_id ON public.clothing_items(user_id);
 CREATE INDEX idx_clothing_items_category ON public.clothing_items(category_l1, category_l2);
+
+-- Sizing backfill migration
+ALTER TABLE public.clothing_items
+    ADD COLUMN IF NOT EXISTS sizing JSONB;
+
 
 -- Enable RLS
 ALTER TABLE public.clothing_items ENABLE ROW LEVEL SECURITY;

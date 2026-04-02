@@ -1,7 +1,7 @@
 """Pydantic schemas for request/response DTOs."""
 
-from pydantic import BaseModel, Field
-from typing import Optional, Tuple
+from pydantic import BaseModel, ConfigDict, Field
+from typing import Literal, Optional, Tuple
 from datetime import datetime
 
 
@@ -34,6 +34,24 @@ class Category(BaseModel):
     l2: str = Field(..., description="Level 2 category (e.g., T-Shirts, Jeans)")
 
 
+class Sizing(BaseModel):
+    """Flexible sizing payload stored as JSONB on clothing_items."""
+    model_config = ConfigDict(extra="allow")
+
+    mode: Optional[Literal["standard", "numeric", "measurements", "brand_specific", "hybrid"]] = None
+    standard_size: Optional[str] = None
+    numeric_size: Optional[float] = Field(None, ge=0)
+    numeric_type: Optional[Literal["dress", "pants_waist", "pants_waist_inseam"]] = None
+    numeric_system: Optional[Literal["US", "UK", "EU", "INT"]] = None
+    measurement_unit: Optional[Literal["cm", "in"]] = None
+    chest: Optional[float] = Field(None, ge=0)
+    waist: Optional[float] = Field(None, ge=0)
+    hips: Optional[float] = Field(None, ge=0)
+    inseam: Optional[float] = Field(None, ge=0)
+    brand_size_label: Optional[str] = None
+    size_notes: Optional[str] = None
+
+
 class ClothingItemBase(BaseModel):
     """Base clothing item fields - used in validation endpoints."""
     color: Color
@@ -46,6 +64,7 @@ class ClothingItemCreate(ClothingItemBase):
     """Clothing item with full metadata - used when saving to closet."""
     image_url: Optional[str] = None  # Optional - set after upload
     brand: Optional[str] = None
+    sizing: Optional[Sizing] = None
     price: Optional[float] = Field(None, ge=0)
     source_url: Optional[str] = None
     ownership: str = Field(default="owned", pattern=r"^(owned|wishlist)$")
@@ -57,6 +76,7 @@ class ClothingItemResponse(ClothingItemBase):
     user_id: str
     image_url: str
     brand: Optional[str] = None
+    sizing: Optional[Sizing] = None
     price: Optional[float] = None
     source_url: Optional[str] = None
     ownership: str = "owned"
@@ -227,6 +247,7 @@ class ClothingItemCreateRequest(BaseModel):
     formality: float = Field(..., ge=1.0, le=5.0)
     aesthetics: list[str] = Field(default_factory=list)
     brand: Optional[str] = None
+    sizing: Optional[Sizing] = None
     price: Optional[float] = Field(None, ge=0)
     source_url: Optional[str] = None
     ownership: str = Field(default="owned", pattern=r"^(owned|wishlist)$")
