@@ -22,3 +22,9 @@ export type { TextInputProps, SelectInputProps, FileUploadInputProps } from './I
 
 export { Skeleton, CardSkeleton, TextSkeleton } from './Skeleton'
 export type { SkeletonProps } from './Skeleton'
+
+export { Tag } from './Tag'
+export type { TagProps } from './Tag'
+
+export { Hairline } from './Hairline'
+export type { HairlineProps } from './Hairline'
