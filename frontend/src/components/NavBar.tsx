@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { useAuth } from './AuthProvider'
-import { usePathname } from 'next/navigation' // 1. Import hook
+import { usePathname } from 'next/navigation'
 
 interface NavBarProps {
   onOpenAuth: () => void
@@ -9,57 +9,44 @@ interface NavBarProps {
 
 export default function NavBar({ onOpenAuth }: NavBarProps) {
   const { user, signOut } = useAuth()
-  const pathname = usePathname() // 2. Get current path
+  const pathname = usePathname()
 
-  // 3. Helper to determine if a link is active
-  const getLinkClass = (path: string) => {
-    // Base styles (always present)
-    const baseStyle = "transition-all duration-200"
-    
-    // Active State (Current Page): White + Underlined
-    const activeStyle = "text-white underline underline-offset-4 decoration-1"
-    
-    // Inactive State: Grey + Hover effects
-    const inactiveStyle = "text-neutral-400 hover:text-white hover:underline hover:underline-offset-4 hover:decoration-1"
+  const baseLink = 'font-mono text-[11px] uppercase tracking-[0.08em] transition-colors'
+  const activeLink = 'text-ink border-b border-ink pb-[2px]'
+  const inactiveLink = 'text-ink-3 hover:text-ink'
 
-    return pathname === path ? `${baseStyle} ${activeStyle}` : `${baseStyle} ${inactiveStyle}`
-  }
+  const linkClass = (path: string) =>
+    `${baseLink} ${pathname === path ? activeLink : inactiveLink}`
 
   return (
-    <nav className="flex items-center gap-6 text-xs md:text-sm font-medium tracking-widest uppercase">
-      
-      {/* HOME */}
-      <Link href="/" className={getLinkClass('/')}>
+    <nav className="flex items-center gap-[32px]">
+      <Link href="/" className={linkClass('/')}>
         Home
       </Link>
 
       {user ? (
         <>
-          {/* MY CLOSET */}
-          <Link href="/closet" className={getLinkClass('/closet')}>
+          <Link href="/closet" className={linkClass('/closet')}>
             My Closet
           </Link>
-          
-          {/* ACCOUNT */}
-          <Link href="/account" className={getLinkClass('/account')}>
+
+          <Link href="/account" className={linkClass('/account')}>
             Account
           </Link>
-          
-          {/* LOGOUT (Action, not a page, so keeps default styling) */}
-          <button 
-            onClick={signOut} 
-            className="text-primary-600 hover:text-error-500 hover:underline underline-offset-4 decoration-1 transition-all"
+
+          <button
+            onClick={signOut}
+            className={`${baseLink} text-ink-3 hover:text-accent`}
           >
-            LOGOUT
+            Logout
           </button>
         </>
       ) : (
-        /* LOGIN (Action) */
-        <button 
+        <button
           onClick={onOpenAuth}
-          className="text-neutral-400 hover:text-white hover:underline hover:underline-offset-4 hover:decoration-1 transition-all"
+          className={`${baseLink} ${inactiveLink}`}
         >
-          LOGIN
+          Login
         </button>
       )}
     </nav>
