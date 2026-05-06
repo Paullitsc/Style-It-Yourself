@@ -25,12 +25,12 @@ function FieldMeta({ id, hint, error }: { id: string; hint?: string; error?: str
   return (
     <>
       {hint && (
-        <p id={`${id}-hint`} className="mt-[var(--space-1)] text-[11px] text-neutral-500">
+        <p id={`${id}-hint`} className="mt-[var(--space-1)] font-mono text-[10px] uppercase tracking-[0.04em] text-ink-3">
           {hint}
         </p>
       )}
       {error && (
-        <p id={`${id}-error`} className="mt-[var(--space-1)] text-[11px] text-error-400" role="alert">
+        <p id={`${id}-error`} className="mt-[var(--space-1)] font-mono text-[10px] uppercase tracking-[0.04em] text-accent" role="alert">
           {error}
         </p>
       )}
@@ -61,13 +61,13 @@ export function TextInput({
 
   return (
     <div className={cn('space-y-[var(--space-1)]', className)}>
-      <label htmlFor={fieldId} className="block text-[10px] font-bold uppercase tracking-widest text-neutral-500">
+      <label htmlFor={fieldId} className="block font-mono text-[10px] uppercase tracking-[0.06em] text-ink-3">
         {label}
-        {required && <span className="ml-[2px] text-accent-500">*</span>}
+        {required && <span className="ml-[2px] text-accent">*</span>}
       </label>
 
       <div className="relative">
-        {leftIcon && <span className="pointer-events-none absolute left-[var(--space-3)] top-1/2 -translate-y-1/2 text-neutral-600">{leftIcon}</span>}
+        {leftIcon && <span className="pointer-events-none absolute left-[var(--space-3)] top-1/2 -translate-y-1/2 text-ink-3">{leftIcon}</span>}
         <input
           id={fieldId}
           type={type}
@@ -75,10 +75,11 @@ export function TextInput({
           aria-invalid={Boolean(error)}
           aria-describedby={describedBy}
           className={cn(
-            'h-[var(--size-control-md)] w-full rounded-[var(--radius-md)] border border-primary-700 bg-primary-800 text-sm text-white',
-            'placeholder-neutral-600 transition-colors focus:border-accent-500 focus:outline-none',
+            'h-[var(--size-control-md)] w-full bg-transparent text-ink font-display text-[18px]',
+            'border-0 border-b border-ink rounded-none',
+            'placeholder:text-ink-3 focus:outline-none focus:border-accent',
             'disabled:cursor-not-allowed disabled:opacity-60',
-            leftIcon ? 'pl-[calc(var(--space-3)*2+var(--size-icon-sm))] pr-[var(--space-3)]' : 'px-[var(--space-3)]'
+            leftIcon ? 'pl-[calc(var(--space-3)*2+var(--size-icon-sm))] pr-0' : 'px-0'
           )}
           {...props}
         />
@@ -117,9 +118,9 @@ export function SelectInput({
 
   return (
     <div className={cn('space-y-[var(--space-1)]', className)}>
-      <label htmlFor={fieldId} className="block text-[10px] font-bold uppercase tracking-widest text-neutral-500">
+      <label htmlFor={fieldId} className="block font-mono text-[10px] uppercase tracking-[0.06em] text-ink-3">
         {label}
-        {required && <span className="ml-[2px] text-accent-500">*</span>}
+        {required && <span className="ml-[2px] text-accent">*</span>}
       </label>
 
       <div className="relative">
@@ -129,8 +130,9 @@ export function SelectInput({
           aria-invalid={Boolean(error)}
           aria-describedby={describedBy}
           className={cn(
-            'h-[var(--size-control-md)] w-full appearance-none rounded-[var(--radius-md)] border border-primary-700 bg-primary-800 px-[var(--space-3)] pr-[calc(var(--space-3)*2+var(--size-icon-md))] text-sm text-white',
-            'transition-colors focus:border-accent-500 focus:outline-none',
+            'h-[var(--size-control-md)] w-full appearance-none bg-transparent text-ink font-display text-[18px]',
+            'border-0 border-b border-ink rounded-none px-0 pr-[calc(var(--space-3)*2+var(--size-icon-md))]',
+            'focus:outline-none focus:border-accent',
             'disabled:cursor-not-allowed disabled:opacity-60'
           )}
           {...props}
@@ -148,7 +150,7 @@ export function SelectInput({
         </select>
 
         <ChevronDown
-          className="pointer-events-none absolute right-[var(--space-3)] top-1/2 -translate-y-1/2 text-neutral-500"
+          className="pointer-events-none absolute right-[var(--space-3)] top-1/2 -translate-y-1/2 text-ink-3"
           size={16}
           aria-hidden="true"
         />
@@ -238,9 +240,9 @@ export function FileUploadInput({
 
   return (
     <div className={cn('space-y-[var(--space-1)]', className)}>
-      <label htmlFor={fieldId} className="block text-[10px] font-bold uppercase tracking-widest text-neutral-500">
+      <label htmlFor={fieldId} className="block font-mono text-[10px] uppercase tracking-[0.06em] text-ink-3">
         {label}
-        {required && <span className="ml-[2px] text-accent-500">*</span>}
+        {required && <span className="ml-[2px] text-accent">*</span>}
       </label>
 
       <button
@@ -263,18 +265,20 @@ export function FileUploadInput({
           if (file) validateAndSelect(file)
         }}
         className={cn(
-          'flex min-h-[120px] w-full flex-col items-center justify-center gap-[var(--space-2)] rounded-[var(--radius-lg)] border-2 border-dashed px-[var(--space-4)] py-[var(--space-5)] text-center transition-all',
+          'flex min-h-[120px] w-full flex-col items-center justify-center gap-[var(--space-2)]',
+          'border border-ink bg-paper-2 px-[var(--space-4)] py-[var(--space-5)] text-center',
+          'transition-colors',
           isDragging
-            ? 'border-accent-500 bg-accent-500/10'
-            : 'border-primary-600 bg-primary-800/30 hover:border-primary-500 hover:bg-primary-800/50',
+            ? 'border-accent bg-paper-3'
+            : 'hover:bg-paper-3',
           disabled && 'cursor-not-allowed opacity-50'
         )}
         aria-describedby={describedBy}
         aria-invalid={Boolean(resolvedError)}
       >
-        <Upload size={24} className={cn('text-neutral-500', isDragging && 'text-accent-500')} aria-hidden="true" />
-        <span className="text-sm text-white">{dropLabel}</span>
-        <span className="text-[11px] uppercase tracking-wide text-neutral-500">
+        <Upload size={24} className={cn('text-ink-3', isDragging && 'text-accent')} aria-hidden="true" />
+        <span className="font-mono text-[11px] uppercase tracking-[0.04em] text-ink">{dropLabel}</span>
+        <span className="font-mono text-[10px] uppercase tracking-[0.06em] text-ink-3">
           {accept ? accept : 'Any file type'} • Max {maxSizeMB}MB
         </span>
       </button>
@@ -296,13 +300,13 @@ export function FileUploadInput({
       />
 
       {selectedFile && (
-        <div className="flex items-center justify-between rounded-[var(--radius-md)] border border-primary-700 bg-primary-800 px-[var(--space-3)] py-[var(--space-2)]">
-          <p className="truncate text-sm text-white">{selectedFile.name}</p>
+        <div className="flex items-center justify-between border border-ink bg-transparent px-[var(--space-3)] py-[var(--space-2)]">
+          <p className="truncate font-display text-[16px] text-ink">{selectedFile.name}</p>
           {onClear && (
             <button
               type="button"
               onClick={onClear}
-              className="rounded-[var(--radius-sm)] p-[var(--space-1)] text-neutral-500 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
+              className="p-[var(--space-1)] text-ink-3 transition-colors hover:text-ink focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-ink"
               aria-label="Remove selected file"
             >
               <X size={14} aria-hidden="true" />
