@@ -8,16 +8,16 @@ type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger'
 type ButtonSize = 'sm' | 'md' | 'lg'
 
 const variantClasses: Record<ButtonVariant, string> = {
-  primary: 'bg-white text-primary-900 border-white hover:bg-neutral-200 focus-visible:ring-white',
-  secondary: 'bg-primary-800 text-white border-primary-600 hover:bg-primary-700 focus-visible:ring-accent-500',
-  ghost: 'bg-transparent text-neutral-300 border-transparent hover:bg-primary-800 hover:text-white focus-visible:ring-accent-500',
-  danger: 'bg-error-500 text-white border-error-500 hover:bg-error-600 focus-visible:ring-error-400',
+  primary: 'bg-ink text-paper border-ink hover:bg-paper hover:text-ink',
+  secondary: 'bg-transparent text-ink border-ink hover:bg-ink hover:text-paper',
+  ghost: 'bg-transparent text-ink border-ink hover:bg-ink hover:text-paper',
+  danger: 'bg-accent text-accent-ink border-accent hover:bg-paper hover:text-accent',
 }
 
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: 'h-[var(--size-control-sm)] px-[var(--space-3)] text-[11px]',
-  md: 'h-[var(--size-control-md)] px-[var(--space-4)] text-xs',
-  lg: 'h-[var(--size-control-lg)] px-[var(--space-5)] text-sm',
+  sm: 'px-[14px] py-[12px] min-w-[160px]',
+  md: 'px-[22px] py-[18px] min-w-[220px]',
+  lg: 'px-[28px] py-[22px] min-w-[260px]',
 }
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -52,9 +52,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       ref={ref}
       type={type ?? 'button'}
       className={cn(
-        'inline-flex items-center justify-center gap-[var(--space-2)] rounded-[var(--radius-md)] border font-bold uppercase tracking-widest',
-        'transition-[background-color,border-color,color,box-shadow,transform] duration-200',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-primary-900',
+        'inline-flex items-center justify-between gap-[24px]',
+        'font-mono text-[11px] uppercase tracking-[0.12em]',
+        'border transition-[background-color,color] duration-200',
+        'focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-ink',
         'disabled:opacity-50 disabled:pointer-events-none',
         sizeClasses[size],
         variantClasses[variant],
@@ -67,7 +68,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     >
       {loading ? (
         <span
-          className="h-[var(--size-icon-sm)] w-[var(--size-icon-sm)] animate-spin rounded-full border-2 border-current border-t-transparent"
+          className="h-[12px] w-[12px] animate-spin rounded-full border border-current border-t-transparent"
           aria-hidden="true"
         />
       ) : (
