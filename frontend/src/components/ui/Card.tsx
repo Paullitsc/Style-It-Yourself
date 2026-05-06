@@ -10,8 +10,8 @@ export function Card({ className, interactive = false, ...props }: CardProps) {
   return (
     <div
       className={cn(
-        'overflow-hidden rounded-[var(--radius-lg)] border border-primary-700 bg-primary-800',
-        interactive && 'transition-all hover:border-primary-600',
+        'border border-ink bg-paper',
+        interactive && 'transition-colors hover:bg-paper-2',
         className
       )}
       {...props}
@@ -20,7 +20,7 @@ export function Card({ className, interactive = false, ...props }: CardProps) {
 }
 
 export function CardHeader({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('border-b border-primary-700 p-[var(--space-4)]', className)} {...props} />
+  return <div className={cn('border-b border-ink p-[var(--space-4)]', className)} {...props} />
 }
 
 export function CardBody({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
@@ -28,7 +28,7 @@ export function CardBody({ className, ...props }: HTMLAttributes<HTMLDivElement>
 }
 
 export function CardFooter({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('border-t border-primary-700 p-[var(--space-4)]', className)} {...props} />
+  return <div className={cn('border-t border-ink p-[var(--space-4)]', className)} {...props} />
 }
 
 const FORMALITY_LABELS: Record<number, string> = {
