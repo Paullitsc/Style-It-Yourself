@@ -1,11 +1,27 @@
 // src/app/layout.tsx
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Instrument_Serif, JetBrains_Mono, Mona_Sans } from "next/font/google";
+import "@/styles/system.css";
 import "./global.css";
 import Header from "@/components/Headers";
 import { AuthProvider } from "@/components/AuthProvider";
 
-const inter = Inter({ subsets: ["latin"], variable: '--font-inter' });
+const monaSans = Mona_Sans({
+  subsets: ['latin'],
+  variable: '--font-mona-sans',
+  display: 'swap',
+});
+const instrumentSerif = Instrument_Serif({
+  subsets: ['latin'],
+  weight: '400',
+  variable: '--font-instrument-serif',
+  display: 'swap',
+});
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-jetbrains-mono',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: "SIY - Style It Yourself",
@@ -19,8 +35,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      {/* CHANGED: bg-neutral-50 -> bg-primary-900, text-neutral-900 -> text-neutral-50 */}
-      <body className={`${inter.variable} font-sans antialiased bg-primary-900 text-neutral-50`}>
+      <body className={`${monaSans.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} font-sans antialiased bg-primary-900 text-neutral-50`}>
         <AuthProvider>
           <Header />
           <main className="pt-20 min-h-screen">
