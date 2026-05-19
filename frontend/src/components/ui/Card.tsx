@@ -294,16 +294,16 @@ export function RecommendationCard({
     <div className="flex items-center gap-[var(--space-3)] p-[var(--space-3)] text-left">
       {swatchHex ? (
         <div
-          className="h-8 w-8 rounded-full border-2 border-accent"
+          className="h-8 w-8 rounded-full border-2 border-primary-600"
           style={{ backgroundColor: swatchHex }}
           aria-hidden="true"
         />
       ) : (
-        <div className="h-8 w-8 rounded-full border border-accent/20 bg-accent/20" aria-hidden="true" />
+        <div className="h-8 w-8 rounded-full border border-primary-700 bg-primary-700/70" aria-hidden="true" />
       )}
 
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-paper">{title}</p>
+        <p className="truncate text-sm font-medium text-white">{title}</p>
         {description && <p className="truncate text-[10px] uppercase text-neutral-500">{description}</p>}
       </div>
 
@@ -318,9 +318,9 @@ export function RecommendationCard({
         type="button"
         onClick={onClick}
         className={cn(
-          'w-full overflow-hidden border border-ink bg-ink',
-          'transition-all hover:bg-ink-2',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-paper',
+          'w-full overflow-hidden rounded-[var(--radius-lg)] border border-primary-700 bg-primary-800',
+          'transition-all hover:border-primary-500',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 focus-visible:ring-offset-primary-900',
           className
         )}
         aria-label={title}
