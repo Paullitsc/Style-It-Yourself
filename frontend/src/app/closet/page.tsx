@@ -691,9 +691,6 @@ interface ItemTileProps {
 }
 
 function ItemTile({ item, onClick, onTryOn }: ItemTileProps) {
-  const aesthetics = (item.aesthetics ?? []).slice(0, 2).join(' · ')
-  const formality = item.formality ?? 0
-  // Auto-name: "Navy T-shirt" beats just "T-shirt" when you own multiples.
   const displayName = item.color?.name
     ? `${item.color.name} ${item.category.l2}`
     : item.category.l2
@@ -709,14 +706,14 @@ function ItemTile({ item, onClick, onTryOn }: ItemTileProps) {
           onClick()
         }
       }}
-      className="group flex flex-col gap-2 cursor-pointer focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-ink"
-      aria-label={`Open details for ${item.category.l2}`}
+      className="group cursor-pointer focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-ink"
+      aria-label={`Open details for ${displayName}`}
     >
       <div className="relative aspect-[4/5] border border-ink overflow-hidden bg-paper-2 transition-transform duration-200 group-hover:-translate-y-[3px]">
         {item.image_url ? (
           <img
             src={item.image_url}
-            alt={item.category.l2}
+            alt={displayName}
             className="w-full h-full object-cover"
           />
         ) : (
@@ -744,7 +741,7 @@ function ItemTile({ item, onClick, onTryOn }: ItemTileProps) {
             'bg-paper/40 backdrop-blur-md',
             'hover:bg-paper/70',
           )}
-          aria-label={`Try on ${item.category.l2}`}
+          aria-label={`Try on ${displayName}`}
         >
           Try on →
         </button>
@@ -759,30 +756,6 @@ function ItemTile({ item, onClick, onTryOn }: ItemTileProps) {
             {item.color.name}
           </span>
         )}
-      </div>
-
-      <div className="font-display text-[18px] leading-none truncate">
-        {displayName}
-      </div>
-
-      <div className="flex justify-between items-baseline gap-3">
-        <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-ink-3 truncate">
-          {aesthetics || '—'}
-        </span>
-        <span
-          className="flex gap-[2px] shrink-0"
-          aria-label={`Formality ${formality} of 5`}
-        >
-          {[1, 2, 3, 4, 5].map((n) => (
-            <i
-              key={n}
-              className={cn(
-                'w-[6px] h-[6px] border border-ink',
-                n <= formality ? 'bg-ink' : 'bg-paper-3',
-              )}
-            />
-          ))}
-        </span>
       </div>
     </div>
   )

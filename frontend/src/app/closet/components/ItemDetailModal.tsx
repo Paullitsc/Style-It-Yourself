@@ -1,17 +1,18 @@
 'use client'
 
 import { useState } from 'react'
-import { ExternalLink, Tag, DollarSign, Shirt, Calendar, ShoppingBag, Trash2 } from 'lucide-react'
+import type { ReactNode } from 'react'
 import type { ClothingItemResponse } from '@/types'
-import {
-  Badge,
-  Button,
-  CategoryBadge,
-  ConfirmationModal,
-  FormalityBadge,
-  Modal,
-  StatusBadge,
-} from '@/components/ui'
+import { ConfirmationModal, Modal } from '@/components/ui'
+import { cn } from '@/lib/cn'
+
+const FORMALITY_LABELS: Record<number, string> = {
+  1: 'Casual',
+  2: 'Smart-casual',
+  3: 'Business',
+  4: 'Formal',
+  5: 'Black tie',
+}
 
 interface ItemDetailModalProps {
   item: ClothingItemResponse
@@ -19,26 +20,35 @@ interface ItemDetailModalProps {
   onDelete?: (itemId: string) => Promise<void>
 }
 
-export default function ItemDetailModal({ item, onClose, onDelete }: ItemDetailModalProps) {
+export default function ItemDetailModal({
+  item,
+  onClose,
+  onDelete,
+}: ItemDetailModalProps) {
   const [isDeleting, setIsDeleting] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
 
-  const formatDate = (dateString: string) => {
+  const displayName = item.color?.name
+    ? `${item.color.name} ${item.category.l2}`
+    : item.category.l2
+
+  const formattedDate = (() => {
     try {
-      return new Date(dateString).toLocaleDateString('en-US', {
+      return new Date(item.created_at).toLocaleDateString('en-US', {
         month: 'long',
         day: 'numeric',
         year: 'numeric',
       })
     } catch {
-      return dateString
+      return item.created_at
     }
-  }
+  })()
+
+  const formality = item.formality ?? 0
 
   const handleDelete = async () => {
     if (!onDelete) return
     setIsDeleting(true)
-
     try {
       await onDelete(item.id)
       onClose()
@@ -55,106 +65,166 @@ export default function ItemDetailModal({ item, onClose, onDelete }: ItemDetailM
       <Modal
         isOpen={true}
         onClose={onClose}
-        title={item.category.l2}
-        description={item.category.l1}
-        size="md"
+        size="xl"
         footer={
-          <div className="flex gap-[var(--space-3)]">
-            <Button variant="secondary" className="flex-1" onClick={onClose}>
+          <div className="flex items-center justify-between gap-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="font-mono text-[11px] uppercase tracking-[0.12em] pb-[2px] border-b border-transparent hover:border-ink transition-colors"
+            >
               Close
-            </Button>
+            </button>
             {onDelete && (
-              <Button
-                variant="danger"
-                className="flex-1"
+              <button
+                type="button"
                 onClick={() => setShowConfirm(true)}
-                leftIcon={<Trash2 size={14} aria-hidden="true" />}
+                className="font-mono text-[11px] uppercase tracking-[0.12em] text-accent pb-[2px] border-b border-transparent hover:border-accent transition-colors"
               >
-                Delete
-              </Button>
+                Delete piece
+              </button>
             )}
           </div>
         }
       >
-        <div className="space-y-[var(--space-6)]">
-          <div className="relative mb-[var(--space-2)] aspect-[3/4] overflow-hidden rounded-[var(--radius-lg)] border border-primary-700 bg-primary-800">
+        <div className="grid grid-cols-[1fr_1fr] max-md:grid-cols-1 gap-10">
+          {/* IMAGE */}
+          <div className="relative aspect-[4/5] border border-ink overflow-hidden bg-paper-2">
             {item.image_url ? (
-              <img src={item.image_url} alt={item.category.l2} className="h-full w-full object-contain" />
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={item.image_url}
+                alt={displayName}
+                className="w-full h-full object-cover"
+              />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-neutral-600">
-                <Shirt size={48} strokeWidth={1} aria-hidden="true" />
-              </div>
+              <div className="absolute inset-0 product__frame--placeholder" />
             )}
-
-            <div className="absolute right-[var(--space-3)] top-[var(--space-3)]">
-              <StatusBadge status={item.ownership} />
-            </div>
-
-            <div className="absolute bottom-[var(--space-3)] right-[var(--space-3)] rounded-full border border-primary-700 bg-primary-900/90 px-[var(--space-3)] py-[var(--space-1)] backdrop-blur">
-              <div className="flex items-center gap-[var(--space-2)]">
-                <div
-                  className="h-3 w-3 rounded-full border border-primary-700"
-                  style={{ backgroundColor: item.color.hex }}
-                  aria-hidden="true"
-                />
-                <span className="text-[10px] font-bold uppercase tracking-wider text-white">{item.color.name}</span>
-              </div>
-            </div>
+            {item.ownership === 'wishlist' && (
+              <span className="absolute top-3 right-3 bg-accent text-paper px-2 py-1 font-mono text-[9px] uppercase tracking-[0.1em]">
+                Wishlist
+              </span>
+            )}
           </div>
 
-          <div className="flex flex-wrap gap-[var(--space-2)]">
-            <FormalityBadge level={item.formality} />
-            <CategoryBadge category={item.category.l1} />
-            {item.color.is_neutral && <Badge tone="neutral">Neutral</Badge>}
-          </div>
+          {/* INFO */}
+          <div className="flex flex-col">
+            {/* Eyebrow */}
+            <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mb-3">
+              {item.category.l1} · {item.category.l2}
+            </div>
 
-          {item.aesthetics.length > 0 && (
-            <div>
-              <p className="mb-[var(--space-2)] text-[10px] font-bold uppercase tracking-widest text-neutral-500">Aesthetics</p>
-              <div className="flex flex-wrap gap-[var(--space-2)]">
-                {item.aesthetics.map((tag) => (
-                  <Badge key={tag} tone="neutral">
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
+            {/* Display name */}
+            <h2 className="font-display font-normal text-[clamp(40px,4.5vw,64px)] leading-[0.95] tracking-[-0.02em] m-0 mb-2">
+              {item.color?.name && (
+                <em className="italic text-ink-3">{item.color.name}</em>
+              )}
+              {item.color?.name ? <br /> : null}
+              {item.category.l2.toLowerCase()}
+              <span className="italic text-ink-3">.</span>
+            </h2>
 
-          <div className="space-y-[var(--space-3)] border-t border-primary-800 pt-[var(--space-4)]">
-            {item.brand && (
-              <div className="flex items-center gap-[var(--space-3)] text-sm text-neutral-300">
-                <Tag size={14} className="shrink-0 text-neutral-500" aria-hidden="true" />
-                <span>{item.brand}</span>
-              </div>
-            )}
-            {item.price !== null && item.price !== undefined && (
-              <div className="flex items-center gap-[var(--space-3)] text-sm text-neutral-300">
-                <DollarSign size={14} className="shrink-0 text-neutral-500" aria-hidden="true" />
-                <span>${item.price.toFixed(2)}</span>
-              </div>
-            )}
-            {item.source_url && (
-              <div className="flex items-center gap-[var(--space-3)] text-sm">
-                <ExternalLink size={14} className="shrink-0 text-neutral-500" aria-hidden="true" />
-                <a
-                  href={item.source_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="truncate text-accent-500 hover:text-accent-400 hover:underline"
-                >
-                  View Source
-                </a>
-              </div>
-            )}
-            <div className="flex items-center gap-[var(--space-3)] text-sm text-neutral-300">
-              <ShoppingBag size={14} className="shrink-0 text-neutral-500" aria-hidden="true" />
-              <span className="capitalize">{item.ownership}</span>
-            </div>
-            <div className="flex items-center gap-[var(--space-3)] text-sm text-neutral-400">
-              <Calendar size={14} className="shrink-0 text-neutral-500" aria-hidden="true" />
-              <span>Added {formatDate(item.created_at)}</span>
-            </div>
+            <hr className="border-t border-ink mt-6 mb-6" />
+
+            {/* Metadata rows */}
+            <dl className="flex flex-col gap-5">
+              <MetaRow label="Color">
+                <span className="inline-flex items-center gap-3">
+                  <i
+                    className="inline-block w-[18px] h-[18px] border border-ink"
+                    style={{ backgroundColor: item.color.hex }}
+                    aria-hidden="true"
+                  />
+                  <span className="font-display text-[20px] leading-none">
+                    {item.color.name}
+                    {item.color.is_neutral && (
+                      <em className="italic text-ink-3"> · neutral</em>
+                    )}
+                  </span>
+                  <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink-3">
+                    {item.color.hex.toUpperCase()}
+                  </span>
+                </span>
+              </MetaRow>
+
+              <MetaRow label="Formality">
+                <span className="inline-flex items-center gap-3">
+                  <span
+                    className="flex gap-[3px]"
+                    aria-label={`${formality} of 5`}
+                  >
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <i
+                        key={n}
+                        className={cn(
+                          'w-[10px] h-[10px] border border-ink',
+                          n <= formality ? 'bg-ink' : 'bg-paper',
+                        )}
+                      />
+                    ))}
+                  </span>
+                  <span className="font-display text-[20px] leading-none">
+                    {FORMALITY_LABELS[formality] ?? '—'}
+                  </span>
+                </span>
+              </MetaRow>
+
+              {item.aesthetics.length > 0 && (
+                <MetaRow label="Aesthetics">
+                  <span className="font-display text-[20px] leading-tight">
+                    {item.aesthetics.map((tag, i) => (
+                      <span key={tag}>
+                        {i > 0 && (
+                          <span className="text-ink-3"> · </span>
+                        )}
+                        <em className="italic">{tag}</em>
+                      </span>
+                    ))}
+                  </span>
+                </MetaRow>
+              )}
+
+              {item.brand && (
+                <MetaRow label="Brand">
+                  <span className="font-display text-[20px] leading-none">
+                    {item.brand}
+                  </span>
+                </MetaRow>
+              )}
+
+              {item.price !== null && item.price !== undefined && (
+                <MetaRow label="Price">
+                  <span className="font-display text-[20px] leading-none">
+                    ${item.price.toFixed(2)}
+                  </span>
+                </MetaRow>
+              )}
+
+              {item.source_url && (
+                <MetaRow label="Source">
+                  <a
+                    href={item.source_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-display italic text-[20px] leading-none underline decoration-ink-3 underline-offset-4 hover:decoration-ink"
+                  >
+                    View original →
+                  </a>
+                </MetaRow>
+              )}
+
+              <MetaRow label="Status">
+                <span className="font-display text-[20px] leading-none capitalize">
+                  {item.ownership}
+                </span>
+              </MetaRow>
+
+              <MetaRow label="Added">
+                <span className="font-display text-[20px] leading-none">
+                  {formattedDate}
+                </span>
+              </MetaRow>
+            </dl>
           </div>
         </div>
       </Modal>
@@ -165,12 +235,28 @@ export default function ItemDetailModal({ item, onClose, onDelete }: ItemDetailM
           onClose={() => setShowConfirm(false)}
           onConfirm={handleDelete}
           isConfirming={isDeleting}
-          title="Delete Item"
-          description="Delete this item? This cannot be undone."
+          title="Delete piece"
+          description={`Remove ${displayName} from your closet? This can't be undone.`}
           confirmLabel="Delete"
           tone="danger"
         />
       )}
     </>
+  )
+}
+
+interface MetaRowProps {
+  label: string
+  children: ReactNode
+}
+
+function MetaRow({ label, children }: MetaRowProps) {
+  return (
+    <div className="grid grid-cols-[120px_1fr] max-md:grid-cols-1 gap-4 items-baseline">
+      <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3">
+        — {label} —
+      </dt>
+      <dd className="m-0">{children}</dd>
+    </div>
   )
 }
