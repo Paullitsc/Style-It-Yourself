@@ -75,19 +75,6 @@ export default function Home() {
 
           {/* STAGE */}
           <section className="py-24 max-md:py-16 text-center">
-            {/* META TOP */}
-            <div className="grid grid-cols-3 items-end mb-14">
-              <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-ink-3 text-left">
-                McGill · Montréal
-              </span>
-              <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-ink-3 text-center">
-                Vol. 1
-              </span>
-              <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-ink-3 text-right">
-                Spring 2026
-              </span>
-            </div>
-
             {/* HEADLINE */}
             <h1 className="font-display font-normal uppercase text-[clamp(96px,16vw,240px)] leading-[0.85] tracking-[-0.025em] m-0">
               Style it,
