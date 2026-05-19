@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #101518; /* primary-900 */
-  --foreground: #ffffff; /* neutral-50 */
+  --background: oklch(0.985 0.004 80); /* paper */
+  --foreground: oklch(0.18  0.01  60); /* ink */
 
   /* Spacing tokens */
   --space-1: 0.25rem;
@@ -121,13 +121,6 @@
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #101518;
-    --foreground: #ffffff;
-  }
 }
 
 body {
