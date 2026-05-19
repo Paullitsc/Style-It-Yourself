@@ -101,13 +101,6 @@ export default function Home() {
                 How it works
               </Button>
             </div>
-
-            {/* MARK MINI */}
-            <div className="mx-auto mt-16 max-w-[220px] text-center font-mono text-[10px] uppercase tracking-[0.16em] text-ink-3">
-              Three steps · No accounts
-              <hr className="border-0 border-t border-ink my-[14px]" />
-              Upload — Score — Try on
-            </div>
           </section>
 
           {/* CREDITS */}
