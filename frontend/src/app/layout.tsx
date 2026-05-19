@@ -35,10 +35,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${monaSans.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} font-sans antialiased bg-paper text-ink`}>
+      <body className={`${monaSans.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} font-sans antialiased bg-paper text-ink flex flex-col min-h-screen`}>
         <AuthProvider>
           <Header />
-          <main className="pt-20 min-h-screen">
+          <main className="flex-1 flex flex-col">
             {children}
           </main>
         </AuthProvider>

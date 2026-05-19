@@ -174,42 +174,8 @@ export default function ClosetPage() {
 
   return (
     <ProtectedRoute>
-      {/* -mt-20 cancels the pt-20 baked into layout.tsx's <main> so the
-          closet starts at the viewport top, matching the artboard. */}
-      <div className="-mt-20 min-h-screen bg-paper text-ink">
+      <div className="flex-1">
         <div className="max-w-[1320px] mx-auto px-14 max-md:px-6 pt-7 pb-24">
-          {/* MASTHEAD */}
-          <header className="grid grid-cols-[1fr_auto_1fr] items-center py-2 pb-6 border-b border-ink">
-            <div className="font-mono text-[11px] uppercase tracking-[0.12em]">
-              <Link
-                href="/"
-                className="pb-[2px] border-b border-transparent hover:border-ink transition-colors"
-              >
-                ← Back
-              </Link>
-            </div>
-            <Link
-              href="/"
-              className="font-display italic text-[22px] leading-none text-center text-ink"
-            >
-              Style It Yourself
-            </Link>
-            <nav className="flex gap-6 justify-end font-mono text-[11px] uppercase tracking-[0.12em]">
-              <Link
-                href="/style"
-                className="pb-[2px] border-b border-transparent hover:border-ink transition-colors"
-              >
-                Style
-              </Link>
-              <Link
-                href="/account"
-                className="pb-[2px] border-b border-transparent hover:border-ink transition-colors"
-              >
-                Account
-              </Link>
-            </nav>
-          </header>
-
           {/* HEAD */}
           <section className="py-12 pb-7 border-b border-ink">
             <h1 className="m-0 font-display font-normal uppercase text-[clamp(72px,9vw,128px)] leading-[0.92] tracking-[-0.025em]">
@@ -576,45 +542,48 @@ function ItemsView({
       ? sortedCategories
       : sortedCategories.filter((c) => c === categoryFilter)
 
-  let runningIndex = 0
+  const sections = visibleCategories
+    .map((category) => ({
+      category,
+      filtered: sortItems(closetData.items_by_category[category] ?? []),
+    }))
+    .filter((s) => s.filtered.length > 0)
+    .map((section, i, arr) => ({
+      ...section,
+      startIndex: arr
+        .slice(0, i)
+        .reduce((sum, s) => sum + s.filtered.length, 0),
+    }))
 
   return (
     <div>
-      {visibleCategories.map((category) => {
-        const filtered = sortItems(closetData.items_by_category[category] ?? [])
-        if (filtered.length === 0) return null
+      {sections.map(({ category, filtered, startIndex }) => (
+        <section key={category}>
+          <header className="grid grid-cols-[auto_auto_1fr] gap-4 items-baseline pt-9 pb-[18px] mb-6 border-b border-ink">
+            <span className="font-display uppercase text-[36px] leading-none tracking-[-0.015em]">
+              {category}
+            </span>
+            <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
+              {pad2(filtered.length)}{' '}
+              {filtered.length === 1 ? 'piece' : 'pieces'}
+            </span>
+            <span className="h-px bg-ink" aria-hidden="true" />
+          </header>
 
-        return (
-          <section key={category}>
-            <header className="grid grid-cols-[auto_auto_1fr] gap-4 items-baseline pt-9 pb-[18px] mb-6 border-b border-ink">
-              <span className="font-display uppercase text-[36px] leading-none tracking-[-0.015em]">
-                {category}
-              </span>
-              <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
-                {pad2(filtered.length)}{' '}
-                {filtered.length === 1 ? 'piece' : 'pieces'}
-              </span>
-              <span className="h-px bg-ink" aria-hidden="true" />
-            </header>
-
-            <div className="grid grid-cols-5 gap-6 max-md:grid-cols-2 mb-12">
-              {filtered.map((item) => {
-                runningIndex += 1
-                return (
-                  <ItemTile
-                    key={item.id}
-                    item={item}
-                    index={runningIndex}
-                    onClick={() => onItemClick(item)}
-                    onTryOn={() => onTryOn(item)}
-                  />
-                )
-              })}
-              <AddSlot />
-            </div>
-          </section>
-        )
-      })}
+          <div className="grid grid-cols-5 gap-6 max-md:grid-cols-2 mb-12">
+            {filtered.map((item, i) => (
+              <ItemTile
+                key={item.id}
+                item={item}
+                index={startIndex + i + 1}
+                onClick={() => onItemClick(item)}
+                onTryOn={() => onTryOn(item)}
+              />
+            ))}
+            <AddSlot />
+          </div>
+        </section>
+      ))}
     </div>
   )
 }

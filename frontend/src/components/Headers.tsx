@@ -1,33 +1,93 @@
 'use client'
+
 import { useState } from 'react'
 import { usePathname } from 'next/navigation'
-import NavBar from './NavBar'
-import AuthModal from './AuthModal'
 import Link from 'next/link'
+import { useAuth } from './AuthProvider'
+import AuthModal from './AuthModal'
+
+const linkClass =
+  'font-mono text-[11px] uppercase tracking-[0.12em] pb-[2px] border-b border-transparent hover:border-ink transition-colors'
 
 export default function Header() {
-  const [isAuthModalOpen, setAuthModalOpen] = useState(false)
+  const { user, signOut } = useAuth()
   const pathname = usePathname()
+  const [isAuthModalOpen, setAuthModalOpen] = useState(false)
 
-  // Landing and Closet each supply their own editorial masthead per their artboards.
-  if (pathname === '/' || pathname === '/closet') return null
+  const isLanding = pathname === '/'
+  const onStyle = pathname.startsWith('/style')
+  const onCloset = pathname.startsWith('/closet')
+  const onAccount = pathname.startsWith('/account')
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-50 bg-paper border-b border-ink">
-        <div className="flex items-center justify-between px-8 md:px-12 py-[20px]">
+      <header className="border-b border-ink bg-paper">
+        <div className="max-w-[1320px] mx-auto px-14 max-md:px-6 pt-4 pb-6 grid grid-cols-[1fr_auto_1fr] items-center">
+          <div className="font-mono text-[11px] uppercase tracking-[0.12em]">
+            {!isLanding && (
+              <Link
+                href="/"
+                className="pb-[2px] border-b border-transparent hover:border-ink transition-colors"
+              >
+                ← Back
+              </Link>
+            )}
+          </div>
+
           <Link
             href="/"
-            className="font-mono text-[11px] uppercase tracking-[0.08em] text-ink hover:text-ink-2 transition-colors"
+            className="font-display italic text-[22px] leading-none text-center text-ink"
           >
-            Style It Yourself · Est. 2025
+            Style It Yourself
           </Link>
 
-          <NavBar onOpenAuth={() => setAuthModalOpen(true)} />
+          <nav className="flex gap-6 justify-end">
+            {!onStyle && (
+              <Link href="/style" className={linkClass}>
+                Style
+              </Link>
+            )}
+            {user && !onCloset && (
+              <Link href="/closet" className={linkClass}>
+                Closet
+              </Link>
+            )}
+            {user && !onAccount && (
+              <Link href="/account" className={linkClass}>
+                Account
+              </Link>
+            )}
+            {user ? (
+              <Link
+                href="#logout"
+                onClick={(e) => {
+                  e.preventDefault()
+                  signOut()
+                }}
+                className={linkClass}
+              >
+                Log out
+              </Link>
+            ) : (
+              <Link
+                href="#login"
+                onClick={(e) => {
+                  e.preventDefault()
+                  setAuthModalOpen(true)
+                }}
+                className={linkClass}
+              >
+                Login
+              </Link>
+            )}
+          </nav>
         </div>
       </header>
 
-      <AuthModal isOpen={isAuthModalOpen} onClose={() => setAuthModalOpen(false)} />
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+      />
     </>
   )
 }
