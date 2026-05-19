@@ -36,8 +36,8 @@ export default function Home() {
     <>
       {/* -mt-20 cancels the pt-20 baked into layout.tsx's <main> so the
           landing starts at the viewport top, matching the artboard. */}
-      <div className="-mt-20 min-h-screen bg-paper text-ink">
-        <div className="max-w-[1320px] mx-auto px-14 max-md:px-6 pt-7 pb-24">
+      <div className="-mt-20 min-h-screen bg-paper text-ink flex flex-col">
+        <div className="max-w-[1320px] w-full mx-auto px-14 max-md:px-6 pt-7 pb-7 flex-1 flex flex-col">
           {/* MASTHEAD */}
           <header className="grid grid-cols-[1fr_auto_1fr] items-center py-2 pb-6 border-b border-ink">
             <div />
@@ -87,26 +87,12 @@ export default function Home() {
               A quiet tool for putting clothes together with intention — color,
               formality, and a working sense of taste.
             </p>
-
-            {/* CTAS */}
-            <div className="flex flex-wrap justify-center gap-[14px] mt-14">
-              <Button onClick={handleBegin} rightIcon={<span>→</span>}>
-                Begin
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={scrollToCredits}
-                rightIcon={<span>↘</span>}
-              >
-                How it works
-              </Button>
-            </div>
           </section>
 
           {/* CREDITS */}
           <footer
             id="credits"
-            className="mt-24 pt-[22px] border-t border-ink grid grid-cols-4 max-md:grid-cols-2 gap-y-6 font-mono text-[10px] uppercase tracking-[0.1em]"
+            className="mt-auto pt-[22px] border-t border-ink grid grid-cols-4 max-md:grid-cols-2 gap-y-6 font-mono text-[10px] uppercase tracking-[0.1em]"
           >
             {CREDITS.map((credit, i) => (
               <div
