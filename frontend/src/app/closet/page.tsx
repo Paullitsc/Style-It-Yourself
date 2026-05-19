@@ -31,9 +31,6 @@ const formatMonthShort = (d: Date) =>
 const formatDay = (d: Date) =>
   d.toLocaleDateString('en-US', { day: 'numeric' })
 
-const formatMonthDay = (d: Date) =>
-  d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-
 export default function ClosetPage() {
   const { session } = useAuth()
   const [closetData, setClosetData] = useState<ClosetResponse | null>(null)
@@ -755,7 +752,7 @@ function OutfitsView({ outfits, onOutfitClick }: OutfitsViewProps) {
         <span className="h-px bg-ink" aria-hidden="true" />
       </header>
 
-      <div className="grid grid-cols-4 gap-7 max-md:grid-cols-2">
+      <div className="grid grid-cols-5 gap-6 max-md:grid-cols-2">
         {outfits.map((outfit) => (
           <OutfitTile
             key={outfit.id}
@@ -778,10 +775,10 @@ function OutfitTile({ outfit, onClick }: OutfitTileProps) {
     <button
       type="button"
       onClick={onClick}
-      className="text-left border border-ink bg-paper cursor-pointer transition-transform duration-200 hover:-translate-y-[3px] focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-ink"
+      className="group text-left cursor-pointer focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-ink"
       aria-label={`Open ${outfit.name}`}
     >
-      <div className="relative aspect-[5/4] border-b border-ink overflow-hidden bg-paper-2">
+      <div className="relative aspect-[4/5] border border-ink overflow-hidden bg-paper-2 transition-transform duration-200 group-hover:-translate-y-[3px]">
         {outfit.thumbnail_url ? (
           <img
             src={outfit.thumbnail_url}
@@ -791,19 +788,6 @@ function OutfitTile({ outfit, onClick }: OutfitTileProps) {
         ) : (
           <div className="absolute inset-0 product__frame--placeholder" />
         )}
-      </div>
-      <div className="px-[18px] pt-[18px] pb-4">
-        <div className="flex justify-between items-baseline mb-[10px]">
-          <span className="font-display text-[24px] leading-none">
-            {outfit.name}
-          </span>
-        </div>
-        <div className="flex gap-[14px] font-mono text-[9px] uppercase tracking-[0.1em] text-ink-3 pt-[10px] border-t border-ink">
-          <span>
-            {outfit.item_count} {outfit.item_count === 1 ? 'piece' : 'pieces'}
-          </span>
-          <span>{formatMonthDay(new Date(outfit.created_at))}</span>
-        </div>
       </div>
     </button>
   )
