@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Check, Plus, Copy } from 'lucide-react'
 import { buildColorFromHex, hslToHex } from '@/lib/colorUtils'
-import type { Color } from '@/types' // Corrected from ClothingColor
+import type { Color } from '@/types'
+import { cn } from '@/lib/cn'
 
 interface ColorSelectorProps {
   detectedColors: Color[]
@@ -22,12 +22,11 @@ export default function ColorSelector({
   onSelectDetected,
   onUpdateAdjusted,
   onOpenPicker,
-  isExtracting = false
+  isExtracting = false,
 }: ColorSelectorProps) {
   const [hexInput, setHexInput] = useState(adjustedColor?.hex || '')
   const [copied, setCopied] = useState(false)
 
-  // Sync internal hex input when parent updates color
   useEffect(() => {
     if (adjustedColor) setHexInput(adjustedColor.hex)
   }, [adjustedColor])
@@ -35,8 +34,7 @@ export default function ColorSelector({
   const handleBrightnessChange = (lightness: number) => {
     if (!adjustedColor) return
     const newHex = hslToHex(adjustedColor.hsl.h, adjustedColor.hsl.s, lightness)
-    const newColor = buildColorFromHex(newHex)
-    onUpdateAdjusted(newColor)
+    onUpdateAdjusted(buildColorFromHex(newHex))
   }
 
   const handleHexChange = (value: string) => {
@@ -46,129 +44,152 @@ export default function ColorSelector({
     }
   }
 
-  const handleCopyHex = () => {
-    if (adjustedColor) {
-      navigator.clipboard.writeText(adjustedColor.hex)
+  const handleCopyHex = async () => {
+    if (!adjustedColor) return
+    try {
+      await navigator.clipboard.writeText(adjustedColor.hex)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
+    } catch {
+      /* ignore */
     }
   }
 
   return (
-    <div className="space-y-8">
-      {/* 1. Detected Colors Grid */}
+    <div className="flex flex-col gap-8">
+      {/* Detected colors */}
       <div>
-        <label className="block text-[10px] uppercase font-bold tracking-widest text-neutral-500 mb-4">
-          Detected Colors
-        </label>
-        
+        <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mb-4">
+          Detected colors
+        </div>
+
         {isExtracting ? (
-          <div className="flex items-center gap-3 text-neutral-400">
-            <div className="w-5 h-5 border-2 border-accent-500 border-t-transparent rounded-full animate-spin" />
-            <span className="text-sm">Analyzing image...</span>
+          <div className="font-display italic text-[16px] text-ink-2">
+            Analyzing image…
           </div>
         ) : (
-          <div className="flex items-center gap-4">
-            {detectedColors.map((color, index) => (
-              <button
-                key={index}
-                onClick={() => onSelectDetected(index)}
-                className="group flex flex-col items-center gap-2"
-              >
-                <div
-                  className={`
-                    w-16 h-16 rounded-full transition-all duration-200
-                    ${selectedColorIndex === index 
-                      ? 'ring-2 ring-white ring-offset-2 ring-offset-primary-900 scale-110' 
-                      : 'hover:scale-105'
-                    }
-                  `}
-                  style={{ backgroundColor: color.hex }}
-                />
-                <span className={`
-                  text-[10px] uppercase tracking-wider transition-colors
-                  ${selectedColorIndex === index ? 'text-white' : 'text-neutral-500'}
-                `}>
-                  {color.name}
-                </span>
-                {selectedColorIndex === index && (
-                  <Check size={12} className="text-accent-500" />
-                )}
-              </button>
-            ))}
+          <div className="flex items-start gap-6">
+            {detectedColors.map((color, index) => {
+              const isActive = selectedColorIndex === index
+              return (
+                <button
+                  key={index}
+                  type="button"
+                  onClick={() => onSelectDetected(index)}
+                  aria-pressed={isActive}
+                  className="group flex flex-col items-center gap-2"
+                >
+                  <span
+                    className={cn(
+                      'inline-block w-[56px] h-[56px] border transition-all',
+                      isActive
+                        ? 'border-ink border-2'
+                        : 'border-ink/40 group-hover:border-ink',
+                    )}
+                    style={{ backgroundColor: color.hex }}
+                    aria-hidden="true"
+                  />
+                  <span
+                    className={cn(
+                      'font-mono text-[10px] uppercase tracking-[0.08em] transition-colors',
+                      isActive
+                        ? 'text-ink font-bold'
+                        : 'text-ink-3 font-normal group-hover:text-ink',
+                    )}
+                  >
+                    {color.name}
+                  </span>
+                </button>
+              )
+            })}
           </div>
         )}
       </div>
 
-      <div className="border-t border-primary-700" />
+      <hr className="border-t border-rule-soft" />
 
-      {/* 2. Brightness Slider */}
+      {/* Brightness */}
       {adjustedColor && (
         <div>
-          <label className="block text-[10px] uppercase font-bold tracking-widest text-neutral-500 mb-4">
-            Adjust Brightness
-          </label>
+          <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mb-4">
+            Adjust brightness
+          </div>
           <div className="flex items-center gap-4">
-            <span className="text-[10px] uppercase text-neutral-600">Darker</span>
+            <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-ink-3 shrink-0">
+              Darker
+            </span>
             <input
               type="range"
               min={5}
               max={95}
               value={adjustedColor.hsl.l}
               onChange={(e) => handleBrightnessChange(Number(e.target.value))}
-              className="flex-1 h-2 rounded-full appearance-none cursor-pointer"
+              aria-label="Brightness"
+              className={cn(
+                'flex-1 h-2 appearance-none cursor-pointer',
+                '[&::-webkit-slider-thumb]:appearance-none',
+                '[&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4',
+                '[&::-webkit-slider-thumb]:bg-ink [&::-webkit-slider-thumb]:border-0',
+                '[&::-webkit-slider-thumb]:cursor-grab',
+                '[&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4',
+                '[&::-moz-range-thumb]:bg-ink [&::-moz-range-thumb]:border-0',
+              )}
               style={{
-                background: `linear-gradient(to right, 
-                  ${hslToHex(adjustedColor.hsl.h, adjustedColor.hsl.s, 5)}, 
-                  ${hslToHex(adjustedColor.hsl.h, adjustedColor.hsl.s, 50)}, 
-                  ${hslToHex(adjustedColor.hsl.h, adjustedColor.hsl.s, 95)}
-                )`
+                background: `linear-gradient(to right,
+                  ${hslToHex(adjustedColor.hsl.h, adjustedColor.hsl.s, 5)},
+                  ${hslToHex(adjustedColor.hsl.h, adjustedColor.hsl.s, 50)},
+                  ${hslToHex(adjustedColor.hsl.h, adjustedColor.hsl.s, 95)})`,
               }}
             />
-            <span className="text-[10px] uppercase text-neutral-600">Lighter</span>
-            
-            <button
-              onClick={onOpenPicker}
-              className="w-8 h-8 rounded-full bg-primary-700 hover:bg-primary-600 flex items-center justify-center transition-colors"
-              title="Pick custom color"
-            >
-              <Plus size={14} className="text-neutral-400" />
-            </button>
+            <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-ink-3 shrink-0">
+              Lighter
+            </span>
           </div>
+          <button
+            type="button"
+            onClick={onOpenPicker}
+            className="mt-4 font-mono text-[10px] uppercase tracking-[0.12em] text-ink-3 pb-[2px] border-b border-transparent hover:border-ink hover:text-ink transition-colors"
+          >
+            + Pick a custom color
+          </button>
         </div>
       )}
 
-      {/* 3. Hex Input */}
+      {adjustedColor && <hr className="border-t border-rule-soft" />}
+
+      {/* Hex */}
       {adjustedColor && (
         <div>
-          <label className="block text-[10px] uppercase font-bold tracking-widest text-neutral-500 mb-3">
-            Hex Code
-          </label>
+          <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mb-3">
+            Hex
+          </div>
           <div className="flex items-center gap-3">
-            <div
-              className="w-10 h-10 rounded border border-primary-600"
+            <i
+              className="inline-block w-[36px] h-[36px] border border-ink"
               style={{ backgroundColor: adjustedColor.hex }}
+              aria-hidden="true"
             />
             <input
               type="text"
               value={hexInput}
               onChange={(e) => handleHexChange(e.target.value.toUpperCase())}
               maxLength={7}
-              className="flex-1 px-4 py-3 bg-primary-800 border border-primary-700 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-accent-500 transition-colors"
+              className="flex-1 bg-transparent font-mono text-[14px] tracking-[0.06em] text-ink border-b border-ink py-2 focus:outline-none"
               placeholder="#000000"
+              aria-label="Hex color code"
             />
             <button
+              type="button"
               onClick={handleCopyHex}
-              className="px-4 py-3 bg-primary-800 border border-primary-700 text-neutral-400 hover:text-white hover:border-primary-600 transition-colors"
+              className="font-mono text-[10px] uppercase tracking-[0.12em] text-ink-3 pb-[2px] border-b border-transparent hover:border-ink hover:text-ink transition-colors"
             >
-              {copied ? <Check size={16} className="text-success-500" /> : <Copy size={16} />}
+              {copied ? 'Copied' : 'Copy'}
             </button>
           </div>
-          
+
           {adjustedColor.is_neutral && (
-            <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-primary-800 rounded-full text-[10px] uppercase tracking-wider text-neutral-400 border border-primary-700">
-              <Check size={10} />
-              Neutral Color
+            <div className="mt-3 font-mono text-[10px] uppercase tracking-[0.08em] text-ink-3">
+              <em className="italic">Neutral.</em>
             </div>
           )}
         </div>
