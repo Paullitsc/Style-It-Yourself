@@ -488,6 +488,7 @@ function TabButton({ active, onClick, children }: TabButtonProps) {
     <button
       type="button"
       onClick={onClick}
+      aria-current={active ? 'page' : undefined}
       className={cn(
         'px-7 py-[18px] border-r border-ink last:border-r-0',
         'font-mono text-[11px] uppercase tracking-[0.14em]',
@@ -514,6 +515,7 @@ function Chip({ active, onClick, children }: ChipProps) {
     <button
       type="button"
       onClick={onClick}
+      aria-pressed={active}
       className={cn(
         'px-3 py-2 border border-ink',
         'font-mono text-[10px] uppercase tracking-[0.12em]',
@@ -555,6 +557,7 @@ function SegmentedControl({
             key={opt.value}
             type="button"
             onClick={() => onChange(opt.value)}
+            aria-pressed={value === opt.value}
             className={cn(
               'px-[14px] py-2 border border-ink',
               i !== 0 && 'border-l-0',
@@ -728,7 +731,10 @@ function ItemTile({ item, index, onClick, onTryOn }: ItemTileProps) {
           <div className="absolute inset-0 product__frame--placeholder" />
         )}
 
-        <span className="absolute top-[10px] left-[10px] font-mono text-[9px] uppercase tracking-[0.1em] bg-paper border border-ink px-[6px] py-[4px]">
+        <span
+          className="absolute top-[10px] left-[10px] font-mono text-[9px] uppercase tracking-[0.1em] bg-paper border border-ink px-[6px] py-[4px]"
+          aria-hidden="true"
+        >
           No. {pad2(index)}
         </span>
 
