@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { useAuth } from '@/components/AuthProvider'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { getCloset, deleteClothingItem, deleteOutfit } from '@/lib/api'
-import { dominantHueName } from '@/lib/colorUtils'
 import { cn } from '@/lib/cn'
 import type {
   ClosetResponse,
@@ -25,12 +24,6 @@ const CATEGORY_ORDER = ['Tops', 'Bottoms', 'Outerwear', 'Shoes', 'Accessories']
 
 const pad2 = (n: number) => String(n).padStart(2, '0')
 
-const formatMonthShort = (d: Date) =>
-  d.toLocaleDateString('en-US', { month: 'short' })
-
-const formatDay = (d: Date) =>
-  d.toLocaleDateString('en-US', { day: 'numeric' })
-
 export default function ClosetPage() {
   const { session } = useAuth()
   const [closetData, setClosetData] = useState<ClosetResponse | null>(null)
@@ -45,7 +38,6 @@ export default function ClosetPage() {
 
   const switchView = (next: ViewMode) => {
     setActiveView(next)
-    // Reset filters so the user doesn't return to surprise-empty results.
     setCategoryFilter('All')
     setOwnershipFilter('all')
     setSortOrder('newest')
@@ -89,12 +81,6 @@ export default function ClosetPage() {
     await fetchCloset()
   }
 
-  const allItems = useMemo<ClothingItemResponse[]>(
-    () =>
-      closetData ? Object.values(closetData.items_by_category).flat() : [],
-    [closetData],
-  )
-
   const categoriesPresent = useMemo<string[]>(
     () => (closetData ? Object.keys(closetData.items_by_category) : []),
     [closetData],
@@ -109,49 +95,6 @@ export default function ClosetPage() {
         .sort(),
     ]
   }, [categoriesPresent])
-
-  const ledger = useMemo(() => {
-    const empty = {
-      pieces: '—',
-      piecesSmall: '—',
-      outfits: '—',
-      outfitsSmall: 'saved looks',
-      categories: '—',
-      categoriesSmall: '—',
-      dominantHue: { name: '—', hex: '#808080' },
-      lastAddedMonth: '—',
-      lastAddedDay: '',
-    }
-    if (!closetData || closetData.total_items === 0) return empty
-
-    const totalCategories = categoriesPresent.length
-    const mostCommonCategory =
-      categoriesPresent
-        .map((c) => ({
-          c,
-          n: (closetData.items_by_category[c] ?? []).length,
-        }))
-        .sort((a, b) => b.n - a.n)[0]?.c ?? '—'
-
-    const hue = dominantHueName(allItems.map((i) => ({ color: i.color })))
-
-    const sortedByDate = allItems
-      .map((i) => new Date(i.created_at))
-      .sort((a, b) => b.getTime() - a.getTime())
-    const lastItem = sortedByDate[0]
-
-    return {
-      pieces: pad2(closetData.total_items),
-      piecesSmall: `across ${totalCategories} ${totalCategories === 1 ? 'category' : 'categories'}`,
-      outfits: pad2(closetData.total_outfits),
-      outfitsSmall: 'saved looks',
-      categories: pad2(totalCategories),
-      categoriesSmall: mostCommonCategory.toLowerCase(),
-      dominantHue: hue,
-      lastAddedMonth: formatMonthShort(lastItem),
-      lastAddedDay: formatDay(lastItem),
-    }
-  }, [closetData, allItems, categoriesPresent])
 
   const sortItems = (items: ClothingItemResponse[]) => {
     const q = searchQuery.trim().toLowerCase()
@@ -186,230 +129,182 @@ export default function ClosetPage() {
     )
   }, [closetData])
 
+  const hasItems = closetData ? closetData.total_items > 0 : false
+
   return (
     <ProtectedRoute>
       <div className="flex-1">
-        <div className="max-w-[1320px] mx-auto px-14 max-md:px-6 pt-7 pb-24">
-          {/* HEAD */}
-          <section className="py-12 pb-7 border-b border-ink flex justify-between items-end gap-8 max-md:flex-col max-md:items-start">
-            <div>
-              <h1 className="m-0 font-display font-normal uppercase text-[clamp(72px,9vw,128px)] leading-[0.92] tracking-[-0.025em]">
-                The <em className="italic text-ink-3">closet,</em>
-                <br />
-                edited.
-              </h1>
-              <p className="mt-[18px] max-w-[36ch] font-display italic text-[20px] leading-[1.35] text-ink-2">
-                Every piece you&apos;ve uploaded, every outfit you&apos;ve built — sorted and ready to wear.
-              </p>
-            </div>
-            <Link
-              href="/style"
-              className="inline-flex items-center justify-between gap-6 px-[22px] py-[18px] border border-ink font-mono text-[11px] uppercase tracking-[0.12em] hover:bg-ink hover:text-paper transition-colors shrink-0"
-            >
-              <span>Add a piece</span>
-              <span aria-hidden="true">＋</span>
-            </Link>
-          </section>
-
-          {/* LEDGER + TABS + FILTERBAR — gated on data-ready AND non-empty
-              so a 0-item closet doesn't show a wall of em-dashes */}
-          {!isLoading && !error && closetData && closetData.total_items > 0 && (
-            <>
-              <section className="grid grid-cols-5 max-md:grid-cols-2 border-b border-ink">
-                <LedgerCell
-                  label="Pieces"
-                  value={<span>{ledger.pieces}</span>}
-                  small={ledger.piecesSmall}
-                />
-                <LedgerCell
-                  label="Outfits"
-                  value={<span>{ledger.outfits}</span>}
-                  small={ledger.outfitsSmall}
-                />
-                <LedgerCell
-                  label="Categories"
-                  value={<span>{ledger.categories}</span>}
-                  small={ledger.categoriesSmall}
-                />
-                <LedgerCell
-                  label="Dominant hue"
-                  value={
-                    <span>
-                      <i
-                        className="inline-block w-[22px] h-[22px] border border-ink align-[-3px] mr-2"
-                        style={{ backgroundColor: ledger.dominantHue.hex }}
-                        aria-hidden="true"
-                      />
-                      <em className="italic text-ink-3">
-                        {ledger.dominantHue.name}
-                      </em>
-                    </span>
-                  }
-                />
-                <LedgerCell
-                  label="Last added"
-                  value={
-                    ledger.lastAddedMonth === '—' ? (
-                      <span>—</span>
-                    ) : (
-                      <span>
-                        {ledger.lastAddedMonth}{' '}
-                        <em className="italic text-ink-3">
-                          {ledger.lastAddedDay}
-                        </em>
-                      </span>
-                    )
-                  }
-                />
-              </section>
-
-              <nav className="flex gap-8 border-b border-ink py-5">
-                <TabButton
+        <div className="max-w-[1440px] mx-auto grid grid-cols-[240px_1fr] gap-10 max-md:grid-cols-1 max-md:gap-6 px-10 max-md:px-6 pt-8 pb-24">
+          {/* SIDEBAR */}
+          <aside className="border-r border-ink pr-8 max-md:border-r-0 max-md:border-b max-md:border-ink max-md:pr-0 max-md:pb-8">
+            <div className="sticky top-6 flex flex-col gap-7">
+              {/* Tabs */}
+              <div className="flex flex-col gap-2">
+                <SideTab
                   active={activeView === 'items'}
                   onClick={() => switchView('items')}
-                >
-                  Pieces{' '}
-                  <span className="opacity-50 font-normal">
-                    {pad2(closetData.total_items)}
-                  </span>
-                </TabButton>
-                <TabButton
+                  label="Pieces"
+                  count={closetData ? pad2(closetData.total_items) : '—'}
+                />
+                <SideTab
                   active={activeView === 'outfits'}
                   onClick={() => switchView('outfits')}
-                >
-                  Outfits{' '}
-                  <span className="opacity-50 font-normal">
-                    {pad2(closetData.total_outfits)}
-                  </span>
-                </TabButton>
-              </nav>
-
-              {activeView === 'items' && (
-                <div className="flex flex-col gap-6 py-[22px] border-b border-ink">
-                  <div className="flex items-baseline gap-4 border-b border-ink pb-3">
-                    <span
-                      className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3"
-                      aria-hidden="true"
-                    >
-                      Search
-                    </span>
-                    <input
-                      type="search"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Color, category, brand, aesthetic…"
-                      aria-label="Search pieces"
-                      className="flex-1 bg-transparent font-display italic text-[18px] text-ink placeholder:text-ink-3 placeholder:not-italic placeholder:font-mono placeholder:text-[12px] placeholder:tracking-[0.04em] focus:outline-none"
-                    />
-                    {searchQuery && (
-                      <button
-                        type="button"
-                        onClick={() => setSearchQuery('')}
-                        className="font-mono text-[10px] uppercase tracking-[0.12em] text-ink-3 hover:text-ink"
-                        aria-label="Clear search"
-                      >
-                        Clear ✕
-                      </button>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-[1fr_auto_auto] max-md:grid-cols-1 gap-x-10 gap-y-4 items-baseline">
-                    <div className="flex flex-wrap gap-x-5 gap-y-2">
-                      {(['All', ...sortedCategories] as string[]).map((cat) => (
-                        <Chip
-                          key={cat}
-                          active={categoryFilter === cat}
-                          onClick={() => setCategoryFilter(cat)}
-                        >
-                          {cat}
-                        </Chip>
-                      ))}
-                    </div>
-                    <SegmentedControl
-                      label="Show"
-                      options={[
-                        { value: 'all', label: 'All' },
-                        { value: 'owned', label: 'Owned' },
-                        { value: 'wishlist', label: 'Wishlist' },
-                      ]}
-                      value={ownershipFilter}
-                      onChange={(v) => setOwnershipFilter(v as OwnershipFilter)}
-                    />
-                    <SegmentedControl
-                      label="Sort"
-                      options={[
-                        { value: 'newest', label: 'Newest' },
-                        { value: 'oldest', label: 'Oldest' },
-                        { value: 'color', label: 'Color' },
-                      ]}
-                      value={sortOrder}
-                      onChange={(v) => setSortOrder(v as SortOrder)}
-                    />
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-
-          {/* CONTENT */}
-          {isLoading && (
-            <section
-              aria-live="polite"
-              aria-busy="true"
-              className="pt-8 space-y-4"
-            >
-              <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-ink-3">
-                Loading closet…
-              </p>
-              <div className="grid grid-cols-5 gap-6 max-md:grid-cols-2">
-                <CardSkeleton count={5} />
+                  label="Outfits"
+                  count={closetData ? pad2(closetData.total_outfits) : '—'}
+                />
               </div>
-            </section>
-          )}
 
-          {error && !isLoading && (
-            <section className="py-16 text-center">
-              <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-accent mb-4">
-                Failed to load closet
-              </p>
-              <p className="font-display italic text-[18px] text-ink-2 mb-6">
-                {error}
-              </p>
-              <button
-                type="button"
-                onClick={fetchCloset}
-                className="font-mono text-[11px] uppercase tracking-[0.12em] border border-ink px-[22px] py-[18px] hover:bg-ink hover:text-paper transition-colors"
+              {/* Filters — only for Pieces tab, only when closet has items */}
+              {activeView === 'items' && hasItems && (
+                <>
+                  <hr className="border-t border-rule-soft" />
+
+                  {/* Search */}
+                  <div>
+                    <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mb-3">
+                      Search
+                    </div>
+                    <div className="flex items-baseline gap-2 border-b border-ink pb-2">
+                      <input
+                        type="search"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Color, brand, tag…"
+                        aria-label="Search pieces"
+                        className="flex-1 min-w-0 bg-transparent font-display italic text-[16px] text-ink placeholder:text-ink-3 placeholder:not-italic placeholder:font-mono placeholder:text-[11px] placeholder:tracking-[0.04em] focus:outline-none"
+                      />
+                      {searchQuery && (
+                        <button
+                          type="button"
+                          onClick={() => setSearchQuery('')}
+                          className="font-mono text-[10px] uppercase tracking-[0.12em] text-ink-3 hover:text-ink shrink-0"
+                          aria-label="Clear search"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <hr className="border-t border-rule-soft" />
+
+                  <FilterGroup
+                    label="Category"
+                    options={(['All', ...sortedCategories] as string[]).map(
+                      (c) => ({ value: c, label: c }),
+                    )}
+                    value={categoryFilter}
+                    onChange={setCategoryFilter}
+                  />
+
+                  <hr className="border-t border-rule-soft" />
+
+                  <FilterGroup
+                    label="Show"
+                    options={[
+                      { value: 'all', label: 'All' },
+                      { value: 'owned', label: 'Owned' },
+                      { value: 'wishlist', label: 'Wishlist' },
+                    ]}
+                    value={ownershipFilter}
+                    onChange={(v) => setOwnershipFilter(v as OwnershipFilter)}
+                  />
+
+                  <hr className="border-t border-rule-soft" />
+
+                  <FilterGroup
+                    label="Sort"
+                    options={[
+                      { value: 'newest', label: 'Newest' },
+                      { value: 'oldest', label: 'Oldest' },
+                      { value: 'color', label: 'Color' },
+                    ]}
+                    value={sortOrder}
+                    onChange={(v) => setSortOrder(v as SortOrder)}
+                  />
+                </>
+              )}
+
+              {/* Add a piece */}
+              <hr className="border-t border-ink mt-2" />
+              <Link
+                href="/style"
+                className={cn(
+                  'inline-flex items-center justify-between gap-3 px-4 py-3',
+                  'border border-ink bg-paper text-ink',
+                  'font-mono text-[11px] uppercase tracking-[0.12em]',
+                  'transition-colors',
+                  'hover:bg-ink hover:text-paper',
+                )}
               >
-                Try again
-              </button>
-            </section>
-          )}
+                <span>Add a piece</span>
+                <span aria-hidden="true">＋</span>
+              </Link>
+            </div>
+          </aside>
 
-          {!isLoading && !error && closetData && activeView === 'items' && (
-            <ItemsView
-              closetData={closetData}
-              sortedCategories={sortedCategories}
-              categoryFilter={categoryFilter}
-              ownershipFilter={ownershipFilter}
-              sortItems={sortItems}
-              onClearFilters={() => {
-                setCategoryFilter('All')
-                setOwnershipFilter('all')
-                setSearchQuery('')
-              }}
-              hasSearchQuery={searchQuery.trim().length > 0}
-              onItemClick={(item) => {
-                setTryOnItem(null)
-                setSelectedItem(item)
-              }}
-            />
-          )}
+          {/* MAIN CONTENT */}
+          <main>
+            {isLoading && (
+              <section
+                aria-live="polite"
+                aria-busy="true"
+                className="space-y-4"
+              >
+                <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-ink-3">
+                  Loading closet…
+                </p>
+                <div className="grid grid-cols-4 gap-6 max-md:grid-cols-2">
+                  <CardSkeleton count={4} />
+                </div>
+              </section>
+            )}
 
-          {!isLoading && !error && closetData && activeView === 'outfits' && (
-            <OutfitsView
-              outfits={outfitsSorted}
-              onOutfitClick={setSelectedOutfit}
-            />
-          )}
+            {error && !isLoading && (
+              <section className="py-16 text-center">
+                <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-accent mb-4">
+                  Failed to load closet
+                </p>
+                <p className="font-display italic text-[18px] text-ink-2 mb-6">
+                  {error}
+                </p>
+                <button
+                  type="button"
+                  onClick={fetchCloset}
+                  className="font-mono text-[11px] uppercase tracking-[0.12em] border border-ink px-[22px] py-[18px] bg-paper text-ink hover:bg-ink hover:text-paper transition-colors"
+                >
+                  Try again
+                </button>
+              </section>
+            )}
+
+            {!isLoading && !error && closetData && activeView === 'items' && (
+              <ItemsView
+                closetData={closetData}
+                sortedCategories={sortedCategories}
+                categoryFilter={categoryFilter}
+                ownershipFilter={ownershipFilter}
+                sortItems={sortItems}
+                onClearFilters={() => {
+                  setCategoryFilter('All')
+                  setOwnershipFilter('all')
+                  setSearchQuery('')
+                }}
+                hasSearchQuery={searchQuery.trim().length > 0}
+                onItemClick={(item) => {
+                  setTryOnItem(null)
+                  setSelectedItem(item)
+                }}
+              />
+            )}
+
+            {!isLoading && !error && closetData && activeView === 'outfits' && (
+              <OutfitsView
+                outfits={outfitsSorted}
+                onOutfitClick={setSelectedOutfit}
+              />
+            )}
+          </main>
 
           {selectedItem && (
             <ItemDetailModal
@@ -447,129 +342,91 @@ export default function ClosetPage() {
 }
 
 // ============================================================================
-// Sub-components
+// Sidebar sub-components
 // ============================================================================
 
-interface LedgerCellProps {
-  label: string
-  value: React.ReactNode
-  small?: string
-}
-
-function LedgerCell({ label, value, small }: LedgerCellProps) {
-  return (
-    <div className="border-r border-ink last:border-r-0 max-md:border-r-0 max-md:[&:nth-child(odd)]:border-r max-md:[&:last-child]:border-r-0 max-md:[&:last-child]:col-span-2 max-md:border-b max-md:last:border-b-0 max-md:[&:nth-last-child(2)]:border-b-0 px-[22px] py-[18px]">
-      <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mb-[6px]">
-        {label}
-      </div>
-      <div className="font-display text-[32px] leading-none tracking-[-0.01em]">
-        {value}
-        {small && (
-          <small className="font-mono text-[11px] uppercase tracking-[0.1em] text-ink-3 ml-[6px]">
-            {small}
-          </small>
-        )}
-      </div>
-    </div>
-  )
-}
-
-interface TabButtonProps {
+interface SideTabProps {
   active: boolean
   onClick: () => void
-  children: React.ReactNode
+  label: string
+  count: string
 }
 
-function TabButton({ active, onClick, children }: TabButtonProps) {
+function SideTab({ active, onClick, label, count }: SideTabProps) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-current={active ? 'page' : undefined}
       className={cn(
-        'pb-[2px] inline-flex gap-3 items-baseline',
-        'font-mono text-[12px] uppercase tracking-[0.14em]',
-        'border-b-2 transition-colors duration-200',
+        'flex items-baseline justify-between w-full text-left',
+        'font-display leading-none transition-colors',
         active
-          ? 'border-ink text-ink font-bold'
-          : 'border-transparent text-ink-3 font-normal hover:text-ink hover:border-ink',
+          ? 'text-[32px] text-ink'
+          : 'text-[24px] text-ink-3 hover:text-ink',
       )}
     >
-      {children}
+      <span className={active ? 'italic' : ''}>{label}</span>
+      <span className="font-mono text-[11px] uppercase tracking-[0.1em] opacity-50">
+        {count}
+      </span>
     </button>
   )
 }
 
-interface ChipProps {
-  active: boolean
-  onClick: () => void
-  children: React.ReactNode
-}
-
-function Chip({ active, onClick, children }: ChipProps) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={cn(
-        'pb-[2px] border-b transition-colors duration-200',
-        'font-mono text-[11px] uppercase tracking-[0.12em]',
-        active
-          ? 'border-ink text-ink font-bold'
-          : 'border-transparent text-ink-3 font-normal hover:text-ink hover:border-ink',
-      )}
-    >
-      {children}
-    </button>
-  )
-}
-
-interface SegOption {
-  value: string
+interface FilterGroupProps {
   label: string
-}
-
-interface SegmentedControlProps {
-  label: string
-  options: SegOption[]
+  options: { value: string; label: string }[]
   value: string
   onChange: (v: string) => void
 }
 
-function SegmentedControl({
-  label,
-  options,
-  value,
-  onChange,
-}: SegmentedControlProps) {
+function FilterGroup({ label, options, value, onChange }: FilterGroupProps) {
   return (
-    <div className="flex items-baseline gap-4">
-      <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3">
+    <div>
+      <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mb-3">
         {label}
-      </span>
-      <div className="flex flex-wrap gap-x-4 gap-y-2">
-        {options.map((opt) => (
-          <button
-            key={opt.value}
-            type="button"
-            onClick={() => onChange(opt.value)}
-            aria-pressed={value === opt.value}
-            className={cn(
-              'pb-[2px] border-b transition-colors duration-200',
-              'font-mono text-[11px] uppercase tracking-[0.12em]',
-              value === opt.value
-                ? 'border-ink text-ink font-bold'
-                : 'border-transparent text-ink-3 font-normal hover:text-ink hover:border-ink',
-            )}
-          >
-            {opt.label}
-          </button>
-        ))}
       </div>
+      <ul className="flex flex-col gap-2">
+        {options.map((opt) => {
+          const active = value === opt.value
+          return (
+            <li key={opt.value}>
+              <button
+                type="button"
+                onClick={() => onChange(opt.value)}
+                aria-pressed={active}
+                className={cn(
+                  'flex items-center w-full text-left',
+                  'font-mono text-[12px] uppercase tracking-[0.08em]',
+                  'transition-colors',
+                  active
+                    ? 'text-ink font-bold'
+                    : 'text-ink-3 font-normal hover:text-ink',
+                )}
+              >
+                <span
+                  className={cn(
+                    'inline-block w-5 shrink-0',
+                    active ? 'opacity-100' : 'opacity-0',
+                  )}
+                  aria-hidden="true"
+                >
+                  →
+                </span>
+                {opt.label}
+              </button>
+            </li>
+          )
+        })}
+      </ul>
     </div>
   )
 }
+
+// ============================================================================
+// Items view
+// ============================================================================
 
 interface ItemsViewProps {
   closetData: ClosetResponse
@@ -599,14 +456,8 @@ function ItemsView({
           Empty closet.
         </p>
         <p className="font-display italic text-[18px] text-ink-2 mt-3">
-          Tap{' '}
-          <Link
-            href="/style"
-            className="underline decoration-ink underline-offset-4 hover:text-ink"
-          >
-            Style
-          </Link>{' '}
-          in the masthead to upload your first piece.
+          Tap <em className="italic">Add a piece</em> in the sidebar to upload
+          your first one.
         </p>
       </section>
     )
@@ -624,7 +475,6 @@ function ItemsView({
     }))
     .filter((s) => s.filtered.length > 0)
 
-  // Closet has items but current filters/search wiped them all out
   const filtersActive =
     categoryFilter !== 'All' || ownershipFilter !== 'all' || hasSearchQuery
   if (sections.length === 0 && filtersActive) {
@@ -650,8 +500,8 @@ function ItemsView({
     <div>
       {sections.map(({ category, filtered }) => (
         <section key={category}>
-          <header className="grid grid-cols-[auto_auto_1fr] gap-4 items-baseline pt-9 pb-[18px] mb-6 border-b border-ink">
-            <span className="font-display uppercase text-[36px] leading-none tracking-[-0.015em]">
+          <header className="grid grid-cols-[auto_auto_1fr] gap-4 items-baseline pb-[14px] mb-5 border-b border-ink">
+            <span className="font-display uppercase text-[28px] leading-none tracking-[-0.015em]">
               {category}
             </span>
             <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
@@ -661,7 +511,7 @@ function ItemsView({
             <span className="h-px bg-ink" aria-hidden="true" />
           </header>
 
-          <div className="grid grid-cols-5 gap-6 max-md:grid-cols-2 mb-12">
+          <div className="grid grid-cols-4 gap-6 max-md:grid-cols-2 mb-10">
             {filtered.map((item) => (
               <ItemTile
                 key={item.id}
@@ -702,6 +552,7 @@ function ItemTile({ item, onClick }: ItemTileProps) {
     >
       <div className="relative aspect-[4/5] border border-ink overflow-hidden bg-paper-2 transition-transform duration-200 group-hover:-translate-y-[3px]">
         {item.image_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={item.image_url}
             alt={displayName}
@@ -720,6 +571,10 @@ function ItemTile({ item, onClick }: ItemTileProps) {
     </div>
   )
 }
+
+// ============================================================================
+// Outfits view
+// ============================================================================
 
 interface OutfitsViewProps {
   outfits: OutfitSummary[]
@@ -742,8 +597,8 @@ function OutfitsView({ outfits, onOutfitClick }: OutfitsViewProps) {
 
   return (
     <section>
-      <header className="grid grid-cols-[auto_auto_1fr] gap-4 items-baseline pt-9 pb-[18px] mb-6 border-b border-ink">
-        <span className="font-display uppercase text-[36px] leading-none tracking-[-0.015em]">
+      <header className="grid grid-cols-[auto_auto_1fr] gap-4 items-baseline pb-[14px] mb-5 border-b border-ink">
+        <span className="font-display uppercase text-[28px] leading-none tracking-[-0.015em]">
           Saved <em className="italic text-ink-3">outfits</em>
         </span>
         <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
@@ -752,7 +607,7 @@ function OutfitsView({ outfits, onOutfitClick }: OutfitsViewProps) {
         <span className="h-px bg-ink" aria-hidden="true" />
       </header>
 
-      <div className="grid grid-cols-5 gap-6 max-md:grid-cols-2">
+      <div className="grid grid-cols-4 gap-6 max-md:grid-cols-2">
         {outfits.map((outfit) => (
           <OutfitTile
             key={outfit.id}
@@ -780,6 +635,7 @@ function OutfitTile({ outfit, onClick }: OutfitTileProps) {
     >
       <div className="relative aspect-[4/5] border border-ink overflow-hidden bg-paper-2 transition-transform duration-200 group-hover:-translate-y-[3px]">
         {outfit.thumbnail_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={outfit.thumbnail_url}
             alt={`${outfit.name} preview`}
