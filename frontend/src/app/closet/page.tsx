@@ -12,37 +12,35 @@ import type {
   ClothingItemResponse,
   OutfitSummary,
 } from '@/types'
-import {
-  Button,
-  CardSkeleton,
-  ItemCard,
-  OutfitCard,
-  StatusBadge,
-} from '@/components/ui'
+import { CardSkeleton } from '@/components/ui'
 import ItemDetailModal from './components/ItemDetailModal'
 import OutfitDetailModal from './components/OutfitDetailModal'
 import TryOnModal from '@/app/style/components/TryOnModal'
 
 type ViewMode = 'items' | 'outfits'
-type FilterMode = 'category' | 'show'
 type OwnershipFilter = 'all' | 'owned' | 'wishlist'
+type SortOrder = 'newest' | 'oldest' | 'color'
 
 const CATEGORY_ORDER = ['Tops', 'Bottoms', 'Outerwear', 'Shoes', 'Accessories']
 
+const FORMALITY_SHORT: Record<number, string> = {
+  1: 'Casual',
+  2: 'Smart-cas',
+  3: 'Business',
+  4: 'Formal',
+  5: 'Black tie',
+}
+
 const pad2 = (n: number) => String(n).padStart(2, '0')
 
-const formatMonthYear = (date: Date) =>
-  date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+const formatMonthShort = (d: Date) =>
+  d.toLocaleDateString('en-US', { month: 'short' })
 
-const formatMonthDay = (date: Date) =>
-  date
-    .toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-    .toUpperCase()
+const formatDay = (d: Date) =>
+  d.toLocaleDateString('en-US', { day: 'numeric' })
 
-const daysAgo = (date: Date) => {
-  const ms = Date.now() - date.getTime()
-  return Math.max(0, Math.floor(ms / (1000 * 60 * 60 * 24)))
-}
+const formatMonthDay = (d: Date) =>
+  d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 
 export default function ClosetPage() {
   const { session } = useAuth()
@@ -51,9 +49,9 @@ export default function ClosetPage() {
   const [error, setError] = useState<string | null>(null)
 
   const [activeView, setActiveView] = useState<ViewMode>('items')
-  const [activeFilter, setActiveFilter] = useState<FilterMode>('category')
   const [categoryFilter, setCategoryFilter] = useState<string>('All')
   const [ownershipFilter, setOwnershipFilter] = useState<OwnershipFilter>('all')
+  const [sortOrder, setSortOrder] = useState<SortOrder>('newest')
 
   const [selectedItem, setSelectedItem] =
     useState<ClothingItemResponse | null>(null)
@@ -115,16 +113,15 @@ export default function ClosetPage() {
 
   const ledger = useMemo(() => {
     const empty = {
-      pieces: { primary: '—', secondary: '—' },
-      outfits: { primary: '—', secondary: '—' },
-      categories: { primary: '—', secondary: '—' },
-      dominantHue: {
-        primary: '—',
-        secondary: '—',
-        swatch: null as string | null,
-      },
-      lastAdded: { primary: '—', secondary: '—' },
-      established: null as string | null,
+      pieces: '—',
+      piecesSmall: '—',
+      outfits: '—',
+      outfitsSmall: 'saved looks',
+      categories: '—',
+      categoriesSmall: '—',
+      dominantHue: { name: '—', hex: '#808080' },
+      lastAddedMonth: '—',
+      lastAddedDay: '',
     }
     if (!closetData || closetData.total_items === 0) return empty
 
@@ -143,336 +140,404 @@ export default function ClosetPage() {
       .map((i) => new Date(i.created_at))
       .sort((a, b) => b.getTime() - a.getTime())
     const lastItem = sortedByDate[0]
-    const firstItem = sortedByDate[sortedByDate.length - 1]
 
     return {
-      pieces: {
-        primary: pad2(closetData.total_items),
-        secondary: `${totalCategories} ${
-          totalCategories === 1 ? 'category' : 'categories'
-        }`,
-      },
-      outfits: {
-        primary: pad2(closetData.total_outfits),
-        secondary: 'saved',
-      },
-      categories: {
-        primary: pad2(totalCategories),
-        secondary: mostCommonCategory.toLowerCase(),
-      },
-      dominantHue: {
-        primary: hue.name.toUpperCase(),
-        secondary: hue.hex.toUpperCase(),
-        swatch: hue.hex as string | null,
-      },
-      lastAdded: {
-        primary: formatMonthDay(lastItem),
-        secondary: `${daysAgo(lastItem)}d ago`,
-      },
-      established: formatMonthYear(firstItem),
+      pieces: pad2(closetData.total_items),
+      piecesSmall: `across ${totalCategories} ${totalCategories === 1 ? 'category' : 'categories'}`,
+      outfits: pad2(closetData.total_outfits),
+      outfitsSmall: 'saved looks',
+      categories: pad2(totalCategories),
+      categoriesSmall: mostCommonCategory.toLowerCase(),
+      dominantHue: hue,
+      lastAddedMonth: formatMonthShort(lastItem),
+      lastAddedDay: formatDay(lastItem),
     }
   }, [closetData, allItems, categoriesPresent])
 
-  const filterItems = (items: ClothingItemResponse[]) =>
+  const sortItems = (items: ClothingItemResponse[]) =>
     [...items]
       .filter((i) => ownershipFilter === 'all' || i.ownership === ownershipFilter)
-      .sort(
-        (a, b) =>
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-      )
-
-  const outfitsByMonth = useMemo(() => {
-    if (!closetData)
-      return [] as Array<{
-        key: string
-        label: string
-        outfits: OutfitSummary[]
-      }>
-    const groups = new Map<string, OutfitSummary[]>()
-    for (const o of closetData.outfits) {
-      const d = new Date(o.created_at)
-      const key = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`
-      const list = groups.get(key) ?? []
-      list.push(o)
-      groups.set(key, list)
-    }
-    return Array.from(groups.entries())
-      .sort((a, b) => b[0].localeCompare(a[0]))
-      .map(([key, outfits]) => {
-        const sample = new Date(outfits[0].created_at)
-        return {
-          key,
-          label: formatMonthYear(sample).toUpperCase(),
-          outfits: outfits.sort(
-            (a, b) =>
-              new Date(b.created_at).getTime() -
-              new Date(a.created_at).getTime(),
-          ),
-        }
+      .sort((a, b) => {
+        if (sortOrder === 'color') return a.color.hsl.h - b.color.hsl.h
+        const diff =
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        return sortOrder === 'newest' ? diff : -diff
       })
+
+  const outfitsSorted = useMemo(() => {
+    if (!closetData) return [] as OutfitSummary[]
+    return [...closetData.outfits].sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    )
   }, [closetData])
 
   return (
     <ProtectedRoute>
-      <main className="mx-auto max-w-[1440px] px-[var(--gutter)] py-12 text-ink">
-        {/* HERO */}
-        <section className="mb-10">
-          <h1 className="t-display-l">Your closet.</h1>
-          <p className="t-body-l text-ink-2 mt-3">
-            {isLoading
-              ? ' '
-              : closetData && closetData.total_items > 0 && ledger.established
-              ? `${closetData.total_items} ${
-                  closetData.total_items === 1 ? 'piece' : 'pieces'
-                }. Established ${ledger.established}.`
-              : 'Empty closet. Add your first piece below.'}
-          </p>
-        </section>
-
-        <hr className="border-t border-ink" />
-
-        {/* LEDGER */}
-        <section className="grid grid-cols-5 max-md:grid-cols-2 py-6 mb-8">
-          {[
-            { label: 'PIECES', ...ledger.pieces, swatch: null as string | null },
-            { label: 'OUTFITS', ...ledger.outfits, swatch: null as string | null },
-            {
-              label: 'CATEGORIES',
-              ...ledger.categories,
-              swatch: null as string | null,
-            },
-            { label: 'DOMINANT HUE', ...ledger.dominantHue },
-            {
-              label: 'LAST ADDED',
-              ...ledger.lastAdded,
-              swatch: null as string | null,
-            },
-          ].map((cell, i) => (
-            <div
-              key={cell.label}
-              className={cn(
-                'flex flex-col gap-2 px-6',
-                i !== 0 && 'border-l border-ink max-md:border-l-0',
-                'max-md:py-3',
-              )}
+      {/* -mt-20 cancels the pt-20 baked into layout.tsx's <main> so the
+          closet starts at the viewport top, matching the artboard. */}
+      <div className="-mt-20 min-h-screen bg-paper text-ink">
+        <div className="max-w-[1320px] mx-auto px-14 max-md:px-6 pt-7 pb-24">
+          {/* MASTHEAD */}
+          <header className="grid grid-cols-[1fr_auto_1fr] items-center py-2 pb-6 border-b border-ink">
+            <div className="font-mono text-[11px] uppercase tracking-[0.12em]">
+              <Link
+                href="/"
+                className="pb-[2px] border-b border-transparent hover:border-ink transition-colors"
+              >
+                ← Back
+              </Link>
+            </div>
+            <Link
+              href="/"
+              className="font-display italic text-[22px] leading-none text-center text-ink"
             >
-              <span className="font-mono text-[11px] uppercase tracking-[0.04em] text-ink-3">
-                {cell.label}
-              </span>
-              <div className="flex items-center gap-2">
-                {cell.swatch && (
-                  <span
-                    className="inline-block w-[14px] h-[14px] border border-ink"
-                    style={{ backgroundColor: cell.swatch }}
+              Style It Yourself
+            </Link>
+            <nav className="flex gap-6 justify-end font-mono text-[11px] uppercase tracking-[0.12em]">
+              <Link
+                href="/style"
+                className="pb-[2px] border-b border-transparent hover:border-ink transition-colors"
+              >
+                Style
+              </Link>
+              <Link
+                href="/account"
+                className="pb-[2px] border-b border-transparent hover:border-ink transition-colors"
+              >
+                Account
+              </Link>
+            </nav>
+          </header>
+
+          {/* HEAD */}
+          <section className="py-12 pb-7 border-b border-ink">
+            <h1 className="m-0 font-display font-normal uppercase text-[clamp(72px,9vw,128px)] leading-[0.92] tracking-[-0.025em]">
+              The <em className="italic text-ink-3">closet,</em>
+              <br />
+              edited.
+            </h1>
+            <p className="mt-[18px] max-w-[36ch] font-display italic text-[20px] leading-[1.35] text-ink-2">
+              Every piece you&apos;ve uploaded, every outfit you&apos;ve built — sorted, scored, and ready to wear.
+            </p>
+          </section>
+
+          {/* LEDGER */}
+          <section className="grid grid-cols-5 max-md:grid-cols-2 border-b border-ink">
+            <LedgerCell
+              label="Pieces"
+              value={<span>{ledger.pieces}</span>}
+              small={ledger.piecesSmall}
+            />
+            <LedgerCell
+              label="Outfits"
+              value={<span>{ledger.outfits}</span>}
+              small={ledger.outfitsSmall}
+            />
+            <LedgerCell
+              label="Categories"
+              value={<span>{ledger.categories}</span>}
+              small={ledger.categoriesSmall}
+            />
+            <LedgerCell
+              label="Dominant hue"
+              value={
+                <span>
+                  <i
+                    className="inline-block w-[22px] h-[22px] border border-ink align-[-3px] mr-2"
+                    style={{ backgroundColor: ledger.dominantHue.hex }}
                     aria-hidden="true"
                   />
-                )}
-                <span className="t-display-s">{cell.primary}</span>
-              </div>
-              <span className="font-mono text-[10px] uppercase tracking-[0.06em] text-ink-3">
-                {cell.secondary}
+                  <em className="italic text-ink-3">
+                    {ledger.dominantHue.name}
+                  </em>
+                </span>
+              }
+            />
+            <LedgerCell
+              label="Last added"
+              value={
+                ledger.lastAddedMonth === '—' ? (
+                  <span>—</span>
+                ) : (
+                  <span>
+                    {ledger.lastAddedMonth}{' '}
+                    <em className="italic text-ink-3">{ledger.lastAddedDay}</em>
+                  </span>
+                )
+              }
+            />
+          </section>
+
+          {/* TABS */}
+          <nav className="flex border-b border-ink">
+            <TabButton
+              active={activeView === 'items'}
+              onClick={() => setActiveView('items')}
+            >
+              Pieces{' '}
+              <span className="opacity-60">
+                {pad2(closetData?.total_items ?? 0)}
               </span>
-            </div>
-          ))}
-        </section>
-
-        <hr className="border-t border-ink" />
-
-        {/* TABS + FILTERBAR */}
-        <section className="py-6">
-          <div className="flex items-center gap-8 mb-6">
-            <button
-              type="button"
-              onClick={() => {
-                setActiveView('items')
-                setActiveFilter('category')
-                setCategoryFilter('All')
-                setOwnershipFilter('all')
-              }}
-              className={cn(
-                'font-mono text-[11px] uppercase tracking-[0.08em] pb-1',
-                activeView === 'items'
-                  ? 'text-ink border-b-2 border-ink'
-                  : 'text-ink-3 hover:text-ink',
-              )}
+            </TabButton>
+            <TabButton
+              active={activeView === 'outfits'}
+              onClick={() => setActiveView('outfits')}
             >
-              Pieces
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveView('outfits')
-                setActiveFilter('category')
-                setCategoryFilter('All')
-                setOwnershipFilter('all')
-              }}
-              className={cn(
-                'font-mono text-[11px] uppercase tracking-[0.08em] pb-1',
-                activeView === 'outfits'
-                  ? 'text-ink border-b-2 border-ink'
-                  : 'text-ink-3 hover:text-ink',
-              )}
-            >
-              Outfits
-            </button>
-          </div>
+              Outfits{' '}
+              <span className="opacity-60">
+                {pad2(closetData?.total_outfits ?? 0)}
+              </span>
+            </TabButton>
+          </nav>
 
+          {/* FILTERBAR */}
           {activeView === 'items' && (
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.04em]">
-                <span className="text-ink-3">Filter</span>
-                <span className="text-ink-3">·</span>
-                <button
-                  type="button"
-                  onClick={() => setActiveFilter('category')}
-                  className={cn(
-                    'pb-[2px]',
-                    activeFilter === 'category'
-                      ? 'text-ink border-b border-ink'
-                      : 'text-ink-3 hover:text-ink',
-                  )}
-                >
-                  Category
-                </button>
-                <span className="text-ink-3">·</span>
-                <button
-                  type="button"
-                  onClick={() => setActiveFilter('show')}
-                  className={cn(
-                    'pb-[2px]',
-                    activeFilter === 'show'
-                      ? 'text-ink border-b border-ink'
-                      : 'text-ink-3 hover:text-ink',
-                  )}
-                >
-                  Show
-                </button>
+            <div className="grid grid-cols-[1fr_auto_auto] max-md:grid-cols-1 gap-6 py-[22px] border-b border-ink items-center">
+              <div className="flex flex-wrap gap-2">
+                {(['All', ...sortedCategories] as string[]).map((cat) => (
+                  <Chip
+                    key={cat}
+                    active={categoryFilter === cat}
+                    onClick={() => setCategoryFilter(cat)}
+                  >
+                    {cat}
+                  </Chip>
+                ))}
               </div>
-
-              {activeFilter === 'category' && (
-                <div className="flex flex-wrap gap-2">
-                  {(['All', ...sortedCategories] as string[]).map((cat) => (
-                    <button
-                      key={cat}
-                      type="button"
-                      onClick={() => setCategoryFilter(cat)}
-                      className={cn(
-                        'border border-ink px-[10px] py-[6px]',
-                        'font-mono text-[10px] uppercase tracking-[0.08em]',
-                        categoryFilter === cat
-                          ? 'bg-ink text-paper'
-                          : 'bg-transparent text-ink hover:bg-ink hover:text-paper',
-                      )}
-                    >
-                      {cat}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {activeFilter === 'show' && (
-                <div className="flex flex-wrap gap-2">
-                  {(['all', 'owned', 'wishlist'] as OwnershipFilter[]).map(
-                    (opt) => (
-                      <button
-                        key={opt}
-                        type="button"
-                        onClick={() => setOwnershipFilter(opt)}
-                        className={cn(
-                          'border border-ink px-[10px] py-[6px]',
-                          'font-mono text-[10px] uppercase tracking-[0.08em]',
-                          ownershipFilter === opt
-                            ? 'bg-ink text-paper'
-                            : 'bg-transparent text-ink hover:bg-ink hover:text-paper',
-                        )}
-                      >
-                        {opt === 'all'
-                          ? 'All'
-                          : opt === 'owned'
-                            ? 'Owned'
-                            : 'Wishlist'}
-                      </button>
-                    ),
-                  )}
-                </div>
-              )}
+              <SegmentedControl
+                label="Show"
+                options={[
+                  { value: 'all', label: 'All' },
+                  { value: 'owned', label: 'Owned' },
+                  { value: 'wishlist', label: 'Wishlist' },
+                ]}
+                value={ownershipFilter}
+                onChange={(v) => setOwnershipFilter(v as OwnershipFilter)}
+              />
+              <SegmentedControl
+                label="Sort"
+                options={[
+                  { value: 'newest', label: 'Newest' },
+                  { value: 'oldest', label: 'Oldest' },
+                  { value: 'color', label: 'Color' },
+                ]}
+                value={sortOrder}
+                onChange={(v) => setSortOrder(v as SortOrder)}
+              />
             </div>
           )}
-        </section>
 
-        {/* CONTENT */}
-        {isLoading && (
-          <section aria-live="polite" aria-busy="true" className="space-y-4">
-            <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-ink-3">
-              Loading closet…
-            </p>
-            <div className="grid grid-cols-6 gap-[var(--col-gap)] max-md:grid-cols-3">
-              <CardSkeleton count={6} />
-            </div>
-          </section>
-        )}
+          {/* CONTENT */}
+          {isLoading && (
+            <section
+              aria-live="polite"
+              aria-busy="true"
+              className="pt-8 space-y-4"
+            >
+              <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-ink-3">
+                Loading closet…
+              </p>
+              <div className="grid grid-cols-5 gap-6 max-md:grid-cols-3">
+                <CardSkeleton count={5} />
+              </div>
+            </section>
+          )}
 
-        {error && !isLoading && (
-          <section className="py-16 text-center">
-            <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-accent mb-4">
-              Failed to load closet
-            </p>
-            <p className="t-body text-ink-2 mb-6">{error}</p>
-            <Button onClick={fetchCloset}>Try again</Button>
-          </section>
-        )}
+          {error && !isLoading && (
+            <section className="py-16 text-center">
+              <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-accent mb-4">
+                Failed to load closet
+              </p>
+              <p className="font-display italic text-[18px] text-ink-2 mb-6">
+                {error}
+              </p>
+              <button
+                type="button"
+                onClick={fetchCloset}
+                className="font-mono text-[11px] uppercase tracking-[0.12em] border border-ink px-[22px] py-[18px] hover:bg-ink hover:text-paper transition-colors"
+              >
+                Try again
+              </button>
+            </section>
+          )}
 
-        {!isLoading && !error && closetData && activeView === 'items' && (
-          <ItemsView
-            closetData={closetData}
-            sortedCategories={sortedCategories}
-            categoryFilter={categoryFilter}
-            filterItems={filterItems}
-            onItemClick={(item) => {
-              setTryOnItem(null)
-              setSelectedItem(item)
-            }}
-            onTryOn={(item) => {
-              setSelectedItem(null)
-              setTryOnItem(item)
-            }}
-          />
-        )}
+          {!isLoading && !error && closetData && activeView === 'items' && (
+            <ItemsView
+              closetData={closetData}
+              sortedCategories={sortedCategories}
+              categoryFilter={categoryFilter}
+              sortItems={sortItems}
+              onItemClick={(item) => {
+                setTryOnItem(null)
+                setSelectedItem(item)
+              }}
+              onTryOn={(item) => {
+                setSelectedItem(null)
+                setTryOnItem(item)
+              }}
+            />
+          )}
 
-        {!isLoading && !error && closetData && activeView === 'outfits' && (
-          <OutfitsView
-            outfitsByMonth={outfitsByMonth}
-            onOutfitClick={setSelectedOutfit}
-          />
-        )}
+          {!isLoading && !error && closetData && activeView === 'outfits' && (
+            <OutfitsView
+              outfits={outfitsSorted}
+              onOutfitClick={setSelectedOutfit}
+            />
+          )}
 
-        {selectedItem && (
-          <ItemDetailModal
-            item={selectedItem}
-            onClose={() => setSelectedItem(null)}
-            onDelete={handleDeleteItem}
-          />
-        )}
+          {selectedItem && (
+            <ItemDetailModal
+              item={selectedItem}
+              onClose={() => setSelectedItem(null)}
+              onDelete={handleDeleteItem}
+            />
+          )}
 
-        {selectedOutfit && session?.access_token && (
-          <OutfitDetailModal
-            outfit={selectedOutfit}
-            token={session.access_token}
-            onClose={() => setSelectedOutfit(null)}
-            onDelete={handleDeleteOutfit}
-          />
-        )}
+          {selectedOutfit && session?.access_token && (
+            <OutfitDetailModal
+              outfit={selectedOutfit}
+              token={session.access_token}
+              onClose={() => setSelectedOutfit(null)}
+              onDelete={handleDeleteOutfit}
+            />
+          )}
 
-        {tryOnItem && session?.access_token && (
-          <TryOnModal
-            item={tryOnItem}
-            itemImageUrl={tryOnItem.image_url}
-            token={session.access_token}
-            onClose={() => setTryOnItem(null)}
-          />
-        )}
-      </main>
+          {tryOnItem && session?.access_token && (
+            <TryOnModal
+              item={tryOnItem}
+              itemImageUrl={tryOnItem.image_url}
+              token={session.access_token}
+              onClose={() => setTryOnItem(null)}
+            />
+          )}
+        </div>
+      </div>
     </ProtectedRoute>
+  )
+}
+
+// ============================================================================
+// Sub-components
+// ============================================================================
+
+interface LedgerCellProps {
+  label: string
+  value: React.ReactNode
+  small?: string
+}
+
+function LedgerCell({ label, value, small }: LedgerCellProps) {
+  return (
+    <div className="border-r border-ink last:border-r-0 max-md:border-r-0 max-md:[&:nth-child(odd)]:border-r max-md:border-b max-md:last:border-b-0 max-md:[&:nth-last-child(2)]:border-b-0 px-[22px] py-[18px]">
+      <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mb-[6px]">
+        — {label} —
+      </div>
+      <div className="font-display text-[32px] leading-none tracking-[-0.01em]">
+        {value}
+        {small && (
+          <small className="font-mono text-[11px] uppercase tracking-[0.1em] text-ink-3 ml-[6px]">
+            {small}
+          </small>
+        )}
+      </div>
+    </div>
+  )
+}
+
+interface TabButtonProps {
+  active: boolean
+  onClick: () => void
+  children: React.ReactNode
+}
+
+function TabButton({ active, onClick, children }: TabButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'px-7 py-[18px] border-r border-ink last:border-r-0',
+        'font-mono text-[11px] uppercase tracking-[0.14em]',
+        'inline-flex gap-3 items-baseline',
+        'transition-colors duration-200',
+        active
+          ? 'bg-ink text-paper'
+          : 'text-ink-3 hover:bg-paper-2 hover:text-ink',
+      )}
+    >
+      {children}
+    </button>
+  )
+}
+
+interface ChipProps {
+  active: boolean
+  onClick: () => void
+  children: React.ReactNode
+}
+
+function Chip({ active, onClick, children }: ChipProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'px-3 py-2 border border-ink',
+        'font-mono text-[10px] uppercase tracking-[0.12em]',
+        'transition-colors duration-200',
+        active ? 'bg-ink text-paper' : 'bg-transparent text-ink hover:bg-paper-2',
+      )}
+    >
+      {children}
+    </button>
+  )
+}
+
+interface SegOption {
+  value: string
+  label: string
+}
+
+interface SegmentedControlProps {
+  label: string
+  options: SegOption[]
+  value: string
+  onChange: (v: string) => void
+}
+
+function SegmentedControl({
+  label,
+  options,
+  value,
+  onChange,
+}: SegmentedControlProps) {
+  return (
+    <div className="flex items-center">
+      <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mr-2">
+        {label}
+      </span>
+      <div className="flex">
+        {options.map((opt, i) => (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => onChange(opt.value)}
+            className={cn(
+              'px-[14px] py-2 border border-ink',
+              i !== 0 && 'border-l-0',
+              'font-mono text-[10px] uppercase tracking-[0.12em]',
+              'transition-colors duration-200',
+              value === opt.value
+                ? 'bg-ink text-paper'
+                : 'bg-transparent text-ink hover:bg-paper-2',
+            )}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+    </div>
   )
 }
 
@@ -480,7 +545,7 @@ interface ItemsViewProps {
   closetData: ClosetResponse
   sortedCategories: string[]
   categoryFilter: string
-  filterItems: (items: ClothingItemResponse[]) => ClothingItemResponse[]
+  sortItems: (items: ClothingItemResponse[]) => ClothingItemResponse[]
   onItemClick: (item: ClothingItemResponse) => void
   onTryOn: (item: ClothingItemResponse) => void
 }
@@ -489,15 +554,19 @@ function ItemsView({
   closetData,
   sortedCategories,
   categoryFilter,
-  filterItems,
+  sortItems,
   onItemClick,
   onTryOn,
 }: ItemsViewProps) {
   if (closetData.total_items === 0) {
     return (
       <section className="py-16 text-center">
-        <p className="font-display text-[28px] leading-snug">Empty closet.</p>
-        <p className="t-body text-ink-2 mt-3">Add your first piece below.</p>
+        <p className="font-display italic text-[32px] leading-snug">
+          Empty closet.
+        </p>
+        <p className="font-display italic text-[18px] text-ink-2 mt-3">
+          Add your first piece below.
+        </p>
       </section>
     )
   }
@@ -507,38 +576,40 @@ function ItemsView({
       ? sortedCategories
       : sortedCategories.filter((c) => c === categoryFilter)
 
+  let runningIndex = 0
+
   return (
     <div>
       {visibleCategories.map((category) => {
-        const allInCategory = closetData.items_by_category[category] ?? []
-        const filtered = filterItems(allInCategory)
+        const filtered = sortItems(closetData.items_by_category[category] ?? [])
         if (filtered.length === 0) return null
+
         return (
-          <section key={category} className="mb-12">
-            <hr className="border-t border-rule-soft" />
-            <header className="font-mono text-[11px] uppercase tracking-[0.04em] mt-6 mb-6">
-              {category} · {pad2(filtered.length)}{' '}
-              {filtered.length === 1 ? 'piece' : 'pieces'}
+          <section key={category}>
+            <header className="grid grid-cols-[auto_auto_1fr] gap-4 items-baseline pt-9 pb-[18px] mb-6 border-b border-ink">
+              <span className="font-display uppercase text-[36px] leading-none tracking-[-0.015em]">
+                {category}
+              </span>
+              <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
+                {pad2(filtered.length)}{' '}
+                {filtered.length === 1 ? 'piece' : 'pieces'}
+              </span>
+              <span className="h-px bg-ink" aria-hidden="true" />
             </header>
-            <div className="grid grid-cols-6 gap-[var(--col-gap)] max-md:grid-cols-3">
-              {filtered.map((item, i) => (
-                <ItemCard
-                  key={item.id}
-                  index={pad2(i + 1)}
-                  title={item.category.l2}
-                  imageUrl={item.image_url}
-                  imageAlt={item.category.l2}
-                  colorName={item.color?.name}
-                  formality={item.formality}
-                  onClick={() => onItemClick(item)}
-                  onTryOn={() => onTryOn(item)}
-                  badge={
-                    item.ownership === 'wishlist' ? (
-                      <StatusBadge status="wishlist" size="sm" />
-                    ) : undefined
-                  }
-                />
-              ))}
+
+            <div className="grid grid-cols-5 gap-6 max-md:grid-cols-2 mb-12">
+              {filtered.map((item) => {
+                runningIndex += 1
+                return (
+                  <ItemTile
+                    key={item.id}
+                    item={item}
+                    index={runningIndex}
+                    onClick={() => onItemClick(item)}
+                    onTryOn={() => onTryOn(item)}
+                  />
+                )
+              })}
               <AddSlot />
             </div>
           </section>
@@ -548,19 +619,123 @@ function ItemsView({
   )
 }
 
+interface ItemTileProps {
+  item: ClothingItemResponse
+  index: number
+  onClick: () => void
+  onTryOn: () => void
+}
+
+function ItemTile({ item, index, onClick, onTryOn }: ItemTileProps) {
+  const aesthetics = (item.aesthetics ?? []).slice(0, 2).join(' · ')
+  const formality = item.formality ?? 0
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onClick()
+        }
+      }}
+      className="group flex flex-col gap-2 cursor-pointer focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-ink"
+      aria-label={`Open details for ${item.category.l2}`}
+    >
+      <div className="relative aspect-[4/5] border border-ink overflow-hidden bg-paper-2 transition-transform duration-200 group-hover:-translate-y-[3px]">
+        {item.image_url ? (
+          <img
+            src={item.image_url}
+            alt={item.category.l2}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="absolute inset-0 product__frame--placeholder" />
+        )}
+
+        <span className="absolute top-[10px] left-[10px] font-mono text-[9px] uppercase tracking-[0.1em] bg-paper border border-ink px-[6px] py-[4px]">
+          No. {pad2(index)}
+        </span>
+
+        {item.ownership === 'wishlist' && (
+          <span className="absolute top-[10px] right-[10px] bg-accent text-paper px-2 py-1 font-mono text-[9px] uppercase tracking-[0.1em]">
+            Wishlist
+          </span>
+        )}
+
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            onTryOn()
+          }}
+          className="absolute bottom-[10px] right-[10px] opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-ink text-paper px-2 py-1 font-mono text-[9px] uppercase tracking-[0.1em] border border-ink hover:bg-paper hover:text-ink"
+          aria-label={`Try on ${item.category.l2}`}
+        >
+          Try on
+        </button>
+
+        {item.color?.hex && item.color?.name && (
+          <span className="absolute bottom-[10px] left-[10px] inline-flex gap-[6px] items-center font-mono text-[9px] uppercase tracking-[0.08em] bg-paper border border-ink px-2 py-1">
+            <i
+              className="w-2 h-2 border border-ink"
+              style={{ backgroundColor: item.color.hex }}
+              aria-hidden="true"
+            />
+            {item.color.name}
+          </span>
+        )}
+      </div>
+
+      <div className="flex justify-between items-baseline gap-3">
+        <span className="font-display text-[18px] leading-none">
+          {item.category.l2}
+        </span>
+        {formality > 0 && (
+          <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-ink-3">
+            {FORMALITY_SHORT[formality]}
+          </span>
+        )}
+      </div>
+
+      <div className="flex justify-between items-baseline gap-3">
+        <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-ink-3 truncate">
+          {aesthetics || '—'}
+        </span>
+        <span className="flex gap-[2px] shrink-0" aria-hidden="true">
+          {[1, 2, 3, 4, 5].map((n) => (
+            <i
+              key={n}
+              className={cn(
+                'w-[6px] h-[6px] border border-ink',
+                n <= formality ? 'bg-ink' : 'bg-paper-3',
+              )}
+            />
+          ))}
+        </span>
+      </div>
+    </div>
+  )
+}
+
 function AddSlot() {
   return (
     <Link
       href="/style"
-      className="group flex flex-col gap-3"
+      className="group flex flex-col gap-2"
       aria-label="Add a new piece"
     >
-      <div className="relative aspect-[4/5] border border-dashed border-ink flex items-center justify-center transition-colors group-hover:bg-paper-2">
-        <span className="font-mono text-[24px] text-ink leading-none">+</span>
+      <div className="relative aspect-[4/5] border border-dashed border-ink bg-paper-2 flex items-center justify-center transition-colors group-hover:bg-paper-3">
+        <span className="font-mono text-[28px] text-ink leading-none">＋</span>
       </div>
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="font-display text-[18px] leading-tight text-ink-2">
-          Add piece
+      <div className="flex justify-between items-baseline gap-3">
+        <span className="font-display italic text-[18px] leading-none text-ink-2">
+          Add a piece
+        </span>
+        <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-ink-3">
+          →
         </span>
       </div>
     </Link>
@@ -568,22 +743,18 @@ function AddSlot() {
 }
 
 interface OutfitsViewProps {
-  outfitsByMonth: Array<{
-    key: string
-    label: string
-    outfits: OutfitSummary[]
-  }>
+  outfits: OutfitSummary[]
   onOutfitClick: (outfit: OutfitSummary) => void
 }
 
-function OutfitsView({ outfitsByMonth, onOutfitClick }: OutfitsViewProps) {
-  if (outfitsByMonth.length === 0) {
+function OutfitsView({ outfits, onOutfitClick }: OutfitsViewProps) {
+  if (outfits.length === 0) {
     return (
       <section className="py-16 text-center">
-        <p className="font-display text-[28px] leading-snug">
+        <p className="font-display italic text-[32px] leading-snug">
           No outfits saved yet.
         </p>
-        <p className="t-body text-ink-2 mt-3">
+        <p className="font-display italic text-[18px] text-ink-2 mt-3">
           Build your first outfit to save it here.
         </p>
       </section>
@@ -591,34 +762,67 @@ function OutfitsView({ outfitsByMonth, onOutfitClick }: OutfitsViewProps) {
   }
 
   return (
-    <div>
-      {outfitsByMonth.map((group) => (
-        <section key={group.key} className="mb-12">
-          <hr className="border-t border-rule-soft" />
-          <header className="font-mono text-[11px] uppercase tracking-[0.04em] mt-6 mb-6">
-            {group.label} · {pad2(group.outfits.length)}{' '}
-            {group.outfits.length === 1 ? 'look' : 'looks'}
-          </header>
-          <div className="grid grid-cols-6 gap-[var(--col-gap)] max-md:grid-cols-3">
-            {group.outfits.map((outfit, i) => (
-              <OutfitCard
-                key={outfit.id}
-                index={pad2(i + 1)}
-                name={outfit.name}
-                createdAt={new Date(outfit.created_at)
-                  .toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                  })
-                  .toUpperCase()}
-                thumbnailUrl={outfit.thumbnail_url}
-                itemCount={outfit.item_count}
-                onClick={() => onOutfitClick(outfit)}
-              />
-            ))}
-          </div>
-        </section>
-      ))}
-    </div>
+    <section>
+      <header className="grid grid-cols-[auto_auto_1fr] gap-4 items-baseline pt-9 pb-[18px] mb-6 border-b border-ink">
+        <span className="font-display uppercase text-[36px] leading-none tracking-[-0.015em]">
+          Saved <em className="italic text-ink-3">outfits</em>
+        </span>
+        <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
+          {pad2(outfits.length)} {outfits.length === 1 ? 'look' : 'looks'}
+        </span>
+        <span className="h-px bg-ink" aria-hidden="true" />
+      </header>
+
+      <div className="grid grid-cols-4 gap-7 max-md:grid-cols-2">
+        {outfits.map((outfit) => (
+          <OutfitTile
+            key={outfit.id}
+            outfit={outfit}
+            onClick={() => onOutfitClick(outfit)}
+          />
+        ))}
+      </div>
+    </section>
+  )
+}
+
+interface OutfitTileProps {
+  outfit: OutfitSummary
+  onClick: () => void
+}
+
+function OutfitTile({ outfit, onClick }: OutfitTileProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="text-left border border-ink bg-paper cursor-pointer transition-transform duration-200 hover:-translate-y-[3px] focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-ink"
+      aria-label={`Open ${outfit.name}`}
+    >
+      <div className="relative aspect-[5/4] border-b border-ink overflow-hidden bg-paper-2">
+        {outfit.thumbnail_url ? (
+          <img
+            src={outfit.thumbnail_url}
+            alt={`${outfit.name} preview`}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="absolute inset-0 product__frame--placeholder" />
+        )}
+      </div>
+      <div className="px-[18px] pt-[18px] pb-4">
+        <div className="flex justify-between items-baseline mb-[10px]">
+          <span className="font-display text-[24px] leading-none">
+            {outfit.name}
+          </span>
+        </div>
+        <div className="flex gap-[14px] font-mono text-[9px] uppercase tracking-[0.1em] text-ink-3 pt-[10px] border-t border-ink">
+          <span>
+            {outfit.item_count} {outfit.item_count === 1 ? 'piece' : 'pieces'}
+          </span>
+          <span>{formatMonthDay(new Date(outfit.created_at))}</span>
+        </div>
+      </div>
+    </button>
   )
 }

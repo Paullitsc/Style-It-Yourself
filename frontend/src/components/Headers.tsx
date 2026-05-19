@@ -9,8 +9,8 @@ export default function Header() {
   const [isAuthModalOpen, setAuthModalOpen] = useState(false)
   const pathname = usePathname()
 
-  // Landing supplies its own editorial masthead per the artboard.
-  if (pathname === '/') return null
+  // Landing and Closet each supply their own editorial masthead per their artboards.
+  if (pathname === '/' || pathname === '/closet') return null
 
   return (
     <>
