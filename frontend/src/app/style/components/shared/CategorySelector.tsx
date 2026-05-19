@@ -1,5 +1,7 @@
 'use client'
 
+import { cn } from '@/lib/cn'
+
 interface CategorySelectorProps {
   l1Options?: string[]
   l2Options: string[]
@@ -17,61 +19,100 @@ export default function CategorySelector({
   selectedL2,
   onSelectL1,
   onSelectL2,
-  hideL1 = false
+  hideL1 = false,
 }: CategorySelectorProps) {
+  const showL2 = !hideL1 ? selectedL1 && l2Options.length > 0 : l2Options.length > 0
+
   return (
-    <div className="space-y-6">
-      {/* Level 1 Categories */}
+    <div className="flex flex-col gap-7">
       {!hideL1 && l1Options.length > 0 && (
-        <div>
-          <label className="block text-[10px] uppercase font-bold tracking-widest text-neutral-500 mb-3">
-            Category <span className="text-accent-500">*</span>
-          </label>
-          <div className="flex flex-wrap gap-2">
+        <FieldGroup label="Category" required>
+          <div className="flex flex-wrap gap-x-5 gap-y-2">
             {l1Options.map((l1) => (
-              <button
+              <ChipButton
                 key={l1}
+                active={selectedL1 === l1}
                 onClick={() => onSelectL1?.(l1)}
-                className={`
-                  px-4 py-2.5 text-xs font-medium uppercase tracking-wider border transition-all duration-200
-                  ${selectedL1 === l1
-                    ? 'bg-white text-primary-900 border-white'
-                    : 'bg-transparent text-neutral-400 border-primary-600 hover:border-neutral-400 hover:text-white'
-                  }
-                `}
               >
                 {l1}
-              </button>
+              </ChipButton>
             ))}
           </div>
-        </div>
+        </FieldGroup>
       )}
 
-      {/* Level 2 Categories */}
-      {(!hideL1 ? selectedL1 : true) && l2Options.length > 0 && (
-        <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-          <label className="block text-[10px] uppercase font-bold tracking-widest text-neutral-500 mb-3">
-            Sub-Category <span className="text-accent-500">*</span>
-          </label>
-          <div className="flex flex-wrap gap-2">
+      {showL2 && (
+        <FieldGroup label="Sub-category" required>
+          <div className="flex flex-wrap gap-x-5 gap-y-2">
             {l2Options.map((l2) => (
-              <button
+              <ChipButton
                 key={l2}
+                active={selectedL2 === l2}
                 onClick={() => onSelectL2(l2)}
-                className={`
-                  px-4 py-2.5 text-xs font-medium uppercase tracking-wider border transition-all duration-200
-                  ${selectedL2 === l2
-                    ? 'bg-accent-500 text-primary-900 border-accent-500'
-                    : 'bg-transparent text-neutral-400 border-primary-600 hover:border-accent-500/50 hover:text-accent-500'
-                  }
-                `}
               >
                 {l2}
-              </button>
+              </ChipButton>
             ))}
           </div>
-        </div>
+        </FieldGroup>
       )}
     </div>
   )
 }
+
+interface FieldGroupProps {
+  label: string
+  required?: boolean
+  hint?: string
+  children: React.ReactNode
+}
+
+function FieldGroup({ label, required, hint, children }: FieldGroupProps) {
+  return (
+    <div>
+      <div className="flex items-baseline gap-3 mb-3">
+        <label className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3">
+          {label}
+          {required && <span className="text-accent ml-1">*</span>}
+        </label>
+        {hint && (
+          <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-ink-3 opacity-70">
+            {hint}
+          </span>
+        )}
+      </div>
+      {children}
+    </div>
+  )
+}
+
+interface ChipButtonProps {
+  active: boolean
+  onClick: () => void
+  disabled?: boolean
+  children: React.ReactNode
+}
+
+function ChipButton({ active, onClick, disabled, children }: ChipButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-pressed={active}
+      className={cn(
+        'pb-[2px] border-b transition-colors duration-200',
+        'font-mono text-[11px] uppercase tracking-[0.12em]',
+        disabled
+          ? 'border-transparent text-ink-3 opacity-40 cursor-not-allowed'
+          : active
+          ? 'border-ink text-ink font-bold'
+          : 'border-transparent text-ink-3 font-normal hover:text-ink hover:border-ink',
+      )}
+    >
+      {children}
+    </button>
+  )
+}
+
+export { ChipButton, FieldGroup }

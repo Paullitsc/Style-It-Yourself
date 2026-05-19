@@ -1,7 +1,7 @@
 'use client'
 
-import { Check } from 'lucide-react'
 import { AESTHETIC_TAGS } from '@/types'
+import { cn } from '@/lib/cn'
 
 interface AestheticsSelectorProps {
   selected: string[]
@@ -9,35 +9,43 @@ interface AestheticsSelectorProps {
   limit?: number
 }
 
-export default function AestheticsSelector({ selected, onToggle, limit = 3 }: AestheticsSelectorProps) {
+export default function AestheticsSelector({
+  selected,
+  onToggle,
+  limit = 3,
+}: AestheticsSelectorProps) {
   return (
     <div>
-      <label className="block text-[10px] uppercase font-bold tracking-widest text-neutral-500 mb-1">
-        Aesthetics
-      </label>
-      <p className="text-[10px] text-neutral-600 mb-3">Select up to {limit} that match</p>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex items-baseline gap-3 mb-3">
+        <label className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3">
+          Aesthetics
+        </label>
+        <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-ink-3 opacity-70">
+          {selected.length} / {limit} selected
+        </span>
+      </div>
+      <div className="flex flex-wrap gap-x-5 gap-y-2">
         {AESTHETIC_TAGS.map((tag) => {
           const isSelected = selected.includes(tag)
           const isDisabled = selected.length >= limit && !isSelected
-          
+
           return (
             <button
               key={tag}
+              type="button"
               onClick={() => onToggle(tag)}
               disabled={isDisabled}
-              className={`
-                px-3 py-2 text-xs font-medium uppercase tracking-wider
-                border transition-all duration-200
-                ${isSelected
-                  ? 'bg-accent-500/20 text-accent-500 border-accent-500'
+              aria-pressed={isSelected}
+              className={cn(
+                'pb-[2px] border-b transition-colors duration-200',
+                'font-mono text-[11px] uppercase tracking-[0.12em]',
+                isSelected
+                  ? 'border-ink text-ink font-bold'
                   : isDisabled
-                    ? 'bg-transparent text-neutral-700 border-primary-700 cursor-not-allowed'
-                    : 'bg-transparent text-neutral-500 border-primary-600 hover:border-neutral-500'
-                }
-              `}
+                  ? 'border-transparent text-ink-3 opacity-40 cursor-not-allowed'
+                  : 'border-transparent text-ink-3 font-normal hover:text-ink hover:border-ink',
+              )}
             >
-              {isSelected && <Check size={10} className="inline mr-1.5" />}
               {tag}
             </button>
           )
