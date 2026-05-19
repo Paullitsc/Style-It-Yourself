@@ -184,114 +184,119 @@ export default function ClosetPage() {
               edited.
             </h1>
             <p className="mt-[18px] max-w-[36ch] font-display italic text-[20px] leading-[1.35] text-ink-2">
-              Every piece you&apos;ve uploaded, every outfit you&apos;ve built — sorted, scored, and ready to wear.
+              Every piece you&apos;ve uploaded, every outfit you&apos;ve built — sorted and ready to wear.
             </p>
           </section>
 
-          {/* LEDGER */}
-          <section className="grid grid-cols-5 max-md:grid-cols-2 border-b border-ink">
-            <LedgerCell
-              label="Pieces"
-              value={<span>{ledger.pieces}</span>}
-              small={ledger.piecesSmall}
-            />
-            <LedgerCell
-              label="Outfits"
-              value={<span>{ledger.outfits}</span>}
-              small={ledger.outfitsSmall}
-            />
-            <LedgerCell
-              label="Categories"
-              value={<span>{ledger.categories}</span>}
-              small={ledger.categoriesSmall}
-            />
-            <LedgerCell
-              label="Dominant hue"
-              value={
-                <span>
-                  <i
-                    className="inline-block w-[22px] h-[22px] border border-ink align-[-3px] mr-2"
-                    style={{ backgroundColor: ledger.dominantHue.hex }}
-                    aria-hidden="true"
-                  />
-                  <em className="italic text-ink-3">
-                    {ledger.dominantHue.name}
-                  </em>
-                </span>
-              }
-            />
-            <LedgerCell
-              label="Last added"
-              value={
-                ledger.lastAddedMonth === '—' ? (
-                  <span>—</span>
-                ) : (
-                  <span>
-                    {ledger.lastAddedMonth}{' '}
-                    <em className="italic text-ink-3">{ledger.lastAddedDay}</em>
+          {/* LEDGER + TABS + FILTERBAR — gated on data-ready to avoid the
+              dash-flash before real values arrive */}
+          {!isLoading && !error && closetData && (
+            <>
+              <section className="grid grid-cols-5 max-md:grid-cols-2 border-b border-ink">
+                <LedgerCell
+                  label="Pieces"
+                  value={<span>{ledger.pieces}</span>}
+                  small={ledger.piecesSmall}
+                />
+                <LedgerCell
+                  label="Outfits"
+                  value={<span>{ledger.outfits}</span>}
+                  small={ledger.outfitsSmall}
+                />
+                <LedgerCell
+                  label="Categories"
+                  value={<span>{ledger.categories}</span>}
+                  small={ledger.categoriesSmall}
+                />
+                <LedgerCell
+                  label="Dominant hue"
+                  value={
+                    <span>
+                      <i
+                        className="inline-block w-[22px] h-[22px] border border-ink align-[-3px] mr-2"
+                        style={{ backgroundColor: ledger.dominantHue.hex }}
+                        aria-hidden="true"
+                      />
+                      <em className="italic text-ink-3">
+                        {ledger.dominantHue.name}
+                      </em>
+                    </span>
+                  }
+                />
+                <LedgerCell
+                  label="Last added"
+                  value={
+                    ledger.lastAddedMonth === '—' ? (
+                      <span>—</span>
+                    ) : (
+                      <span>
+                        {ledger.lastAddedMonth}{' '}
+                        <em className="italic text-ink-3">
+                          {ledger.lastAddedDay}
+                        </em>
+                      </span>
+                    )
+                  }
+                />
+              </section>
+
+              <nav className="flex border-b border-ink">
+                <TabButton
+                  active={activeView === 'items'}
+                  onClick={() => setActiveView('items')}
+                >
+                  Pieces{' '}
+                  <span className="opacity-60">
+                    {pad2(closetData.total_items)}
                   </span>
-                )
-              }
-            />
-          </section>
+                </TabButton>
+                <TabButton
+                  active={activeView === 'outfits'}
+                  onClick={() => setActiveView('outfits')}
+                >
+                  Outfits{' '}
+                  <span className="opacity-60">
+                    {pad2(closetData.total_outfits)}
+                  </span>
+                </TabButton>
+              </nav>
 
-          {/* TABS */}
-          <nav className="flex border-b border-ink">
-            <TabButton
-              active={activeView === 'items'}
-              onClick={() => setActiveView('items')}
-            >
-              Pieces{' '}
-              <span className="opacity-60">
-                {pad2(closetData?.total_items ?? 0)}
-              </span>
-            </TabButton>
-            <TabButton
-              active={activeView === 'outfits'}
-              onClick={() => setActiveView('outfits')}
-            >
-              Outfits{' '}
-              <span className="opacity-60">
-                {pad2(closetData?.total_outfits ?? 0)}
-              </span>
-            </TabButton>
-          </nav>
-
-          {/* FILTERBAR */}
-          {activeView === 'items' && (
-            <div className="grid grid-cols-[1fr_auto_auto] max-md:grid-cols-1 gap-6 py-[22px] border-b border-ink items-center">
-              <div className="flex flex-wrap gap-2">
-                {(['All', ...sortedCategories] as string[]).map((cat) => (
-                  <Chip
-                    key={cat}
-                    active={categoryFilter === cat}
-                    onClick={() => setCategoryFilter(cat)}
-                  >
-                    {cat}
-                  </Chip>
-                ))}
-              </div>
-              <SegmentedControl
-                label="Show"
-                options={[
-                  { value: 'all', label: 'All' },
-                  { value: 'owned', label: 'Owned' },
-                  { value: 'wishlist', label: 'Wishlist' },
-                ]}
-                value={ownershipFilter}
-                onChange={(v) => setOwnershipFilter(v as OwnershipFilter)}
-              />
-              <SegmentedControl
-                label="Sort"
-                options={[
-                  { value: 'newest', label: 'Newest' },
-                  { value: 'oldest', label: 'Oldest' },
-                  { value: 'color', label: 'Color' },
-                ]}
-                value={sortOrder}
-                onChange={(v) => setSortOrder(v as SortOrder)}
-              />
-            </div>
+              {activeView === 'items' && (
+                <div className="grid grid-cols-[1fr_auto_auto] max-md:grid-cols-1 gap-6 py-[22px] border-b border-ink items-center">
+                  <div className="flex flex-wrap gap-2">
+                    {(['All', ...sortedCategories] as string[]).map((cat) => (
+                      <Chip
+                        key={cat}
+                        active={categoryFilter === cat}
+                        onClick={() => setCategoryFilter(cat)}
+                      >
+                        {cat}
+                      </Chip>
+                    ))}
+                  </div>
+                  <SegmentedControl
+                    label="Show"
+                    options={[
+                      { value: 'all', label: 'All' },
+                      { value: 'owned', label: 'Owned' },
+                      { value: 'wishlist', label: 'Wishlist' },
+                    ]}
+                    value={ownershipFilter}
+                    onChange={(v) => setOwnershipFilter(v as OwnershipFilter)}
+                  />
+                  <SegmentedControl
+                    label="Sort"
+                    options={[
+                      { value: 'newest', label: 'Newest' },
+                      { value: 'oldest', label: 'Oldest' },
+                      { value: 'color', label: 'Color' },
+                    ]}
+                    value={sortOrder}
+                    onChange={(v) => setSortOrder(v as SortOrder)}
+                  />
+                </div>
+              )}
+            </>
           )}
 
           {/* CONTENT */}
@@ -333,7 +338,12 @@ export default function ClosetPage() {
               closetData={closetData}
               sortedCategories={sortedCategories}
               categoryFilter={categoryFilter}
+              ownershipFilter={ownershipFilter}
               sortItems={sortItems}
+              onClearFilters={() => {
+                setCategoryFilter('All')
+                setOwnershipFilter('all')
+              }}
               onItemClick={(item) => {
                 setTryOnItem(null)
                 setSelectedItem(item)
@@ -511,7 +521,9 @@ interface ItemsViewProps {
   closetData: ClosetResponse
   sortedCategories: string[]
   categoryFilter: string
+  ownershipFilter: OwnershipFilter
   sortItems: (items: ClothingItemResponse[]) => ClothingItemResponse[]
+  onClearFilters: () => void
   onItemClick: (item: ClothingItemResponse) => void
   onTryOn: (item: ClothingItemResponse) => void
 }
@@ -520,7 +532,9 @@ function ItemsView({
   closetData,
   sortedCategories,
   categoryFilter,
+  ownershipFilter,
   sortItems,
+  onClearFilters,
   onItemClick,
   onTryOn,
 }: ItemsViewProps) {
@@ -531,7 +545,14 @@ function ItemsView({
           Empty closet.
         </p>
         <p className="font-display italic text-[18px] text-ink-2 mt-3">
-          Add your first piece below.
+          Tap{' '}
+          <Link
+            href="/style"
+            className="underline decoration-ink underline-offset-4 hover:text-ink"
+          >
+            Style
+          </Link>{' '}
+          in the masthead to upload your first piece.
         </p>
       </section>
     )
@@ -554,6 +575,25 @@ function ItemsView({
         .slice(0, i)
         .reduce((sum, s) => sum + s.filtered.length, 0),
     }))
+
+  // Closet has items but current filters wiped them all out
+  const filtersActive = categoryFilter !== 'All' || ownershipFilter !== 'all'
+  if (sections.length === 0 && filtersActive) {
+    return (
+      <section className="py-16 text-center">
+        <p className="font-display italic text-[32px] leading-snug">
+          No pieces match this filter.
+        </p>
+        <button
+          type="button"
+          onClick={onClearFilters}
+          className="mt-4 font-mono text-[11px] uppercase tracking-[0.12em] underline decoration-ink underline-offset-4 hover:text-ink-2"
+        >
+          Clear filters
+        </button>
+      </section>
+    )
+  }
 
   return (
     <div>
@@ -598,6 +638,10 @@ interface ItemTileProps {
 function ItemTile({ item, index, onClick, onTryOn }: ItemTileProps) {
   const aesthetics = (item.aesthetics ?? []).slice(0, 2).join(' · ')
   const formality = item.formality ?? 0
+  // Auto-name: "Navy T-shirt" beats just "T-shirt" when you own multiples.
+  const displayName = item.color?.name
+    ? `${item.color.name} ${item.category.l2}`
+    : item.category.l2
 
   return (
     <div
@@ -660,7 +704,7 @@ function ItemTile({ item, index, onClick, onTryOn }: ItemTileProps) {
 
       <div className="flex justify-between items-baseline gap-3">
         <span className="font-display text-[18px] leading-none">
-          {item.category.l2}
+          {displayName}
         </span>
         {formality > 0 && (
           <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-ink-3">
