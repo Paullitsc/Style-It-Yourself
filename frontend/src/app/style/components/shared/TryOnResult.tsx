@@ -1,6 +1,6 @@
 'use client'
 
-import { Download, RotateCcw } from 'lucide-react'
+import { cn } from '@/lib/cn'
 
 interface TryOnResultProps {
   imageUrl: string
@@ -11,18 +11,19 @@ interface TryOnResultProps {
   onDone?: () => void
 }
 
-export default function TryOnResult({ 
-  imageUrl, 
-  processingTime, 
-  onRetry, 
+export default function TryOnResult({
+  imageUrl,
+  processingTime,
+  onRetry,
   onDownload,
-  retryLabel = "Try Another Photo",
-  onDone
+  retryLabel = 'Try another photo',
+  onDone,
 }: TryOnResultProps) {
   return (
-    <div className="space-y-6">
-      {/* Result Image */}
-      <div className="w-full max-h-[70vh] bg-primary-800 rounded-lg overflow-hidden border border-primary-700 flex items-center justify-center">
+    <div className="flex flex-col gap-6">
+      {/* Result image */}
+      <div className="w-full max-h-[70vh] border border-ink bg-paper-2 overflow-hidden flex items-center justify-center">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={imageUrl}
           alt="Try-on result"
@@ -30,46 +31,56 @@ export default function TryOnResult({
         />
       </div>
 
-      {/* Processing time */}
       {processingTime !== undefined && processingTime > 0 && (
-        <p className="text-center text-xs text-neutral-500">
+        <p className="text-center font-mono text-[10px] uppercase tracking-[0.12em] text-ink-3">
           Generated in {processingTime.toFixed(1)}s
         </p>
       )}
 
       {/* Actions */}
-      <div className="flex gap-3">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
         {retryLabel && (
-            <button
+          <button
+            type="button"
             onClick={onRetry}
-            className="flex items-center justify-center gap-2 px-4 py-3
-                border border-primary-600 text-neutral-400 hover:text-white hover:border-primary-500
-                text-xs font-bold uppercase tracking-widest transition-all rounded-lg"
-            >
-            <RotateCcw size={14} />
-            {retryLabel}
-            </button>
+            className="font-mono text-[11px] uppercase tracking-[0.12em] pb-[2px] border-b border-transparent hover:border-ink transition-colors"
+          >
+            ↺ {retryLabel}
+          </button>
         )}
-        <button
+
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
             onClick={onDownload}
-            className="flex items-center justify-center gap-2 px-4 py-3
-            bg-accent-500 text-primary-900 hover:bg-accent-400
-            text-xs font-bold uppercase tracking-widest transition-all rounded-lg"
-        >
-            <Download size={14} />
-            Download
-        </button>
-        {onDone && (
+            className={cn(
+              'inline-flex items-center gap-3 px-[18px] py-[12px]',
+              'border border-ink bg-paper text-ink',
+              'font-mono text-[11px] uppercase tracking-[0.12em]',
+              'transition-colors hover:bg-ink hover:text-paper',
+            )}
+          >
+            <span>Download</span>
+            <span aria-hidden="true">↓</span>
+          </button>
+
+          {onDone && (
             <button
-            onClick={onDone}
-            className="flex-1 flex items-center justify-center gap-2 px-6 py-3
-                bg-white text-primary-900 hover:bg-neutral-200
-                text-xs font-bold uppercase tracking-widest transition-all rounded-lg"
+              type="button"
+              onClick={onDone}
+              className={cn(
+                'inline-flex items-center justify-between gap-6 px-[18px] py-[12px]',
+                'border border-ink bg-ink text-paper',
+                'font-mono text-[11px] uppercase tracking-[0.12em]',
+                'transition-colors hover:bg-paper hover:text-ink',
+              )}
             >
-            Done
+              <span>Done</span>
+              <span aria-hidden="true">→</span>
             </button>
-        )}
+          )}
         </div>
+      </div>
     </div>
   )
 }

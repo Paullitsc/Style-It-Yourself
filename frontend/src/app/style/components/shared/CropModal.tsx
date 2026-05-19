@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import ReactCrop, { type Crop, type PixelCrop } from 'react-image-crop'
 import 'react-image-crop/dist/ReactCrop.css'
-import { X, RotateCcw, ZoomIn, ZoomOut, Maximize } from 'lucide-react'
+import { cn } from '@/lib/cn'
 
 interface CropModalProps {
   file: File
@@ -12,7 +12,12 @@ interface CropModalProps {
   onClose: () => void
 }
 
-export default function CropModal({ file, onComplete, onSkip, onClose }: CropModalProps) {
+export default function CropModal({
+  file,
+  onComplete,
+  onSkip,
+  onClose,
+}: CropModalProps) {
   const [imageSrc, setImageSrc] = useState<string>('')
   const [crop, setCrop] = useState<Crop>()
   const [completedCrop, setCompletedCrop] = useState<PixelCrop | null>(null)
@@ -20,23 +25,21 @@ export default function CropModal({ file, onComplete, onSkip, onClose }: CropMod
   const [isProcessing, setIsProcessing] = useState(false)
   const imageRef = useRef<HTMLImageElement | null>(null)
 
-  // Load image on mount
   useEffect(() => {
     const reader = new FileReader()
-    reader.onload = () => {
-      const img = reader.result as string
-      setImageSrc(img)
-    }
+    reader.onload = () => setImageSrc(reader.result as string)
     reader.readAsDataURL(file)
   }, [file])
 
-  const getDefaultCrop = useCallback((): Crop => {
-    return { unit: '%', x: 10, y: 10, width: 80, height: 60 }
-  }, [])
+  const getDefaultCrop = useCallback(
+    (): Crop => ({ unit: '%', x: 10, y: 10, width: 80, height: 60 }),
+    [],
+  )
 
-  const onImageLoad = useCallback(() => {
-    setCrop(getDefaultCrop())
-  }, [getDefaultCrop])
+  const onImageLoad = useCallback(
+    () => setCrop(getDefaultCrop()),
+    [getDefaultCrop],
+  )
 
   const handleConfirm = useCallback(async () => {
     if (!completedCrop || !imageRef.current) return
@@ -46,7 +49,6 @@ export default function CropModal({ file, onComplete, onSkip, onClose }: CropMod
       onComplete(croppedBlob)
     } catch (error) {
       console.error('Error cropping image:', error)
-      alert('Failed to crop image. Please try again.')
     } finally {
       setIsProcessing(false)
     }
@@ -72,28 +74,44 @@ export default function CropModal({ file, onComplete, onSkip, onClose }: CropMod
   const displaySize = displayCrop()
 
   return (
-    <div className="fixed inset-0 bg-primary-900/95 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-primary-900 w-full max-w-4xl border border-primary-700 shadow-2xl animate-in fade-in zoom-in duration-200 rounded-xl overflow-hidden flex flex-col">
-        
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div
+        className="absolute inset-0 bg-ink/40"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="crop-title"
+        className="relative z-10 w-full max-w-4xl max-h-[90vh] border border-ink bg-paper flex flex-col overflow-hidden"
+      >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-primary-800">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-ink">
           <div>
-            <h3 className="text-lg font-bold uppercase tracking-widest text-white">
-              Crop Image
-            </h3>
-            <p className="text-xs text-neutral-500 mt-1">
-              Drag the edges to adjust your crop area
+            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mb-1">
+              Step 01 · Crop
             </p>
+            <h3
+              id="crop-title"
+              className="font-display text-[24px] leading-none tracking-[-0.015em]"
+            >
+              Frame the <em className="italic text-ink-3">piece.</em>
+            </h3>
           </div>
-          <button onClick={onClose} className="text-neutral-500 hover:text-white transition-colors p-1">
-            <X size={20} />
+          <button
+            type="button"
+            onClick={onClose}
+            className="font-mono text-[10px] uppercase tracking-[0.12em] text-ink-3 hover:text-ink transition-colors"
+            aria-label="Close"
+          >
+            ✕ Close
           </button>
         </div>
 
-        {/* Cropper Area with Better Styling */}
-        <div 
-          className="relative flex-1 min-h-[450px] bg-black overflow-hidden flex items-center justify-center"
-        >
+        {/* Cropper area */}
+        <div className="relative flex-1 min-h-[420px] bg-paper-2 overflow-hidden flex items-center justify-center">
           {imageSrc && (
             <>
               <div
@@ -111,26 +129,29 @@ export default function CropModal({ file, onComplete, onSkip, onClose }: CropMod
                   minHeight={40}
                   keepSelection={true}
                   ruleOfThirds={true}
-                  className="max-h-[450px]"
+                  className="max-h-[420px]"
                 >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     ref={imageRef}
                     src={imageSrc}
                     alt="Crop preview"
                     onLoad={onImageLoad}
-                    className="max-h-[450px] w-auto max-w-full object-contain select-none"
+                    className="max-h-[420px] w-auto max-w-full object-contain select-none"
                   />
                 </ReactCrop>
               </div>
-              {/* Crop Dimensions Display */}
               {displaySize && (
-                <div className="absolute top-6 right-6 bg-primary-800/90 backdrop-blur-sm px-4 py-3 rounded border border-primary-700 pointer-events-none z-20">
-                  <div className="text-xs text-neutral-300 space-y-1">
-                    <div><span className="text-accent-500 font-bold">{displaySize.width}</span>px × <span className="text-accent-500 font-bold">{displaySize.height}</span>px</div>
-                    <div className="text-[9px] text-neutral-500">
-                      Aspect: {(displaySize.width / displaySize.height).toFixed(2)}:1
-                    </div>
-                  </div>
+                <div className="absolute top-5 right-5 bg-paper border border-ink px-3 py-2 pointer-events-none z-20">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink">
+                    {displaySize.width}px ×{' '}
+                    <em className="italic text-ink-3 not-italic">
+                      {displaySize.height}px
+                    </em>
+                  </p>
+                  <p className="font-mono text-[9px] uppercase tracking-[0.08em] text-ink-3 mt-1">
+                    Aspect {(displaySize.width / displaySize.height).toFixed(2)}:1
+                  </p>
                 </div>
               )}
             </>
@@ -138,88 +159,110 @@ export default function CropModal({ file, onComplete, onSkip, onClose }: CropMod
         </div>
 
         {/* Controls */}
-        <div className="px-6 py-5 border-t border-primary-800 bg-primary-900/50">
-          {/* Zoom Control */}
-          <div className="flex items-center gap-4 mb-6">
-            <div className="flex items-center gap-3 flex-1">
-              <ZoomOut size={16} className="text-neutral-500 shrink-0" />
-              <div className="flex-1">
-                <input
-                  type="range"
-                  min={0.5}
-                  max={3}
-                  step={0.1}
-                  value={zoom}
-                  onChange={(e) => setZoom(Number(e.target.value))}
-                  className="w-full h-2 bg-primary-700 rounded-full appearance-none cursor-pointer accent-accent-500"
-                  style={{
-                    background: `linear-gradient(to right, #6b5b1a 0%, #d4af37 ${((zoom - 0.5) / 2.5) * 100}%, #6b5b1a ${((zoom - 0.5) / 2.5) * 100}%, #6b5b1a 100%)`,
-                  }}
-                />
-              </div>
-              <ZoomIn size={16} className="text-neutral-500 shrink-0" />
-              <span className="text-xs text-neutral-500 font-mono w-8">{zoom.toFixed(1)}x</span>
-            </div>
-            
+        <div className="px-6 py-5 border-t border-ink">
+          {/* Zoom */}
+          <div className="flex items-center gap-4 mb-5">
+            <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-ink-3 shrink-0">
+              Zoom
+            </span>
+            <input
+              type="range"
+              min={0.5}
+              max={3}
+              step={0.1}
+              value={zoom}
+              onChange={(e) => setZoom(Number(e.target.value))}
+              aria-label="Zoom"
+              className={cn(
+                'flex-1 h-2 appearance-none cursor-pointer bg-paper-2 border border-ink',
+                '[&::-webkit-slider-thumb]:appearance-none',
+                '[&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4',
+                '[&::-webkit-slider-thumb]:bg-ink [&::-webkit-slider-thumb]:border-0',
+                '[&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4',
+                '[&::-moz-range-thumb]:bg-ink [&::-moz-range-thumb]:border-0',
+              )}
+            />
+            <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink-3 w-12 text-right">
+              {zoom.toFixed(1)}x
+            </span>
             <button
+              type="button"
               onClick={handleReset}
-              className="flex items-center gap-2 px-3 py-2 text-neutral-400 hover:text-white border border-primary-600 hover:border-primary-500 text-xs uppercase tracking-wider transition-colors rounded"
+              className="font-mono text-[10px] uppercase tracking-[0.12em] pb-[2px] border-b border-transparent hover:border-ink hover:text-ink text-ink-3 transition-colors"
             >
-              <RotateCcw size={12} /> Reset
+              ↺ Reset
             </button>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex justify-between gap-3">
+          {/* Actions */}
+          <div className="flex items-center justify-between gap-4 flex-wrap">
             <button
+              type="button"
               onClick={onSkip}
-              className="flex items-center gap-2 px-5 py-3 text-neutral-400 hover:text-white border border-primary-700 hover:border-primary-600 text-xs font-bold uppercase tracking-widest transition-colors rounded"
+              className="font-mono text-[11px] uppercase tracking-[0.12em] pb-[2px] border-b border-transparent hover:border-ink transition-colors"
             >
-              <Maximize size={14} /> Use Full Image
+              Use full image
             </button>
-            
-            <div className="flex gap-3">
-              <button 
-                onClick={onClose} 
-                className="px-6 py-3 text-neutral-400 hover:text-white text-xs font-bold uppercase tracking-widest border border-primary-700 hover:border-primary-600 transition-colors rounded"
+
+            <div className="flex items-center gap-4">
+              <button
+                type="button"
+                onClick={onClose}
+                className="font-mono text-[11px] uppercase tracking-[0.12em] pb-[2px] border-b border-transparent hover:border-ink transition-colors"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={handleConfirm}
                 disabled={isProcessing}
-                className="px-8 py-3 bg-white text-primary-900 hover:bg-neutral-200 disabled:opacity-50 text-xs font-bold uppercase tracking-widest rounded transition-colors"
+                className={cn(
+                  'inline-flex items-center justify-between gap-6 px-[18px] py-[12px]',
+                  'border border-ink bg-ink text-paper',
+                  'font-mono text-[11px] uppercase tracking-[0.12em]',
+                  'transition-colors hover:bg-paper hover:text-ink',
+                  'disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-ink disabled:hover:text-paper',
+                )}
               >
-                {isProcessing ? 'Processing...' : 'Apply Crop'}
+                <span>{isProcessing ? 'Processing…' : 'Apply crop'}</span>
+                {!isProcessing && <span aria-hidden="true">→</span>}
               </button>
             </div>
           </div>
         </div>
       </div>
+
+      {/* ReactCrop visual override — ink selection, ink handles */}
       <style jsx global>{`
         .ReactCrop__crop-selection {
-          border: 3px solid #d4af37;
-          box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.8);
+          border: 2px solid var(--color-ink);
+          box-shadow: 0 0 0 9999px oklch(0.18 0.01 60 / 0.4);
         }
-
         .ReactCrop__drag-handle:after {
-          width: 12px;
-          height: 12px;
-          background-color: #d4af37;
-          border: 2px solid #0b0f12;
-          border-radius: 2px;
+          width: 10px;
+          height: 10px;
+          background-color: var(--color-ink);
+          border: 1px solid var(--color-paper);
+          border-radius: 0;
         }
-
         .ReactCrop__drag-bar {
-          background: rgba(212, 175, 55, 0.7);
+          background: var(--color-ink);
+          opacity: 0.6;
+        }
+        .ReactCrop__rule-of-thirds-hz,
+        .ReactCrop__rule-of-thirds-vt {
+          border-color: var(--color-paper);
+          opacity: 0.4;
         }
       `}</style>
     </div>
   )
 }
 
-// Helper: Create cropped image blob
-async function getCroppedImg(image: HTMLImageElement, pixelCrop: PixelCrop): Promise<Blob> {
+async function getCroppedImg(
+  image: HTMLImageElement,
+  pixelCrop: PixelCrop,
+): Promise<Blob> {
   const rect = image.getBoundingClientRect()
   const canvas = document.createElement('canvas')
   const ctx = canvas.getContext('2d')
@@ -240,13 +283,17 @@ async function getCroppedImg(image: HTMLImageElement, pixelCrop: PixelCrop): Pro
     0,
     0,
     canvas.width,
-    canvas.height
+    canvas.height,
   )
 
   return new Promise((resolve, reject) => {
-    canvas.toBlob((blob) => {
-      if (blob) resolve(blob)
-      else reject(new Error('Canvas is empty'))
-    }, 'image/jpeg', 0.95)
+    canvas.toBlob(
+      (blob) => {
+        if (blob) resolve(blob)
+        else reject(new Error('Canvas is empty'))
+      },
+      'image/jpeg',
+      0.95,
+    )
   })
 }
