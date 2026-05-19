@@ -9,9 +9,9 @@ import { Button } from '@/components/ui'
 
 const CREDITS = [
   { label: 'How it works', value: 'HSL color theory' },
-  { label: 'Try-on', value: 'Generative image model' },
-  { label: 'Pricing', value: 'Free, no account' },
-  { label: 'Storage', value: 'Optional · Session-only' },
+  { label: 'Try-on', value: 'Google Nano Banana Pro Model' },
+  { label: 'Pricing', value: 'Free' },
+  { label: 'Why', value: 'Style more, buy less' },
 ]
 
 export default function Home() {
@@ -30,7 +30,7 @@ export default function Home() {
   }
 
   const navLinkClass =
-    'pb-[2px] border-b border-transparent hover:border-ink transition-colors'
+    'font-mono text-[11px] uppercase tracking-[0.12em] pb-[2px] border-b border-transparent hover:border-ink transition-colors'
 
   return (
     <>
@@ -47,16 +47,15 @@ export default function Home() {
             >
               Style It Yourself
             </Link>
-            <nav className="flex gap-6 justify-end font-mono text-[11px] uppercase tracking-[0.12em]">
+            <nav className="flex gap-6 justify-end">
               <Link href="/style" className={navLinkClass}>
                 Style
               </Link>
-              <Link
-                href={user ? '/closet' : '/style'}
-                className={navLinkClass}
-              >
-                Closet
-              </Link>
+              {user && (
+                <Link href="/closet" className={navLinkClass}>
+                  Closet
+                </Link>
+              )}
               {user ? (
                 <Link href="/account" className={navLinkClass}>
                   Account
