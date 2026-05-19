@@ -214,9 +214,9 @@ export default function ClosetPage() {
             </Link>
           </section>
 
-          {/* LEDGER + TABS + FILTERBAR — gated on data-ready to avoid the
-              dash-flash before real values arrive */}
-          {!isLoading && !error && closetData && (
+          {/* LEDGER + TABS + FILTERBAR — gated on data-ready AND non-empty
+              so a 0-item closet doesn't show a wall of em-dashes */}
+          {!isLoading && !error && closetData && closetData.total_items > 0 && (
             <>
               <section className="grid grid-cols-5 max-md:grid-cols-2 border-b border-ink">
                 <LedgerCell
@@ -272,7 +272,7 @@ export default function ClosetPage() {
                   onClick={() => switchView('items')}
                 >
                   Pieces{' '}
-                  <span className="text-ink-3">
+                  <span className="opacity-50 font-normal">
                     {pad2(closetData.total_items)}
                   </span>
                 </TabButton>
@@ -281,7 +281,7 @@ export default function ClosetPage() {
                   onClick={() => switchView('outfits')}
                 >
                   Outfits{' '}
-                  <span className="text-ink-3">
+                  <span className="opacity-50 font-normal">
                     {pad2(closetData.total_outfits)}
                   </span>
                 </TabButton>
@@ -289,9 +289,9 @@ export default function ClosetPage() {
 
               {activeView === 'items' && (
                 <div className="flex flex-col gap-6 py-[22px] border-b border-ink">
-                  <div className="flex items-center border border-ink bg-paper">
+                  <div className="flex items-baseline gap-4 border-b border-ink pb-3">
                     <span
-                      className="px-4 py-2 border-r border-ink font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3"
+                      className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3"
                       aria-hidden="true"
                     >
                       Search
@@ -302,16 +302,16 @@ export default function ClosetPage() {
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Color, category, brand, aesthetic…"
                       aria-label="Search pieces"
-                      className="flex-1 bg-transparent px-4 py-2 font-display italic text-[16px] text-ink placeholder:text-ink-3 placeholder:not-italic placeholder:font-mono placeholder:text-[12px] placeholder:tracking-[0.04em] focus:outline-none"
+                      className="flex-1 bg-transparent font-display italic text-[18px] text-ink placeholder:text-ink-3 placeholder:not-italic placeholder:font-mono placeholder:text-[12px] placeholder:tracking-[0.04em] focus:outline-none"
                     />
                     {searchQuery && (
                       <button
                         type="button"
                         onClick={() => setSearchQuery('')}
-                        className="pr-4 font-mono text-[10px] uppercase tracking-[0.12em] text-ink-3 hover:text-ink"
+                        className="font-mono text-[10px] uppercase tracking-[0.12em] text-ink-3 hover:text-ink"
                         aria-label="Clear search"
                       >
-                        ✕
+                        Clear ✕
                       </button>
                     )}
                   </div>
@@ -363,7 +363,7 @@ export default function ClosetPage() {
               <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-ink-3">
                 Loading closet…
               </p>
-              <div className="grid grid-cols-5 gap-6 max-md:grid-cols-3">
+              <div className="grid grid-cols-5 gap-6 max-md:grid-cols-2">
                 <CardSkeleton count={5} />
               </div>
             </section>
@@ -461,7 +461,7 @@ interface LedgerCellProps {
 
 function LedgerCell({ label, value, small }: LedgerCellProps) {
   return (
-    <div className="border-r border-ink last:border-r-0 max-md:border-r-0 max-md:[&:nth-child(odd)]:border-r max-md:border-b max-md:last:border-b-0 max-md:[&:nth-last-child(2)]:border-b-0 px-[22px] py-[18px]">
+    <div className="border-r border-ink last:border-r-0 max-md:border-r-0 max-md:[&:nth-child(odd)]:border-r max-md:[&:last-child]:border-r-0 max-md:[&:last-child]:col-span-2 max-md:border-b max-md:last:border-b-0 max-md:[&:nth-last-child(2)]:border-b-0 px-[22px] py-[18px]">
       <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mb-[6px]">
         {label}
       </div>
