@@ -219,7 +219,9 @@ export default function ClosetPage() {
         <section className="mb-10">
           <h1 className="t-display-l">Your closet.</h1>
           <p className="t-body-l text-ink-2 mt-3">
-            {closetData && closetData.total_items > 0 && ledger.established
+            {isLoading
+              ? ' '
+              : closetData && closetData.total_items > 0 && ledger.established
               ? `${closetData.total_items} ${
                   closetData.total_items === 1 ? 'piece' : 'pieces'
                 }. Established ${ledger.established}.`
@@ -281,7 +283,12 @@ export default function ClosetPage() {
           <div className="flex items-center gap-8 mb-6">
             <button
               type="button"
-              onClick={() => setActiveView('items')}
+              onClick={() => {
+                setActiveView('items')
+                setActiveFilter('category')
+                setCategoryFilter('All')
+                setOwnershipFilter('all')
+              }}
               className={cn(
                 'font-mono text-[11px] uppercase tracking-[0.08em] pb-1',
                 activeView === 'items'
@@ -293,7 +300,12 @@ export default function ClosetPage() {
             </button>
             <button
               type="button"
-              onClick={() => setActiveView('outfits')}
+              onClick={() => {
+                setActiveView('outfits')
+                setActiveFilter('category')
+                setCategoryFilter('All')
+                setOwnershipFilter('all')
+              }}
               className={cn(
                 'font-mono text-[11px] uppercase tracking-[0.08em] pb-1',
                 activeView === 'outfits'
@@ -500,7 +512,7 @@ function ItemsView({
       {visibleCategories.map((category) => {
         const allInCategory = closetData.items_by_category[category] ?? []
         const filtered = filterItems(allInCategory)
-        if (filtered.length === 0 && allInCategory.length === 0) return null
+        if (filtered.length === 0) return null
         return (
           <section key={category} className="mb-12">
             <hr className="border-t border-rule-soft" />
