@@ -494,8 +494,8 @@ function TabButton({ active, onClick, children }: TabButtonProps) {
         'font-mono text-[12px] uppercase tracking-[0.14em]',
         'border-b-2 transition-colors duration-200',
         active
-          ? 'border-ink text-ink'
-          : 'border-transparent text-ink-3 hover:text-ink hover:border-ink',
+          ? 'border-ink text-ink font-bold'
+          : 'border-transparent text-ink-3 font-normal hover:text-ink hover:border-ink',
       )}
     >
       {children}
@@ -519,8 +519,8 @@ function Chip({ active, onClick, children }: ChipProps) {
         'pb-[2px] border-b transition-colors duration-200',
         'font-mono text-[11px] uppercase tracking-[0.12em]',
         active
-          ? 'border-ink text-ink'
-          : 'border-transparent text-ink-3 hover:text-ink hover:border-ink',
+          ? 'border-ink text-ink font-bold'
+          : 'border-transparent text-ink-3 font-normal hover:text-ink hover:border-ink',
       )}
     >
       {children}
@@ -562,8 +562,8 @@ function SegmentedControl({
               'pb-[2px] border-b transition-colors duration-200',
               'font-mono text-[11px] uppercase tracking-[0.12em]',
               value === opt.value
-                ? 'border-ink text-ink'
-                : 'border-transparent text-ink-3 hover:text-ink hover:border-ink',
+                ? 'border-ink text-ink font-bold'
+                : 'border-transparent text-ink-3 font-normal hover:text-ink hover:border-ink',
             )}
           >
             {opt.label}
