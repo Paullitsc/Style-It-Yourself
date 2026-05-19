@@ -1,165 +1,100 @@
 'use client'
-import Link from "next/link";
-import { useAuth } from "@/components/AuthProvider";
-import { useState, useRef } from "react";
-import AuthModal from "@/components/AuthModal";
-import { ArrowRight, Upload, Sparkles } from 'lucide-react'; 
-import { useRouter } from "next/navigation";
-import { useStyleStore } from "@/store/styleStore";
+
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/components/AuthProvider'
+import { Button } from '@/components/ui'
+
+const STEPS = [
+  {
+    num: '01',
+    label: 'Upload',
+    title: 'Photos of\nyour closet.',
+    body: 'Snap or import a photo of each piece.',
+  },
+  {
+    num: '02',
+    label: 'Describe',
+    title: 'Tags & color\npalette.',
+    body: 'Add formality, aesthetic, and the colors we read.',
+  },
+  {
+    num: '03',
+    label: 'Outfit',
+    title: 'Daily looks\non demand.',
+    body: 'Get outfit recommendations from what you already own.',
+  },
+]
 
 export default function Home() {
-  const { user } = useAuth();
-  const [isAuthModalOpen, setAuthModalOpen] = useState(false);
-  const router = useRouter();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  // Get the store action to set pending upload
-  const { setPendingUpload } = useStyleStore();
+  const { user } = useAuth()
+  const router = useRouter()
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        alert('Please select an image file');
-        return;
-      }
-      
-      // Validate file size (10MB max)
-      if (file.size > 10 * 1024 * 1024) {
-        alert('File size must be less than 10MB');
-        return;
-      }
-      
-      // Store the file in Zustand, then navigate
-      setPendingUpload(file);
-      router.push('/style');
-    }
-  };
+  const handleStartStyling = () => {
+    router.push(user ? '/closet' : '/style')
+  }
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    const file = e.dataTransfer.files[0];
-    if (file) {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        alert('Please select an image file');
-        return;
-      }
-      
-      // Validate file size (10MB max)
-      if (file.size > 10 * 1024 * 1024) {
-        alert('File size must be less than 10MB');
-        return;
-      }
-      
-      // Store the file in Zustand, then navigate
-      setPendingUpload(file);
-      router.push('/style');
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
-
-  const triggerFileInput = () => {
-    fileInputRef.current?.click();
-  };
+  const scrollToSteps = () => {
+    document
+      .getElementById('steps')
+      ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-80px)]">
-      
-      <section className="flex-1 grid grid-cols-1 md:grid-cols-2 items-center max-w-[1920px] mx-auto px-6 md:px-12 gap-12 md:gap-24 py-12 w-full">
-        
-        {/* LEFT COLUMN: Centered & Minimalist */}
-        <div className="flex flex-col justify-center items-center text-center space-y-10 h-full">
-          <div className="space-y-6 flex flex-col items-center">
-            
-            {/* HEADLINE: White + Muted Grey (Luxury contrast) */}
-            <h1 className="text-6xl md:text-8xl font-bold tracking-tighter text-white leading-[0.9]">
-              STYLE IT <br/>
-              {/* Changed from Gold to Neutral-700 for subtle elegance */}
-              <span className="text-neutral-700">YOURSELF</span>
-            </h1>
-            
-            <p className="text-xl text-neutral-400 font-light max-w-lg leading-relaxed">
-              Be your own stylist with this tool to level up your wardrobe and refine your personal brand.
-            </p>
-
-            {/* GOLD ACCENT: Only used here for the "Premium" warning */}
-            {!user && (
-              <div className="flex items-center gap-2 text-sm font-medium text-accent-700 uppercase tracking-widest">
-                <Sparkles size={14} />
-                <span>Login required for AI Try-On</span>
-              </div>
-            )}
-          </div>
-
-          {/* CTA BUTTON */}
-          <div className="w-full flex justify-center pt-2">
-            {user ? (
-              <Link 
-                href="/closet"
-                className="group flex items-center justify-between gap-6 px-8 py-5 bg-white text-black hover:bg-neutral-200 transition-all text-sm font-bold uppercase tracking-widest min-w-[240px]"
-              >
-                Go to My Closet
-                <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-              </Link>
-            ) : (
-              <button 
-                onClick={() => setAuthModalOpen(true)}
-                className="group flex items-center justify-between gap-6 px-8 py-5 bg-white text-black hover:bg-neutral-200 transition-all text-sm font-bold uppercase tracking-widest min-w-[240px]"
-              >
-                Create Account
-                <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-              </button>
-            )}
-          </div>
+    <div className="min-h-[calc(100vh-80px)] flex flex-col text-ink">
+      {/* HERO */}
+      <section className="px-[var(--gutter)] py-[var(--section-pad-y)] max-w-[1440px] w-full mx-auto">
+        <h1 className="t-display-xl">
+          An outfit<br />
+          generator for<br />
+          clothes you<br />
+          already own.
+        </h1>
+        <div className="flex flex-wrap gap-6 mt-12">
+          <Button onClick={handleStartStyling}>Start styling</Button>
+          <Button variant="secondary" onClick={scrollToSteps}>
+            How it works
+          </Button>
         </div>
-
-        {/* RIGHT COLUMN: Upload Zone */}
-        <div 
-          onClick={triggerFileInput}
-          onDrop={handleDrop}
-          onDragOver={handleDragOver}
-          className="relative h-[600px] w-full bg-primary-800/20 rounded-xl border border-dashed border-primary-700 hover:border-accent-500/50 hover:bg-primary-800/40 transition-all duration-500 cursor-pointer group overflow-hidden"
-        >
-          <input 
-            type="file" 
-            ref={fileInputRef}
-            className="hidden" 
-            accept="image/*"
-            onChange={handleFileUpload}
-          />
-
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-neutral-500 group-hover:text-white transition-colors p-8 text-center">
-            
-            {/* Icon Circle */}
-            <div className="bg-primary-800 p-8 rounded-full mb-8 shadow-2xl group-hover:scale-105 transition-transform duration-500 border border-primary-700 group-hover:border-accent-500/30">
-              <Upload size={40} strokeWidth={1} className="text-neutral-400 group-hover:text-accent-500 transition-colors duration-300"/>
-            </div>
-            
-            <h3 className="text-2xl font-bold uppercase tracking-widest mb-3 text-white group-hover:text-accent-100 transition-colors">
-              Start Styling
-            </h3>
-            <p className="text-sm text-neutral-500 uppercase tracking-wide mb-8 group-hover:text-neutral-400 transition-colors">
-              Drop an image here or click to upload
-            </p>
-            
-            {/* Badge */}
-            { !user && (
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary-900 rounded-full text-[10px] font-bold uppercase tracking-wider text-neutral-400 border border-primary-700 group-hover:border-accent-500/30 group-hover:text-accent-500 transition-all">
-                <Sparkles size={12} />
-                Try without account
-              </div>
-            )}
-          </div>
-        </div>
-
       </section>
 
-      <AuthModal isOpen={isAuthModalOpen} onClose={() => setAuthModalOpen(false)} />
+      <hr className="border-t border-ink" />
+
+      {/* STEPS */}
+      <section
+        id="steps"
+        className="px-[var(--gutter)] py-16 max-w-[1440px] w-full mx-auto grid grid-cols-3 gap-[var(--col-gap)] max-md:grid-cols-1"
+      >
+        {STEPS.map((step) => (
+          <article
+            key={step.num}
+            className="pt-8 border-t border-ink"
+          >
+            <span className="font-mono text-[11px] uppercase tracking-[0.04em] text-ink-3">
+              {step.num} / {step.label}
+            </span>
+            <h3 className="t-display-s mt-6 whitespace-pre-line">
+              {step.title}
+            </h3>
+            <p className="t-body text-ink-2 mt-4">{step.body}</p>
+          </article>
+        ))}
+      </section>
+
+      <hr className="border-t border-ink" />
+
+      {/* COLOPHON */}
+      <footer className="px-[var(--gutter)] py-8 max-w-[1440px] w-full mx-auto">
+        <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-ink-3">
+          Style It Yourself · 2025 ·{' '}
+          <Link
+            href="mailto:hello@styleityourself.app"
+            className="hover:text-ink"
+          >
+            Contact
+          </Link>
+        </p>
+      </footer>
     </div>
-  );
+  )
 }
