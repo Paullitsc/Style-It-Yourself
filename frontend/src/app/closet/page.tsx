@@ -266,13 +266,13 @@ export default function ClosetPage() {
                 />
               </section>
 
-              <nav className="flex border-b border-ink">
+              <nav className="flex gap-8 border-b border-ink py-5">
                 <TabButton
                   active={activeView === 'items'}
                   onClick={() => switchView('items')}
                 >
                   Pieces{' '}
-                  <span className="opacity-60">
+                  <span className="text-ink-3">
                     {pad2(closetData.total_items)}
                   </span>
                 </TabButton>
@@ -281,17 +281,17 @@ export default function ClosetPage() {
                   onClick={() => switchView('outfits')}
                 >
                   Outfits{' '}
-                  <span className="opacity-60">
+                  <span className="text-ink-3">
                     {pad2(closetData.total_outfits)}
                   </span>
                 </TabButton>
               </nav>
 
               {activeView === 'items' && (
-                <div className="flex flex-col gap-4 py-[22px] border-b border-ink">
-                  <div className="flex items-center gap-3 border border-ink bg-paper">
+                <div className="flex flex-col gap-6 py-[22px] border-b border-ink">
+                  <div className="flex items-center border border-ink bg-paper">
                     <span
-                      className="pl-3 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3"
+                      className="px-4 py-2 border-r border-ink font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3"
                       aria-hidden="true"
                     >
                       Search
@@ -302,21 +302,21 @@ export default function ClosetPage() {
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Color, category, brand, aesthetic…"
                       aria-label="Search pieces"
-                      className="flex-1 bg-transparent py-2 pr-3 font-display italic text-[16px] text-ink placeholder:text-ink-3 placeholder:not-italic placeholder:font-mono placeholder:text-[12px] placeholder:tracking-[0.04em] focus:outline-none"
+                      className="flex-1 bg-transparent px-4 py-2 font-display italic text-[16px] text-ink placeholder:text-ink-3 placeholder:not-italic placeholder:font-mono placeholder:text-[12px] placeholder:tracking-[0.04em] focus:outline-none"
                     />
                     {searchQuery && (
                       <button
                         type="button"
                         onClick={() => setSearchQuery('')}
-                        className="pr-3 font-mono text-[10px] uppercase tracking-[0.12em] text-ink-3 hover:text-ink"
+                        className="pr-4 font-mono text-[10px] uppercase tracking-[0.12em] text-ink-3 hover:text-ink"
                         aria-label="Clear search"
                       >
                         ✕
                       </button>
                     )}
                   </div>
-                  <div className="grid grid-cols-[1fr_auto_auto] max-md:grid-cols-1 gap-6 items-center">
-                    <div className="flex flex-wrap gap-2">
+                  <div className="grid grid-cols-[1fr_auto_auto] max-md:grid-cols-1 gap-x-10 gap-y-4 items-baseline">
+                    <div className="flex flex-wrap gap-x-5 gap-y-2">
                       {(['All', ...sortedCategories] as string[]).map((cat) => (
                         <Chip
                           key={cat}
@@ -490,13 +490,12 @@ function TabButton({ active, onClick, children }: TabButtonProps) {
       onClick={onClick}
       aria-current={active ? 'page' : undefined}
       className={cn(
-        'px-7 py-[18px] border-r border-ink last:border-r-0',
-        'font-mono text-[11px] uppercase tracking-[0.14em]',
-        'inline-flex gap-3 items-baseline',
-        'transition-colors duration-200',
+        'pb-[2px] inline-flex gap-3 items-baseline',
+        'font-mono text-[12px] uppercase tracking-[0.14em]',
+        'border-b-2 transition-colors duration-200',
         active
-          ? 'bg-ink text-paper'
-          : 'text-ink-3 hover:bg-paper-2 hover:text-ink',
+          ? 'border-ink text-ink'
+          : 'border-transparent text-ink-3 hover:text-ink hover:border-ink',
       )}
     >
       {children}
@@ -517,10 +516,11 @@ function Chip({ active, onClick, children }: ChipProps) {
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        'px-3 py-2 border border-ink',
-        'font-mono text-[10px] uppercase tracking-[0.12em]',
-        'transition-colors duration-200',
-        active ? 'bg-ink text-paper' : 'bg-transparent text-ink hover:bg-paper-2',
+        'pb-[2px] border-b transition-colors duration-200',
+        'font-mono text-[11px] uppercase tracking-[0.12em]',
+        active
+          ? 'border-ink text-ink'
+          : 'border-transparent text-ink-3 hover:text-ink hover:border-ink',
       )}
     >
       {children}
@@ -547,25 +547,23 @@ function SegmentedControl({
   onChange,
 }: SegmentedControlProps) {
   return (
-    <div className="flex items-center">
-      <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mr-2">
+    <div className="flex items-baseline gap-4">
+      <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3">
         {label}
       </span>
-      <div className="flex">
-        {options.map((opt, i) => (
+      <div className="flex flex-wrap gap-x-4 gap-y-2">
+        {options.map((opt) => (
           <button
             key={opt.value}
             type="button"
             onClick={() => onChange(opt.value)}
             aria-pressed={value === opt.value}
             className={cn(
-              'px-[14px] py-2 border border-ink',
-              i !== 0 && 'border-l-0',
-              'font-mono text-[10px] uppercase tracking-[0.12em]',
-              'transition-colors duration-200',
+              'pb-[2px] border-b transition-colors duration-200',
+              'font-mono text-[11px] uppercase tracking-[0.12em]',
               value === opt.value
-                ? 'bg-ink text-paper'
-                : 'bg-transparent text-ink hover:bg-paper-2',
+                ? 'border-ink text-ink'
+                : 'border-transparent text-ink-3 hover:text-ink hover:border-ink',
             )}
           >
             {opt.label}
