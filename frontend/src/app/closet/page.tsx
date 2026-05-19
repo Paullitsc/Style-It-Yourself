@@ -23,14 +23,6 @@ type SortOrder = 'newest' | 'oldest' | 'color'
 
 const CATEGORY_ORDER = ['Tops', 'Bottoms', 'Outerwear', 'Shoes', 'Accessories']
 
-const FORMALITY_SHORT: Record<number, string> = {
-  1: 'Casual',
-  2: 'Smart-cas',
-  3: 'Business',
-  4: 'Formal',
-  5: 'Black tie',
-}
-
 const pad2 = (n: number) => String(n).padStart(2, '0')
 
 const formatMonthShort = (d: Date) =>
@@ -52,6 +44,16 @@ export default function ClosetPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>('All')
   const [ownershipFilter, setOwnershipFilter] = useState<OwnershipFilter>('all')
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest')
+  const [searchQuery, setSearchQuery] = useState<string>('')
+
+  const switchView = (next: ViewMode) => {
+    setActiveView(next)
+    // Reset filters so the user doesn't return to surprise-empty results.
+    setCategoryFilter('All')
+    setOwnershipFilter('all')
+    setSortOrder('newest')
+    setSearchQuery('')
+  }
 
   const [selectedItem, setSelectedItem] =
     useState<ClothingItemResponse | null>(null)
@@ -154,15 +156,30 @@ export default function ClosetPage() {
     }
   }, [closetData, allItems, categoriesPresent])
 
-  const sortItems = (items: ClothingItemResponse[]) =>
-    [...items]
+  const sortItems = (items: ClothingItemResponse[]) => {
+    const q = searchQuery.trim().toLowerCase()
+    return [...items]
       .filter((i) => ownershipFilter === 'all' || i.ownership === ownershipFilter)
+      .filter((i) => {
+        if (!q) return true
+        const haystack = [
+          i.color?.name ?? '',
+          i.category.l2,
+          i.category.l1,
+          (i.aesthetics ?? []).join(' '),
+          i.brand ?? '',
+        ]
+          .join(' ')
+          .toLowerCase()
+        return haystack.includes(q)
+      })
       .sort((a, b) => {
         if (sortOrder === 'color') return a.color.hsl.h - b.color.hsl.h
         const diff =
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         return sortOrder === 'newest' ? diff : -diff
       })
+  }
 
   const outfitsSorted = useMemo(() => {
     if (!closetData) return [] as OutfitSummary[]
@@ -177,15 +194,24 @@ export default function ClosetPage() {
       <div className="flex-1">
         <div className="max-w-[1320px] mx-auto px-14 max-md:px-6 pt-7 pb-24">
           {/* HEAD */}
-          <section className="py-12 pb-7 border-b border-ink">
-            <h1 className="m-0 font-display font-normal uppercase text-[clamp(72px,9vw,128px)] leading-[0.92] tracking-[-0.025em]">
-              The <em className="italic text-ink-3">closet,</em>
-              <br />
-              edited.
-            </h1>
-            <p className="mt-[18px] max-w-[36ch] font-display italic text-[20px] leading-[1.35] text-ink-2">
-              Every piece you&apos;ve uploaded, every outfit you&apos;ve built — sorted and ready to wear.
-            </p>
+          <section className="py-12 pb-7 border-b border-ink flex justify-between items-end gap-8 max-md:flex-col max-md:items-start">
+            <div>
+              <h1 className="m-0 font-display font-normal uppercase text-[clamp(72px,9vw,128px)] leading-[0.92] tracking-[-0.025em]">
+                The <em className="italic text-ink-3">closet,</em>
+                <br />
+                edited.
+              </h1>
+              <p className="mt-[18px] max-w-[36ch] font-display italic text-[20px] leading-[1.35] text-ink-2">
+                Every piece you&apos;ve uploaded, every outfit you&apos;ve built — sorted and ready to wear.
+              </p>
+            </div>
+            <Link
+              href="/style"
+              className="inline-flex items-center justify-between gap-6 px-[22px] py-[18px] border border-ink font-mono text-[11px] uppercase tracking-[0.12em] hover:bg-ink hover:text-paper transition-colors shrink-0"
+            >
+              <span>Add a piece</span>
+              <span aria-hidden="true">＋</span>
+            </Link>
           </section>
 
           {/* LEDGER + TABS + FILTERBAR — gated on data-ready to avoid the
@@ -243,7 +269,7 @@ export default function ClosetPage() {
               <nav className="flex border-b border-ink">
                 <TabButton
                   active={activeView === 'items'}
-                  onClick={() => setActiveView('items')}
+                  onClick={() => switchView('items')}
                 >
                   Pieces{' '}
                   <span className="opacity-60">
@@ -252,7 +278,7 @@ export default function ClosetPage() {
                 </TabButton>
                 <TabButton
                   active={activeView === 'outfits'}
-                  onClick={() => setActiveView('outfits')}
+                  onClick={() => switchView('outfits')}
                 >
                   Outfits{' '}
                   <span className="opacity-60">
@@ -262,38 +288,66 @@ export default function ClosetPage() {
               </nav>
 
               {activeView === 'items' && (
-                <div className="grid grid-cols-[1fr_auto_auto] max-md:grid-cols-1 gap-6 py-[22px] border-b border-ink items-center">
-                  <div className="flex flex-wrap gap-2">
-                    {(['All', ...sortedCategories] as string[]).map((cat) => (
-                      <Chip
-                        key={cat}
-                        active={categoryFilter === cat}
-                        onClick={() => setCategoryFilter(cat)}
+                <div className="flex flex-col gap-4 py-[22px] border-b border-ink">
+                  <div className="flex items-center gap-3 border border-ink bg-paper">
+                    <span
+                      className="pl-3 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3"
+                      aria-hidden="true"
+                    >
+                      Search
+                    </span>
+                    <input
+                      type="search"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Color, category, brand, aesthetic…"
+                      aria-label="Search pieces"
+                      className="flex-1 bg-transparent py-2 pr-3 font-display italic text-[16px] text-ink placeholder:text-ink-3 placeholder:not-italic placeholder:font-mono placeholder:text-[12px] placeholder:tracking-[0.04em] focus:outline-none"
+                    />
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchQuery('')}
+                        className="pr-3 font-mono text-[10px] uppercase tracking-[0.12em] text-ink-3 hover:text-ink"
+                        aria-label="Clear search"
                       >
-                        {cat}
-                      </Chip>
-                    ))}
+                        ✕
+                      </button>
+                    )}
                   </div>
-                  <SegmentedControl
-                    label="Show"
-                    options={[
-                      { value: 'all', label: 'All' },
-                      { value: 'owned', label: 'Owned' },
-                      { value: 'wishlist', label: 'Wishlist' },
-                    ]}
-                    value={ownershipFilter}
-                    onChange={(v) => setOwnershipFilter(v as OwnershipFilter)}
-                  />
-                  <SegmentedControl
-                    label="Sort"
-                    options={[
-                      { value: 'newest', label: 'Newest' },
-                      { value: 'oldest', label: 'Oldest' },
-                      { value: 'color', label: 'Color' },
-                    ]}
-                    value={sortOrder}
-                    onChange={(v) => setSortOrder(v as SortOrder)}
-                  />
+                  <div className="grid grid-cols-[1fr_auto_auto] max-md:grid-cols-1 gap-6 items-center">
+                    <div className="flex flex-wrap gap-2">
+                      {(['All', ...sortedCategories] as string[]).map((cat) => (
+                        <Chip
+                          key={cat}
+                          active={categoryFilter === cat}
+                          onClick={() => setCategoryFilter(cat)}
+                        >
+                          {cat}
+                        </Chip>
+                      ))}
+                    </div>
+                    <SegmentedControl
+                      label="Show"
+                      options={[
+                        { value: 'all', label: 'All' },
+                        { value: 'owned', label: 'Owned' },
+                        { value: 'wishlist', label: 'Wishlist' },
+                      ]}
+                      value={ownershipFilter}
+                      onChange={(v) => setOwnershipFilter(v as OwnershipFilter)}
+                    />
+                    <SegmentedControl
+                      label="Sort"
+                      options={[
+                        { value: 'newest', label: 'Newest' },
+                        { value: 'oldest', label: 'Oldest' },
+                        { value: 'color', label: 'Color' },
+                      ]}
+                      value={sortOrder}
+                      onChange={(v) => setSortOrder(v as SortOrder)}
+                    />
+                  </div>
                 </div>
               )}
             </>
@@ -343,7 +397,9 @@ export default function ClosetPage() {
               onClearFilters={() => {
                 setCategoryFilter('All')
                 setOwnershipFilter('all')
+                setSearchQuery('')
               }}
+              hasSearchQuery={searchQuery.trim().length > 0}
               onItemClick={(item) => {
                 setTryOnItem(null)
                 setSelectedItem(item)
@@ -524,6 +580,7 @@ interface ItemsViewProps {
   ownershipFilter: OwnershipFilter
   sortItems: (items: ClothingItemResponse[]) => ClothingItemResponse[]
   onClearFilters: () => void
+  hasSearchQuery: boolean
   onItemClick: (item: ClothingItemResponse) => void
   onTryOn: (item: ClothingItemResponse) => void
 }
@@ -535,6 +592,7 @@ function ItemsView({
   ownershipFilter,
   sortItems,
   onClearFilters,
+  hasSearchQuery,
   onItemClick,
   onTryOn,
 }: ItemsViewProps) {
@@ -576,13 +634,16 @@ function ItemsView({
         .reduce((sum, s) => sum + s.filtered.length, 0),
     }))
 
-  // Closet has items but current filters wiped them all out
-  const filtersActive = categoryFilter !== 'All' || ownershipFilter !== 'all'
+  // Closet has items but current filters/search wiped them all out
+  const filtersActive =
+    categoryFilter !== 'All' || ownershipFilter !== 'all' || hasSearchQuery
   if (sections.length === 0 && filtersActive) {
     return (
       <section className="py-16 text-center">
         <p className="font-display italic text-[32px] leading-snug">
-          No pieces match this filter.
+          {hasSearchQuery
+            ? 'No pieces match your search.'
+            : 'No pieces match this filter.'}
         </p>
         <button
           type="button"
@@ -620,7 +681,6 @@ function ItemsView({
                 onTryOn={() => onTryOn(item)}
               />
             ))}
-            <AddSlot />
           </div>
         </section>
       ))}
@@ -702,22 +762,18 @@ function ItemTile({ item, index, onClick, onTryOn }: ItemTileProps) {
         )}
       </div>
 
-      <div className="flex justify-between items-baseline gap-3">
-        <span className="font-display text-[18px] leading-none">
-          {displayName}
-        </span>
-        {formality > 0 && (
-          <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-ink-3">
-            {FORMALITY_SHORT[formality]}
-          </span>
-        )}
+      <div className="font-display text-[18px] leading-none truncate">
+        {displayName}
       </div>
 
       <div className="flex justify-between items-baseline gap-3">
         <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-ink-3 truncate">
           {aesthetics || '—'}
         </span>
-        <span className="flex gap-[2px] shrink-0" aria-hidden="true">
+        <span
+          className="flex gap-[2px] shrink-0"
+          aria-label={`Formality ${formality} of 5`}
+        >
           {[1, 2, 3, 4, 5].map((n) => (
             <i
               key={n}
@@ -730,28 +786,6 @@ function ItemTile({ item, index, onClick, onTryOn }: ItemTileProps) {
         </span>
       </div>
     </div>
-  )
-}
-
-function AddSlot() {
-  return (
-    <Link
-      href="/style"
-      className="group flex flex-col gap-2"
-      aria-label="Add a new piece"
-    >
-      <div className="relative aspect-[4/5] border border-dashed border-ink bg-paper-2 flex items-center justify-center transition-colors group-hover:bg-paper-3">
-        <span className="font-mono text-[28px] text-ink leading-none">＋</span>
-      </div>
-      <div className="flex justify-between items-baseline gap-3">
-        <span className="font-display italic text-[18px] leading-none text-ink-2">
-          Add a piece
-        </span>
-        <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-ink-3">
-          →
-        </span>
-      </div>
-    </Link>
   )
 }
 
