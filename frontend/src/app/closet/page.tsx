@@ -630,12 +630,6 @@ function ItemsView({
       filtered: sortItems(closetData.items_by_category[category] ?? []),
     }))
     .filter((s) => s.filtered.length > 0)
-    .map((section, i, arr) => ({
-      ...section,
-      startIndex: arr
-        .slice(0, i)
-        .reduce((sum, s) => sum + s.filtered.length, 0),
-    }))
 
   // Closet has items but current filters/search wiped them all out
   const filtersActive =
@@ -661,7 +655,7 @@ function ItemsView({
 
   return (
     <div>
-      {sections.map(({ category, filtered, startIndex }) => (
+      {sections.map(({ category, filtered }) => (
         <section key={category}>
           <header className="grid grid-cols-[auto_auto_1fr] gap-4 items-baseline pt-9 pb-[18px] mb-6 border-b border-ink">
             <span className="font-display uppercase text-[36px] leading-none tracking-[-0.015em]">
@@ -675,11 +669,10 @@ function ItemsView({
           </header>
 
           <div className="grid grid-cols-5 gap-6 max-md:grid-cols-2 mb-12">
-            {filtered.map((item, i) => (
+            {filtered.map((item) => (
               <ItemTile
                 key={item.id}
                 item={item}
-                index={startIndex + i + 1}
                 onClick={() => onItemClick(item)}
                 onTryOn={() => onTryOn(item)}
               />
@@ -693,12 +686,11 @@ function ItemsView({
 
 interface ItemTileProps {
   item: ClothingItemResponse
-  index: number
   onClick: () => void
   onTryOn: () => void
 }
 
-function ItemTile({ item, index, onClick, onTryOn }: ItemTileProps) {
+function ItemTile({ item, onClick, onTryOn }: ItemTileProps) {
   const aesthetics = (item.aesthetics ?? []).slice(0, 2).join(' · ')
   const formality = item.formality ?? 0
   // Auto-name: "Navy T-shirt" beats just "T-shirt" when you own multiples.
@@ -731,29 +723,30 @@ function ItemTile({ item, index, onClick, onTryOn }: ItemTileProps) {
           <div className="absolute inset-0 product__frame--placeholder" />
         )}
 
-        <span
-          className="absolute top-[10px] left-[10px] font-mono text-[9px] uppercase tracking-[0.1em] bg-paper border border-ink px-[6px] py-[4px]"
-          aria-hidden="true"
-        >
-          No. {pad2(index)}
-        </span>
-
         {item.ownership === 'wishlist' && (
           <span className="absolute top-[10px] right-[10px] bg-accent text-paper px-2 py-1 font-mono text-[9px] uppercase tracking-[0.1em]">
             Wishlist
           </span>
         )}
 
+        {/* Centered glass Try-on button, revealed on hover */}
         <button
           type="button"
           onClick={(e) => {
             e.stopPropagation()
             onTryOn()
           }}
-          className="absolute bottom-[10px] right-[10px] opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-ink text-paper px-2 py-1 font-mono text-[9px] uppercase tracking-[0.1em] border border-ink hover:bg-paper hover:text-ink"
+          className={cn(
+            'absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
+            'opacity-0 group-hover:opacity-100 transition-opacity duration-200',
+            'font-mono text-[11px] uppercase tracking-[0.14em] whitespace-nowrap',
+            'px-6 py-3 border border-ink text-ink',
+            'bg-paper/40 backdrop-blur-md',
+            'hover:bg-paper/70',
+          )}
           aria-label={`Try on ${item.category.l2}`}
         >
-          Try on
+          Try on →
         </button>
 
         {item.color?.hex && item.color?.name && (
