@@ -1,100 +1,154 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthProvider'
+import AuthModal from '@/components/AuthModal'
 import { Button } from '@/components/ui'
 
-const STEPS = [
-  {
-    num: '01',
-    label: 'Upload',
-    title: 'Photos of\nyour closet.',
-    body: 'Snap or import a photo of each piece.',
-  },
-  {
-    num: '02',
-    label: 'Describe',
-    title: 'Tags & color\npalette.',
-    body: 'Add formality, aesthetic, and the colors we read.',
-  },
-  {
-    num: '03',
-    label: 'Outfit',
-    title: 'Daily looks\non demand.',
-    body: 'Get outfit recommendations from what you already own.',
-  },
+const CREDITS = [
+  { label: 'How it works', value: 'HSL color theory' },
+  { label: 'Try-on', value: 'Generative image model' },
+  { label: 'Pricing', value: 'Free, no account' },
+  { label: 'Storage', value: 'Optional · Session-only' },
 ]
 
 export default function Home() {
   const { user } = useAuth()
   const router = useRouter()
+  const [isAuthModalOpen, setAuthModalOpen] = useState(false)
 
-  const handleStartStyling = () => {
+  const handleBegin = () => {
     router.push(user ? '/closet' : '/style')
   }
 
-  const scrollToSteps = () => {
+  const scrollToCredits = () => {
     document
-      .getElementById('steps')
+      .getElementById('credits')
       ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
+  const navLinkClass =
+    'pb-[2px] border-b border-transparent hover:border-ink transition-colors'
+
   return (
-    <div className="min-h-[calc(100vh-80px)] flex flex-col text-ink">
-      {/* HERO */}
-      <section className="px-[var(--gutter)] py-[var(--section-pad-y)] max-w-[1440px] w-full mx-auto">
-        <h1 className="t-display-xl">
-          An outfit<br />
-          generator for<br />
-          clothes you<br />
-          already own.
-        </h1>
-        <div className="flex flex-wrap gap-6 mt-12">
-          <Button onClick={handleStartStyling}>Start styling</Button>
-          <Button variant="secondary" onClick={scrollToSteps}>
-            How it works
-          </Button>
+    <>
+      {/* -mt-20 cancels the pt-20 baked into layout.tsx's <main> so the
+          landing starts at the viewport top, matching the artboard. */}
+      <div className="-mt-20 min-h-screen bg-paper text-ink">
+        <div className="max-w-[1320px] mx-auto px-14 max-md:px-6 pt-7 pb-24">
+          {/* MASTHEAD */}
+          <header className="grid grid-cols-[1fr_auto_1fr] items-center py-2 pb-6 border-b border-ink">
+            <div />
+            <Link
+              href="/"
+              className="font-display italic text-[22px] leading-none text-center text-ink"
+            >
+              Style It Yourself
+            </Link>
+            <nav className="flex gap-6 justify-end font-mono text-[11px] uppercase tracking-[0.12em]">
+              <Link href="/style" className={navLinkClass}>
+                Style
+              </Link>
+              <Link
+                href={user ? '/closet' : '/style'}
+                className={navLinkClass}
+              >
+                Closet
+              </Link>
+              {user ? (
+                <Link href="/account" className={navLinkClass}>
+                  Account
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setAuthModalOpen(true)}
+                  className={navLinkClass}
+                >
+                  Login
+                </button>
+              )}
+            </nav>
+          </header>
+
+          {/* STAGE */}
+          <section className="py-24 max-md:py-16 text-center">
+            {/* META TOP */}
+            <div className="grid grid-cols-3 items-end mb-14">
+              <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-ink-3 text-left">
+                McGill · Montréal
+              </span>
+              <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-ink-3 text-center">
+                Vol. 1
+              </span>
+              <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-ink-3 text-right">
+                Spring 2026
+              </span>
+            </div>
+
+            {/* HEADLINE */}
+            <h1 className="font-display font-normal uppercase text-[clamp(96px,16vw,240px)] leading-[0.85] tracking-[-0.025em] m-0">
+              Style it,
+              <br />
+              <em className="italic text-ink-3">yourself.</em>
+            </h1>
+
+            {/* LEDE */}
+            <p className="max-w-[540px] mx-auto mt-10 font-display italic text-[22px] leading-[1.35] text-ink-2">
+              A quiet tool for putting clothes together with intention — color,
+              formality, and a working sense of taste.
+            </p>
+
+            {/* CTAS */}
+            <div className="flex flex-wrap justify-center gap-[14px] mt-14">
+              <Button onClick={handleBegin} rightIcon={<span>→</span>}>
+                Begin
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={scrollToCredits}
+                rightIcon={<span>↘</span>}
+              >
+                How it works
+              </Button>
+            </div>
+
+            {/* MARK MINI */}
+            <div className="mx-auto mt-16 max-w-[220px] text-center font-mono text-[10px] uppercase tracking-[0.16em] text-ink-3">
+              Three steps · No accounts
+              <hr className="border-0 border-t border-ink my-[14px]" />
+              Upload — Score — Try on
+            </div>
+          </section>
+
+          {/* CREDITS */}
+          <footer
+            id="credits"
+            className="mt-24 pt-[22px] border-t border-ink grid grid-cols-4 max-md:grid-cols-2 gap-y-6 font-mono text-[10px] uppercase tracking-[0.1em]"
+          >
+            {CREDITS.map((credit, i) => (
+              <div
+                key={credit.label}
+                className={
+                  i === CREDITS.length - 1 ? 'text-right max-md:text-left' : ''
+                }
+              >
+                <b className="block text-ink-3 font-medium mb-[6px]">
+                  {credit.label}
+                </b>
+                {credit.value}
+              </div>
+            ))}
+          </footer>
         </div>
-      </section>
+      </div>
 
-      <hr className="border-t border-ink" />
-
-      {/* STEPS */}
-      <section
-        id="steps"
-        className="px-[var(--gutter)] py-16 max-w-[1440px] w-full mx-auto grid grid-cols-3 gap-[var(--col-gap)] max-md:grid-cols-1"
-      >
-        {STEPS.map((step) => (
-          <article
-            key={step.num}
-            className="pt-8 border-t border-ink"
-          >
-            <span className="font-mono text-[11px] uppercase tracking-[0.04em] text-ink-3">
-              {step.num} / {step.label}
-            </span>
-            <h3 className="t-display-s mt-6 whitespace-pre-line">
-              {step.title}
-            </h3>
-            <p className="t-body text-ink-2 mt-4">{step.body}</p>
-          </article>
-        ))}
-      </section>
-
-      <hr className="border-t border-ink" />
-
-      {/* COLOPHON */}
-      <footer className="px-[var(--gutter)] py-8 max-w-[1440px] w-full mx-auto">
-        <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-ink-3">
-          Style It Yourself · 2025 ·{' '}
-          <Link
-            href="mailto:hello@styleityourself.app"
-            className="hover:text-ink"
-          >
-            Contact
-          </Link>
-        </p>
-      </footer>
-    </div>
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+      />
+    </>
   )
 }

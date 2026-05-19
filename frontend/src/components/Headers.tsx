@@ -1,11 +1,16 @@
 'use client'
 import { useState } from 'react'
+import { usePathname } from 'next/navigation'
 import NavBar from './NavBar'
 import AuthModal from './AuthModal'
 import Link from 'next/link'
 
 export default function Header() {
   const [isAuthModalOpen, setAuthModalOpen] = useState(false)
+  const pathname = usePathname()
+
+  // Landing supplies its own editorial masthead per the artboard.
+  if (pathname === '/') return null
 
   return (
     <>
