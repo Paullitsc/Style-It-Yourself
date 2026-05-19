@@ -1,5 +1,4 @@
 import type { HTMLAttributes, ReactNode } from 'react'
-import { Package } from 'lucide-react'
 import { cn } from '@/lib/cn'
 
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
@@ -191,6 +190,7 @@ interface OutfitCardProps {
   itemCount: number
   onClick?: () => void
   className?: string
+  index?: string
 }
 
 export function OutfitCard({
@@ -200,56 +200,74 @@ export function OutfitCard({
   itemCount,
   onClick,
   className,
+  index,
 }: OutfitCardProps) {
-  const imageArea = (
-    <div className="relative aspect-[3/4] overflow-hidden bg-primary-900">
+  const frame = (
+    <div
+      className={cn(
+        'relative aspect-[4/5] overflow-hidden bg-paper-2',
+        !thumbnailUrl && 'product__frame--placeholder',
+      )}
+    >
       {thumbnailUrl ? (
-        <img src={thumbnailUrl} alt={`${name} preview`} className="h-full w-full object-cover" />
-      ) : (
-        <div className="flex h-full w-full items-center justify-center text-neutral-600">
-          <Package size={30} strokeWidth={1.5} aria-hidden="true" />
-        </div>
+        <img
+          src={thumbnailUrl}
+          alt={`${name} preview`}
+          className="h-full w-full object-cover"
+        />
+      ) : null}
+
+      {index && (
+        <span className="absolute top-3 left-3 font-mono text-[11px] uppercase tracking-[0.04em] text-ink">
+          {index}
+        </span>
       )}
 
-      {/* Hover overlay — slides up from bottom */}
-      <div
-        className={cn(
-          'absolute inset-x-0 bottom-0 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out',
-          'bg-gradient-to-t from-primary-900/95 via-primary-900/60 to-transparent',
-          'px-[var(--space-3)] pb-[var(--space-3)] pt-[var(--space-10)]'
-        )}
-      >
-        <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-white">{name}</p>
-        <p className="font-mono text-[9px] uppercase tracking-wider text-neutral-700">
-          {itemCount} {itemCount === 1 ? 'item' : 'items'}
-          {createdAt ? ` · ${createdAt}` : ''}
-        </p>
-      </div>
+      <span className="absolute bottom-3 right-3 font-mono text-[10px] uppercase tracking-[0.06em] text-ink-3">
+        {itemCount} {itemCount === 1 ? 'piece' : 'pieces'}
+      </span>
     </div>
   )
 
-  if (onClick) {
+  const meta = (
+    <div className="flex items-baseline justify-between gap-3">
+      <span className="font-display text-[18px] leading-tight text-ink">
+        {name}
+      </span>
+      {createdAt && (
+        <span className="font-mono text-[10px] uppercase tracking-[0.06em] text-ink-3">
+          {createdAt}
+        </span>
+      )}
+    </div>
+  )
+
+  const containerClasses = cn(
+    'group flex flex-col gap-3 text-left w-full',
+    onClick && 'cursor-pointer',
+    'focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-ink',
+    className,
+  )
+
+  if (!onClick) {
     return (
-      <button
-        type="button"
-        onClick={onClick}
-        className={cn(
-          'group w-full overflow-hidden rounded-[var(--radius-lg)] border border-primary-700 bg-primary-800 text-left',
-          'transition-all hover:scale-[1.02] hover:border-primary-600',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 focus-visible:ring-offset-primary-900',
-          className
-        )}
-        aria-label={`Open outfit details for ${name}`}
-      >
-        {imageArea}
-      </button>
+      <article className={containerClasses}>
+        {frame}
+        {meta}
+      </article>
     )
   }
 
   return (
-    <Card className={cn('group', className)}>
-      {imageArea}
-    </Card>
+    <button
+      type="button"
+      onClick={onClick}
+      className={containerClasses}
+      aria-label={`Open outfit details for ${name}`}
+    >
+      {frame}
+      {meta}
+    </button>
   )
 }
 
