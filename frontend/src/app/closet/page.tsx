@@ -404,10 +404,6 @@ export default function ClosetPage() {
                 setTryOnItem(null)
                 setSelectedItem(item)
               }}
-              onTryOn={(item) => {
-                setSelectedItem(null)
-                setTryOnItem(item)
-              }}
             />
           )}
 
@@ -423,6 +419,10 @@ export default function ClosetPage() {
               item={selectedItem}
               onClose={() => setSelectedItem(null)}
               onDelete={handleDeleteItem}
+              onTryOn={() => {
+                setTryOnItem(selectedItem)
+                setSelectedItem(null)
+              }}
             />
           )}
 
@@ -463,7 +463,7 @@ function LedgerCell({ label, value, small }: LedgerCellProps) {
   return (
     <div className="border-r border-ink last:border-r-0 max-md:border-r-0 max-md:[&:nth-child(odd)]:border-r max-md:border-b max-md:last:border-b-0 max-md:[&:nth-last-child(2)]:border-b-0 px-[22px] py-[18px]">
       <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mb-[6px]">
-        — {label} —
+        {label}
       </div>
       <div className="font-display text-[32px] leading-none tracking-[-0.01em]">
         {value}
@@ -585,7 +585,6 @@ interface ItemsViewProps {
   onClearFilters: () => void
   hasSearchQuery: boolean
   onItemClick: (item: ClothingItemResponse) => void
-  onTryOn: (item: ClothingItemResponse) => void
 }
 
 function ItemsView({
@@ -597,7 +596,6 @@ function ItemsView({
   onClearFilters,
   hasSearchQuery,
   onItemClick,
-  onTryOn,
 }: ItemsViewProps) {
   if (closetData.total_items === 0) {
     return (
@@ -674,7 +672,6 @@ function ItemsView({
                 key={item.id}
                 item={item}
                 onClick={() => onItemClick(item)}
-                onTryOn={() => onTryOn(item)}
               />
             ))}
           </div>
@@ -687,10 +684,9 @@ function ItemsView({
 interface ItemTileProps {
   item: ClothingItemResponse
   onClick: () => void
-  onTryOn: () => void
 }
 
-function ItemTile({ item, onClick, onTryOn }: ItemTileProps) {
+function ItemTile({ item, onClick }: ItemTileProps) {
   const displayName = item.color?.name
     ? `${item.color.name} ${item.category.l2}`
     : item.category.l2
@@ -723,37 +719,6 @@ function ItemTile({ item, onClick, onTryOn }: ItemTileProps) {
         {item.ownership === 'wishlist' && (
           <span className="absolute top-[10px] right-[10px] bg-accent text-paper px-2 py-1 font-mono text-[9px] uppercase tracking-[0.1em]">
             Wishlist
-          </span>
-        )}
-
-        {/* Centered glass Try-on button, revealed on hover */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation()
-            onTryOn()
-          }}
-          className={cn(
-            'absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
-            'opacity-0 group-hover:opacity-100 transition-opacity duration-200',
-            'font-mono text-[11px] uppercase tracking-[0.14em] whitespace-nowrap',
-            'px-6 py-3 border border-ink text-ink',
-            'bg-paper/40 backdrop-blur-md',
-            'hover:bg-paper/70',
-          )}
-          aria-label={`Try on ${displayName}`}
-        >
-          Try on →
-        </button>
-
-        {item.color?.hex && item.color?.name && (
-          <span className="absolute bottom-[10px] left-[10px] inline-flex gap-[6px] items-center font-mono text-[9px] uppercase tracking-[0.08em] bg-paper border border-ink px-2 py-1">
-            <i
-              className="w-2 h-2 border border-ink"
-              style={{ backgroundColor: item.color.hex }}
-              aria-hidden="true"
-            />
-            {item.color.name}
           </span>
         )}
       </div>

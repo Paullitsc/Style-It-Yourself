@@ -18,12 +18,14 @@ interface ItemDetailModalProps {
   item: ClothingItemResponse
   onClose: () => void
   onDelete?: (itemId: string) => Promise<void>
+  onTryOn?: () => void
 }
 
 export default function ItemDetailModal({
   item,
   onClose,
   onDelete,
+  onTryOn,
 }: ItemDetailModalProps) {
   const [isDeleting, setIsDeleting] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -67,7 +69,7 @@ export default function ItemDetailModal({
         onClose={onClose}
         size="xl"
         footer={
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center justify-between gap-6 flex-wrap">
             <button
               type="button"
               onClick={onClose}
@@ -75,15 +77,27 @@ export default function ItemDetailModal({
             >
               Close
             </button>
-            {onDelete && (
-              <button
-                type="button"
-                onClick={() => setShowConfirm(true)}
-                className="font-mono text-[11px] uppercase tracking-[0.12em] text-accent pb-[2px] border-b border-transparent hover:border-accent transition-colors"
-              >
-                Delete piece
-              </button>
-            )}
+            <div className="flex items-center gap-6">
+              {onDelete && (
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm(true)}
+                  className="font-mono text-[11px] uppercase tracking-[0.12em] text-accent pb-[2px] border-b border-transparent hover:border-accent transition-colors"
+                >
+                  Delete piece
+                </button>
+              )}
+              {onTryOn && (
+                <button
+                  type="button"
+                  onClick={onTryOn}
+                  className="inline-flex items-center justify-between gap-6 px-[22px] py-[14px] border border-ink bg-ink text-paper font-mono text-[11px] uppercase tracking-[0.12em] hover:bg-paper hover:text-ink transition-colors"
+                >
+                  <span>Try it on</span>
+                  <span aria-hidden="true">→</span>
+                </button>
+              )}
+            </div>
           </div>
         }
       >
@@ -254,7 +268,7 @@ function MetaRow({ label, children }: MetaRowProps) {
   return (
     <div className="grid grid-cols-[120px_1fr] max-md:grid-cols-1 gap-4 items-baseline">
       <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3">
-        — {label} —
+        {label}
       </dt>
       <dd className="m-0">{children}</dd>
     </div>
