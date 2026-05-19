@@ -1,5 +1,5 @@
 import type { HTMLAttributes, ReactNode } from 'react'
-import { Shirt, Package, Sparkles } from 'lucide-react'
+import { Package } from 'lucide-react'
 import { cn } from '@/lib/cn'
 
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
@@ -53,149 +53,134 @@ interface ItemCardProps {
   className?: string
   fallbackIcon?: ReactNode
   onTryOn?: () => void
+  index?: string
 }
 
 export function ItemCard({
   title,
   imageUrl,
   imageAlt,
-  colorHex,
   colorName,
   formality,
-  aesthetics,
   badge,
   onClick,
   className,
-  fallbackIcon,
   onTryOn,
+  index,
 }: ItemCardProps) {
-  const imageArea = (
-    <div className="relative aspect-[3/4] overflow-hidden bg-primary-900">
+  const metaText =
+    colorName ??
+    (formality !== undefined ? FORMALITY_LABELS[formality] : '')
+
+  const frame = (
+    <div
+      className={cn(
+        'relative aspect-[4/5] overflow-hidden bg-paper-2',
+        !imageUrl && 'product__frame--placeholder',
+      )}
+    >
       {imageUrl ? (
-        <img src={imageUrl} alt={imageAlt} className="h-full w-full object-cover" />
-      ) : (
-        <div className="flex h-full w-full items-center justify-center text-neutral-600">
-          {fallbackIcon ?? <Shirt size={30} strokeWidth={1.5} aria-hidden="true" />}
-        </div>
+        <img
+          src={imageUrl}
+          alt={imageAlt}
+          className="h-full w-full object-cover"
+        />
+      ) : null}
+
+      {index && (
+        <span className="absolute top-3 left-3 font-mono text-[11px] uppercase tracking-[0.04em] text-ink">
+          {index}
+        </span>
       )}
 
-      {badge && <div className="absolute right-[var(--space-2)] top-[var(--space-2)]">{badge}</div>}
+      {badge && (
+        <div className="absolute bottom-3 right-3">{badge}</div>
+      )}
 
-      {/* Hover overlay — slides up from bottom */}
-      <div
-        className={cn(
-          'absolute inset-x-0 bottom-0 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out',
-          'bg-gradient-to-t from-primary-900/95 via-primary-900/60 to-transparent',
-          'px-[var(--space-3)] pb-[var(--space-3)] pt-[var(--space-10)]'
-        )}
-      >
-        <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-white">{title}</p>
-        {colorHex && colorName && (
-          <div className="mb-1.5 flex items-center gap-1.5">
-            <div
-              className="h-2.5 w-2.5 rounded-full border border-primary-700"
-              style={{ backgroundColor: colorHex }}
-              aria-hidden="true"
-            />
-            <span className="font-mono text-[9px] uppercase tracking-wider text-neutral-700">
-              {colorName}
-            </span>
-          </div>
-        )}
-        <div className="flex flex-wrap gap-1">
-          {formality !== undefined && (
-            <span className="rounded-[2px] border border-accent-700 bg-accent-900/30 px-1.5 py-0.5 font-mono text-[8px] font-bold uppercase tracking-wider text-accent-500">
-              {FORMALITY_LABELS[formality] ?? `Lvl ${formality}`}
-            </span>
+      {onTryOn && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            onTryOn()
+          }}
+          className={cn(
+            'absolute top-3 right-3',
+            'opacity-0 group-hover:opacity-100 transition-opacity duration-200',
+            'font-mono text-[10px] uppercase tracking-[0.08em]',
+            'bg-ink text-paper px-3 py-2 border border-ink',
+            'hover:bg-paper hover:text-ink',
           )}
-          {aesthetics?.slice(0, 2).map((tag) => (
-            <span
-              key={tag}
-              className="rounded-[2px] border border-primary-600 bg-primary-800/80 px-1.5 py-0.5 font-mono text-[8px] uppercase tracking-wider text-neutral-700"
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
-      </div>
+          aria-label={`Try on ${title}`}
+        >
+          Try on
+        </button>
+      )}
     </div>
   )
 
-  if (onClick) {
-    const cardClasses = cn(
-      'group w-full overflow-hidden rounded-[var(--radius-lg)] border border-primary-700 bg-primary-800 text-left',
-      'transition-all hover:scale-[1.02] hover:border-primary-600',
-      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 focus-visible:ring-offset-primary-900',
-      className
-    )
+  const meta = (
+    <div className="flex items-baseline justify-between gap-3">
+      <span className="font-display text-[18px] leading-tight text-ink">
+        {title}
+      </span>
+      {metaText && (
+        <span className="font-mono text-[10px] uppercase tracking-[0.06em] text-ink-3">
+          {metaText}
+        </span>
+      )}
+    </div>
+  )
 
-    // When onTryOn is present the card contains a <button>, so the wrapper must be a
-    // <div role="button"> — HTML forbids <button> inside <button>.
-    if (onTryOn) {
-      return (
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={onClick}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick() } }}
-          className={cardClasses}
-          aria-label={`Open item details for ${title}`}
-        >
-          <div className="relative">
-            {imageArea}
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); onTryOn() }}
-              className={cn(
-                'absolute left-[var(--space-2)] top-[var(--space-2)]',
-                'flex h-7 w-7 items-center justify-center rounded-full',
-                'border border-primary-600 bg-primary-900/80 backdrop-blur',
-                'opacity-0 group-hover:opacity-100 transition-opacity duration-200',
-                'text-accent-500 hover:bg-accent-500 hover:text-primary-900 hover:border-accent-500',
-              )}
-              aria-label="Try on this item"
-            >
-              <Sparkles size={13} aria-hidden="true" />
-            </button>
-          </div>
-        </div>
-      )
-    }
+  const containerClasses = cn(
+    'group flex flex-col gap-3 text-left',
+    onClick && 'cursor-pointer',
+    'focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-ink',
+    className,
+  )
 
+  if (!onClick) {
     return (
-      <button
-        type="button"
+      <article className={containerClasses}>
+        {frame}
+        {meta}
+      </article>
+    )
+  }
+
+  // onTryOn renders a <button> inside the frame, so the outer interactive
+  // element must be a <div role="button"> to avoid nested buttons.
+  if (onTryOn) {
+    return (
+      <div
+        role="button"
+        tabIndex={0}
         onClick={onClick}
-        className={cardClasses}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            onClick()
+          }
+        }}
+        className={containerClasses}
         aria-label={`Open item details for ${title}`}
       >
-        {imageArea}
-      </button>
+        {frame}
+        {meta}
+      </div>
     )
   }
 
   return (
-    <Card className={cn('group', className)}>
-      <div className="relative">
-        {imageArea}
-        {onTryOn && (
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); onTryOn() }}
-            className={cn(
-              'absolute left-[var(--space-2)] top-[var(--space-2)]',
-              'flex h-7 w-7 items-center justify-center rounded-full',
-              'border border-primary-600 bg-primary-900/80 backdrop-blur',
-              'opacity-0 group-hover:opacity-100 transition-opacity duration-200',
-              'text-accent-500 hover:bg-accent-500 hover:text-primary-900 hover:border-accent-500',
-            )}
-            aria-label="Try on this item"
-          >
-            <Sparkles size={13} aria-hidden="true" />
-          </button>
-        )}
-      </div>
-    </Card>
+    <button
+      type="button"
+      onClick={onClick}
+      className={containerClasses}
+      aria-label={`Open item details for ${title}`}
+    >
+      {frame}
+      {meta}
+    </button>
   )
 }
 
