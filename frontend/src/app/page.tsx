@@ -61,13 +61,16 @@ export default function Home() {
                   Account
                 </Link>
               ) : (
-                <button
-                  type="button"
-                  onClick={() => setAuthModalOpen(true)}
+                <Link
+                  href="#login"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    setAuthModalOpen(true)
+                  }}
                   className={navLinkClass}
                 >
                   Login
-                </button>
+                </Link>
               )}
             </nav>
           </header>
