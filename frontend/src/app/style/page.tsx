@@ -10,37 +10,44 @@ import BuildStep from './components/BuildStep'
 import SummaryStep from './components/SummaryStep'
 
 export default function StylePage() {
-  const { currentStep, croppedImage, reset } = useStyleStore()
+  const { currentStep } = useStyleStore()
   const [isReady, setIsReady] = useState(false)
- 
-  // Reset if we're past upload but have no image (stale state)
+
+  // Reset stale state on first render (post-upload step with no image)
   useEffect(() => {
     const state = useStyleStore.getState()
-    console.log('Checking state:', { currentStep: state.currentStep, hasCroppedImage: !!state.croppedImage })
-    
     if (!state.croppedImage && state.currentStep !== 'upload') {
-      console.log('Resetting stale state')
       state.reset()
     }
     setIsReady(true)
   }, [])
 
-  // Don't render until we've checked for stale state
   if (!isReady) {
-    return <div className="min-h-[calc(100vh-80px)] bg-primary-900" />
+    return <div className="flex-1 bg-paper" />
   }
 
+  const showIndicator =
+    currentStep === 'upload' ||
+    currentStep === 'metadata' ||
+    currentStep === 'colors'
+
+  const isFullBleed = currentStep === 'build' || currentStep === 'summary'
+
   return (
-    <div className="min-h-[calc(100vh-80px)] bg-primary-900">
-      {/* Step Indicator - Show on all steps except build (where it's more complex) */}
-      {(currentStep === 'upload' || currentStep === 'metadata' || currentStep === 'colors') && (
-        <div className="pt-8 pb-4">
-          <StepIndicator />
+    <div className="flex-1 bg-paper text-ink">
+      {showIndicator && (
+        <div className="border-b border-ink">
+          <div className="max-w-[1320px] mx-auto px-14 max-md:px-6 py-6">
+            <StepIndicator />
+          </div>
         </div>
       )}
 
-      {/* Step Content */}
-      <div className={currentStep === 'build' || currentStep === 'summary' ? '' : 'max-w-7xl mx-auto px-6 md:px-12'}>
+      <div
+        className={
+          isFullBleed ? '' : 'max-w-[1320px] mx-auto px-14 max-md:px-6'
+        }
+      >
         {currentStep === 'upload' && <UploadStep />}
         {currentStep === 'metadata' && <MetadataStep />}
         {currentStep === 'colors' && <ColorStep />}
