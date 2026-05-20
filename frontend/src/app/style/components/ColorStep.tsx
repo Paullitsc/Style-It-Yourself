@@ -461,7 +461,11 @@ export default function ColorStep() {
                 }}
               >
                 <span
-                  className="block w-1 h-1 bg-ink rounded-full"
+                  className="block w-2 h-2 rounded-full border border-paper"
+                  style={{
+                    backgroundColor:
+                      adjustedColor?.hex || 'var(--color-ink)',
+                  }}
                   aria-hidden="true"
                 />
               </button>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { tryOnOutfit, uploadUserPhoto, uploadItemImage } from '@/lib/api'
 import { useStyleStore } from '@/store/styleStore'
 import type { ClothingItemCreate, TryOnOutfitRequest } from '@/types'
@@ -33,6 +33,14 @@ export default function TryOnOutfitModal({
   const [resultUrl, setResultUrl] = useState<string | null>(null)
   const [processingTime, setProcessingTime] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [elapsed, setElapsed] = useState(0)
+
+  useEffect(() => {
+    if (step !== 'generating') return
+    setElapsed(0)
+    const interval = setInterval(() => setElapsed((e) => e + 1), 1000)
+    return () => clearInterval(interval)
+  }, [step])
 
   const handleGenerate = async () => {
     if (!userPhotoFile) return
@@ -175,6 +183,9 @@ export default function TryOnOutfitModal({
           </h4>
           <p className="mt-4 mx-auto max-w-[40ch] font-display italic text-[16px] text-ink-2">
             Hold tight — this is the slow part of the magic.
+          </p>
+          <p className="mt-6 font-mono text-[11px] uppercase tracking-[0.14em] text-ink">
+            Elapsed {String(elapsed).padStart(2, '0')}s
           </p>
         </div>
       )}

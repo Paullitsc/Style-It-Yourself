@@ -589,7 +589,7 @@ export default function AddItemPanel({
           <div className="flex flex-col gap-6">
             {addingItem.croppedImage ? (
               <div className="flex flex-col items-center gap-6">
-                <div className="w-full max-w-[260px] aspect-[4/5] border border-ink bg-paper-2 overflow-hidden">
+                <div className="w-[180px] aspect-[4/5] border border-ink bg-paper-2 overflow-hidden">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={addingItem.croppedImage.croppedUrl}
@@ -637,7 +637,7 @@ export default function AddItemPanel({
         {currentStep === 'metadata' && addingItem.croppedImage && (
           <div className="flex flex-col gap-7">
             <div className="flex justify-center">
-              <div className="w-[140px] aspect-[4/5] border border-ink bg-paper-2 overflow-hidden">
+              <div className="w-[180px] aspect-[4/5] border border-ink bg-paper-2 overflow-hidden">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={addingItem.croppedImage.croppedUrl}
@@ -840,7 +840,12 @@ export default function AddItemPanel({
                     }}
                   >
                     <span
-                      className="block w-1 h-1 bg-ink rounded-full"
+                      className="block w-2 h-2 rounded-full border border-paper"
+                      style={{
+                        backgroundColor:
+                          addingItem.adjustedColor?.hex ||
+                          'var(--color-ink)',
+                      }}
                       aria-hidden="true"
                     />
                   </button>

@@ -91,7 +91,7 @@ export default function CropModal({
         <div className="flex items-center justify-between px-6 py-5 border-b border-ink">
           <div>
             <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mb-1">
-              Step 01 · Crop
+              Crop
             </p>
             <h3
               id="crop-title"

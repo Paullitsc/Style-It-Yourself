@@ -139,7 +139,7 @@ export default function SummaryStep() {
     <div className="max-w-[1320px] mx-auto px-14 max-md:px-6 pt-10 pb-24">
       <section className="border-b border-ink pb-7">
         <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mb-3">
-          Step 04 · Review
+          Review
         </p>
         <h1 className="m-0 font-display font-normal text-[clamp(48px,7vw,108px)] leading-[0.95] tracking-[-0.025em]">
           Your <em className="italic text-ink-3">outfit,</em>

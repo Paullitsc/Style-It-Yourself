@@ -187,7 +187,7 @@ export default function BuildStep() {
         <div className="max-w-[1320px] mx-auto px-14 max-md:px-6 py-5 flex items-end justify-between gap-6 flex-wrap">
           <div>
             <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mb-1">
-              Step 04 · Build
+              Build
             </p>
             <h1 className="m-0 font-display font-normal text-[clamp(28px,3.5vw,40px)] leading-[0.95] tracking-[-0.015em]">
               Assemble the <em className="italic text-ink-3">outfit.</em>
