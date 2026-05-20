@@ -108,8 +108,6 @@ The frontend is fully on an editorial × brutalist × minimalist visual system. 
 | Color utilities (frontend) | `frontend/src/lib/colorExtractor.ts`, `frontend/src/lib/colorUtils.ts` |
 | Editorial design tokens (CSS) | `frontend/src/styles/system.css` |
 | Tailwind theme + token registration | `frontend/src/app/global.css` |
-| Design system contract (markdown) | `frontend/docs/redesign/design-system.md` |
-| Artboard HTML (visual ground truth) | `frontend/docs/redesign/reference/artboards/` |
 
 ## Product Flows
 
