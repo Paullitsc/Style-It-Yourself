@@ -287,11 +287,47 @@ export function adjustBrightness(hex: string, lightness: number): string {
 export function buildColorFromHex(hex: string): Color {
   const hsl = hexToHsl(hex)
   const { name, isNeutral } = getColorName(hsl)
-  
+
   return {
     hex: hex.toUpperCase(),
     hsl,
     name,
     is_neutral: isNeutral,
   }
+}
+
+// =============================================================================
+// AGGREGATE HUE
+// =============================================================================
+
+/**
+ * Compute the dominant hue across a set of items.
+ * Returns the most-frequent fashion color name (via getColorName) and a sample hex
+ * from the first item that contributed to it. Falls back to a neutral gray when
+ * the input is empty.
+ */
+export function dominantHueName(
+  items: Array<{ color: Color }>
+): { name: string; hex: string } {
+  if (items.length === 0) return { name: 'Neutral', hex: '#808080' }
+
+  const counts = new Map<string, number>()
+  const samples = new Map<string, string>()
+
+  for (const item of items) {
+    const { name } = getColorName(item.color.hsl)
+    counts.set(name, (counts.get(name) ?? 0) + 1)
+    if (!samples.has(name)) samples.set(name, item.color.hex)
+  }
+
+  let topName = 'Neutral'
+  let topCount = 0
+  for (const [name, count] of counts) {
+    if (count > topCount) {
+      topName = name
+      topCount = count
+    }
+  }
+
+  return { name: topName, hex: samples.get(topName) ?? '#808080' }
 }

@@ -1,80 +1,55 @@
 'use client'
 
 import { useStyleStore, type StyleStep } from '@/store/styleStore'
-import { Check } from 'lucide-react'
+import { cn } from '@/lib/cn'
 
-const STEPS: { key: StyleStep; label: string; number: number }[] = [
-  { key: 'upload', label: 'Upload', number: 1 },
-  { key: 'metadata', label: 'Describe', number: 2 },
-  { key: 'colors', label: 'Confirm Color', number: 3 },
+const STEPS: { key: StyleStep; label: string }[] = [
+  { key: 'upload', label: 'Upload' },
+  { key: 'metadata', label: 'Describe' },
+  { key: 'colors', label: 'Confirm color' },
 ]
+
+const pad2 = (n: number) => String(n).padStart(2, '0')
 
 export default function StepIndicator() {
   const { currentStep } = useStyleStore()
-  
-  const currentIndex = STEPS.findIndex(s => s.key === currentStep)
+  const currentIndex = STEPS.findIndex((s) => s.key === currentStep)
 
   return (
-    <div className="flex items-center justify-center gap-2 md:gap-4">
-      {STEPS.map((step, index) => {
-        const isCompleted = index < currentIndex
-        const isCurrent = index === currentIndex
-        const isFuture = index > currentIndex
-
+    <nav
+      aria-label="Style flow progress"
+      className="flex items-baseline justify-center gap-8 max-md:gap-4"
+    >
+      {STEPS.map((step, i) => {
+        const isActive = i === currentIndex
+        const isComplete = i < currentIndex
         return (
-          <div key={step.key} className="flex items-center">
-            {/* Step Circle */}
-            <div className="flex items-center gap-3">
-              <div
-                className={`
-                  relative w-10 h-10 rounded-full flex items-center justify-center
-                  text-xs font-bold uppercase tracking-wider
-                  transition-all duration-300
-                  ${isCompleted 
-                    ? 'bg-accent-500 text-primary-900' 
-                    : isCurrent 
-                      ? 'bg-white text-primary-900 ring-2 ring-accent-500 ring-offset-2 ring-offset-primary-900' 
-                      : 'bg-primary-700 text-neutral-500'
-                  }
-                `}
-              >
-                {isCompleted ? (
-                  <Check size={16} strokeWidth={3} />
-                ) : (
-                  step.number
-                )}
-              </div>
-              
-              {/* Step Label */}
+          <div key={step.key} className="flex items-baseline gap-4 max-md:gap-2">
+            <span
+              aria-current={isActive ? 'step' : undefined}
+              className={cn(
+                'font-mono text-[11px] uppercase tracking-[0.14em] transition-colors',
+                isActive
+                  ? 'text-ink font-bold'
+                  : isComplete
+                  ? 'text-ink'
+                  : 'text-ink-3 font-normal',
+              )}
+            >
+              {pad2(i + 1)} / {step.label}
+            </span>
+            {i < STEPS.length - 1 && (
               <span
-                className={`
-                  hidden md:block text-xs font-medium uppercase tracking-widest
-                  transition-colors duration-300
-                  ${isCompleted 
-                    ? 'text-accent-500' 
-                    : isCurrent 
-                      ? 'text-white' 
-                      : 'text-neutral-600'
-                  }
-                `}
-              >
-                {step.label}
-              </span>
-            </div>
-
-            {/* Connector Line */}
-            {index < STEPS.length - 1 && (
-              <div
-                className={`
-                  w-8 md:w-16 h-[2px] mx-2 md:mx-4
-                  transition-colors duration-300
-                  ${index < currentIndex ? 'bg-accent-500' : 'bg-primary-700'}
-                `}
+                aria-hidden="true"
+                className={cn(
+                  'inline-block h-px w-12 max-md:w-6 translate-y-[-3px]',
+                  isComplete ? 'bg-ink' : 'bg-rule-soft',
+                )}
               />
             )}
           </div>
         )
       })}
-    </div>
+    </nav>
   )
 }

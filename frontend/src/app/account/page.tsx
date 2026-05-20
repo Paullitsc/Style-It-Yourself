@@ -1,56 +1,116 @@
 'use client'
-import ProtectedRoute from "@/components/ProtectedRoute";
-import { useAuth } from "@/components/AuthProvider";
-import { User, LogOut } from 'lucide-react';
+
+import type { ReactNode } from 'react'
+import { useRouter } from 'next/navigation'
+import ProtectedRoute from '@/components/ProtectedRoute'
+import { useAuth } from '@/components/AuthProvider'
 
 export default function AccountPage() {
-  const { user, signOut } = useAuth();
-  
+  const { user, signOut } = useAuth()
+  const router = useRouter()
+
+  const handleSignOut = async () => {
+    await signOut()
+    router.push('/')
+  }
+
+  const formatDate = (value: string | undefined) => {
+    if (!value) return null
+    try {
+      return new Date(value).toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+      })
+    } catch {
+      return null
+    }
+  }
+
+  const memberSince = formatDate(user?.created_at)
+  const lastSignIn = formatDate(user?.last_sign_in_at)
+
   return (
     <ProtectedRoute>
-      {/* FIXED WRAPPER: Matches Closet Page exactly 
-        - max-w-[1920px] 
-        - px-6 md:px-12 
-        - py-12
-      */}
-      <div className="min-h-[calc(100vh-80px)] w-full max-w-[1920px] mx-auto px-6 md:px-12 py-12">
-        
-        {/* PAGE HEADER */}
-        {/* Same margin and border structure as Closet Page */}
-        <div className="mb-12 border-b border-primary-800 pb-8">
-          <h1 className="text-3xl md:text-3xl font-bold uppercase tracking-tighter text-white mb-2">
-            Account Overview
-          </h1>
-        </div>
-        
-        {/* DATA GRID */}
-        {/* We constrain the width of the content ONLY, so the header stays aligned left but lines don't stretch too far */}
-        <div className="max-w-4xl">
-          
-          {/* ROW 1: EMAIL */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 py-8 border-b border-primary-800 items-center group">
-            
-            {/* LABEL COLUMN */}
-            <div className="md:col-span-4 flex items-center gap-3">
-              <div className="p-2 bg-primary-800 rounded-full text-neutral-400 group-hover:text-white transition-colors">
-                <User size={16} />
-              </div>
-              <span className="text-xs font-bold uppercase tracking-widest text-neutral-500 group-hover:text-neutral-300 transition-colors">
-                Email Address
+      <div className="flex-1">
+        <div className="max-w-[1320px] mx-auto px-14 max-md:px-6 pt-10 pb-24">
+          {/* HEAD */}
+          <section className="border-b border-ink pb-7">
+            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mb-3">
+              Account
+            </p>
+            <h1 className="m-0 font-display font-normal uppercase text-[clamp(72px,9vw,128px)] leading-[0.92] tracking-[-0.025em]">
+              Your <em className="italic text-ink-3">account,</em>
+              <br />
+              in brief.
+            </h1>
+            <p className="mt-[18px] max-w-[40ch] font-display italic text-[20px] leading-[1.35] text-ink-2">
+              The basics on file. Nothing fancy — sign out below when
+              you&apos;re done.
+            </p>
+          </section>
+
+          {/* METADATA */}
+          <section className="grid grid-cols-[260px_1fr] max-md:grid-cols-1 gap-y-7 gap-x-10 pt-10">
+            <MetaRow label="Email">
+              <span className="font-display text-[24px] leading-none break-all">
+                {user?.email ?? '—'}
               </span>
-            </div>
+            </MetaRow>
 
-            {/* VALUE COLUMN */}
-            <div className="md:col-span-8">
-              <span className="text-lg md:text-xl font-medium text-white tracking-tight">
-                {user?.email}
-              </span>
-            </div>
-          </div>
+            {memberSince && (
+              <MetaRow label="Member since">
+                <span className="font-display text-[24px] leading-none">
+                  {memberSince}
+                </span>
+              </MetaRow>
+            )}
 
+            {lastSignIn && (
+              <MetaRow label="Last sign-in">
+                <span className="font-display text-[24px] leading-none">
+                  {lastSignIn}
+                </span>
+              </MetaRow>
+            )}
+
+            {user?.id && (
+              <MetaRow label="User ID">
+                <span className="font-mono text-[12px] uppercase tracking-[0.06em] text-ink-3 break-all">
+                  {user.id}
+                </span>
+              </MetaRow>
+            )}
+          </section>
+
+          {/* SIGN OUT */}
+          <section className="border-t border-ink mt-12 pt-7">
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="font-mono text-[11px] uppercase tracking-[0.12em] text-accent pb-[2px] border-b border-transparent hover:border-accent transition-colors"
+            >
+              Sign out
+            </button>
+          </section>
         </div>
-
       </div>
     </ProtectedRoute>
+  )
+}
+
+interface MetaRowProps {
+  label: string
+  children: ReactNode
+}
+
+function MetaRow({ label, children }: MetaRowProps) {
+  return (
+    <>
+      <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 pt-2">
+        {label}
+      </div>
+      <div>{children}</div>
+    </>
   )
 }

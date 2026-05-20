@@ -4,16 +4,16 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useStyleStore } from '@/store/styleStore'
 import { useAuth } from '@/components/AuthProvider'
-import { ArrowLeft, Save, Sparkles, AlertTriangle, Check, X } from 'lucide-react'
 import { validateOutfit, saveOutfitWithItems } from '@/lib/api'
 import type { ValidateOutfitResponse } from '@/types'
 import AuthModal from '@/components/AuthModal'
 import TryOnOutfitModal from './TryonOutfitModal'
+import { cn } from '@/lib/cn'
 
 export default function SummaryStep() {
   const router = useRouter()
   const { user, session } = useAuth()
-  
+
   const {
     getBaseItem,
     getAllOutfitItems,
@@ -22,7 +22,9 @@ export default function SummaryStep() {
     reset,
   } = useStyleStore()
 
-  const [validation, setValidation] = useState<ValidateOutfitResponse | null>(null)
+  const [validation, setValidation] = useState<ValidateOutfitResponse | null>(
+    null,
+  )
   const [isValidating, setIsValidating] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [saveProgress, setSaveProgress] = useState<string>('')
@@ -36,50 +38,42 @@ export default function SummaryStep() {
   const baseItem = getBaseItem()
   const allItems = getAllOutfitItems()
   const allItemsWithBlobs = getAllOutfitItemsWithBlobs()
-  
-  // Track if validation has been done
+
   const hasValidated = useRef(false)
 
-  // Validate outfit on mount (only once)
   useEffect(() => {
     if (hasValidated.current) return
-    
+
     async function validate() {
       if (!baseItem || allItems.length === 0) return
-      
       hasValidated.current = true
       setIsValidating(true)
-      
       try {
-        console.log('Validating outfit with:', { baseItem, allItems })
         const result = await validateOutfit(allItems, baseItem)
-        console.log('Validation result:', result)
         setValidation(result)
       } catch (error) {
-        console.error('Outfit validation failed:', error)
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-        console.error('Error details:', errorMessage)
         setValidation({
           is_complete: true,
-          cohesion_score: 70,
-          verdict: 'Could not validate outfit',
-          color_strip: allItems.map(item => item.color.hex),
-          warnings: ['Validation service unavailable', `Error: ${errorMessage}`],
+          cohesion_score: 0,
+          verdict: 'Validation unavailable.',
+          color_strip: allItems.map((item) => item.color.hex),
+          warnings: [
+            error instanceof Error
+              ? error.message
+              : 'Could not reach the validation service.',
+          ],
         })
       } finally {
         setIsValidating(false)
       }
     }
-    
+
     validate()
-  }, []) // Empty deps - run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
-  // Handle back to build
-  const handleBack = useCallback(() => {
-    setStep('build')
-  }, [setStep])
+  const handleBack = useCallback(() => setStep('build'), [setStep])
 
-  // Handle save click
   const handleSaveClick = useCallback(() => {
     if (!user) {
       setShowAuthModal(true)
@@ -88,7 +82,6 @@ export default function SummaryStep() {
     setShowNameInput(true)
   }, [user])
 
-  // Handle try on click
   const handleTryOnClick = useCallback(() => {
     if (!user) {
       setShowAuthModal(true)
@@ -97,309 +90,317 @@ export default function SummaryStep() {
     setShowTryOnModal(true)
   }, [user])
 
-  // Handle save outfit
   const handleSaveOutfit = useCallback(async () => {
-    if (!user || !session?.access_token || !baseItem || allItemsWithBlobs.length === 0) return
-    
-    const name = outfitName.trim() || `Outfit ${new Date().toLocaleDateString()}`
-    
+    if (
+      !user ||
+      !session?.access_token ||
+      !baseItem ||
+      allItemsWithBlobs.length === 0
+    )
+      return
+
+    const name =
+      outfitName.trim() || `Outfit ${new Date().toLocaleDateString()}`
+
     setIsSaving(true)
     setSaveError(null)
-    setSaveProgress('Starting...')
-    
+    setSaveProgress('Starting…')
+
     try {
       await saveOutfitWithItems(
         name,
         allItemsWithBlobs,
         session.access_token,
-        (current, total, status) => {
-          setSaveProgress(status)
-        },
-        // Pass the generated URL if it exists
-        generatedTryOnUrl || undefined 
+        (_current, _total, status) => setSaveProgress(status),
+        generatedTryOnUrl || undefined,
       )
-      
       reset()
-      router.push('/closet') 
+      router.push('/closet')
     } catch (error) {
-      console.error('Save outfit failed:', error)
-      setSaveError(error instanceof Error ? error.message : 'Failed to save outfit')
+      setSaveError(
+        error instanceof Error ? error.message : 'Failed to save outfit',
+      )
     } finally {
       setIsSaving(false)
       setSaveProgress('')
     }
-  }, [user, session, baseItem, allItemsWithBlobs, outfitName, reset, router, generatedTryOnUrl])
-
-  // Get score color
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return 'text-success-500'
-    if (score >= 60) return 'text-warning-500'
-    return 'text-error-500'
-  }
-
-  const getScoreBgColor = (score: number) => {
-    if (score >= 80) return 'bg-success-500'
-    if (score >= 60) return 'bg-warning-500'
-    return 'bg-error-500'
-  }
+  }, [
+    user,
+    session,
+    baseItem,
+    allItemsWithBlobs,
+    outfitName,
+    reset,
+    router,
+    generatedTryOnUrl,
+  ])
 
   return (
-    <div className="min-h-[calc(100vh-80px)] bg-primary-900">
-      {/* Header */}
-      <div className="border-b border-primary-800 bg-primary-900/80 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-6 md:px-12 py-6">
-          <h1 className="text-2xl md:text-3xl font-bold uppercase tracking-widest text-white">
-            Review Your Outfit
-          </h1>
-          <p className="text-neutral-500 text-sm mt-1">
-            Check compatibility and save to your closet
-          </p>
-        </div>
-      </div>
+    <div className="max-w-[1320px] mx-auto px-14 max-md:px-6 pt-10 pb-24">
+      <section className="border-b border-ink pb-7">
+        <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mb-3">
+          Review
+        </p>
+        <h1 className="m-0 font-display font-normal text-[clamp(48px,7vw,108px)] leading-[0.95] tracking-[-0.025em]">
+          Your <em className="italic text-ink-3">outfit,</em>
+          <br />
+          assembled.
+        </h1>
+        <p className="mt-4 max-w-[40ch] font-display italic text-[20px] leading-[1.35] text-ink-2">
+          Check the cohesion, name it, and save it to your closet.
+        </p>
+      </section>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-6 md:px-12 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          
-          {/* Left: Outfit Items */}
-          <div>
-            <h2 className="text-xs font-bold uppercase tracking-widest text-neutral-500 mb-4">
-              Your Items ({allItems.length})
-            </h2>
-            <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-[1fr_1fr] max-md:grid-cols-1 gap-12 pt-10">
+        {/* Items + palette */}
+        <div className="flex flex-col gap-10">
+          <section>
+            <header className="grid grid-cols-[auto_auto_1fr] gap-4 items-baseline pb-[14px] mb-5 border-b border-ink">
+              <span className="font-display text-[24px] leading-none tracking-[-0.015em]">
+                Pieces
+              </span>
+              <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
+                {allItems.length} in this look
+              </span>
+              <span className="h-px bg-ink" aria-hidden="true" />
+            </header>
+
+            <div className="grid grid-cols-3 gap-4 max-md:grid-cols-2">
               {allItems.map((item, index) => (
-                <div 
-                  key={index}
-                  className="bg-primary-800 rounded-lg border border-primary-700 overflow-hidden"
-                >
-                  <div className="aspect-[3/4] relative">
+                <article key={index} className="flex flex-col gap-2">
+                  <div className="relative aspect-square border border-ink overflow-hidden bg-paper-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={item.image_url}
                       alt={item.category.l2 || item.category.l1}
-                      className="w-full h-full object-contain p-2"
+                      className="w-full h-full object-cover"
                     />
-                    {/* Color dot */}
-                    <div 
-                      className="absolute bottom-2 left-2 w-5 h-5 rounded-full border-2 border-primary-900"
-                      style={{ backgroundColor: item.color.hex }}
-                    />
-                    {/* Base badge */}
                     {index === 0 && (
-                      <div className="absolute top-2 right-2 px-2 py-0.5 bg-accent-500 text-[9px] uppercase font-bold rounded">
+                      <span className="absolute top-2 left-2 bg-ink text-paper px-2 py-1 font-mono text-[9px] uppercase tracking-[0.1em]">
                         Base
-                      </div>
+                      </span>
                     )}
                   </div>
-                  <div className="p-3 border-t border-primary-700">
-                    <p className="text-xs font-medium text-white truncate">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="font-display text-[15px] leading-tight truncate">
                       {item.category.l2}
-                    </p>
-                    <p className="text-[10px] text-neutral-500 uppercase">
-                      {item.category.l1}
-                    </p>
+                    </span>
+                    <i
+                      className="inline-block w-[10px] h-[10px] border border-ink shrink-0"
+                      style={{ backgroundColor: item.color.hex }}
+                      aria-hidden="true"
+                    />
                   </div>
-                </div>
+                </article>
               ))}
             </div>
+          </section>
 
-            {/* Color Strip */}
-            {validation?.color_strip && validation.color_strip.length > 0 && (
-              <div className="mt-8">
-                <h2 className="text-xs font-bold uppercase tracking-widest text-neutral-500 mb-3">
-                  Color Palette
-                </h2>
-                <div className="flex rounded-lg overflow-hidden h-12">
-                  {validation.color_strip.map((color, i) => (
-                    <div 
-                      key={i}
-                      className="flex-1"
-                      style={{ backgroundColor: color }}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Right: Analysis */}
-          <div className="space-y-6">
-            
-            {/* Cohesion Score */}
-            <div className="bg-primary-800/50 rounded-xl border border-primary-700 p-6">
-              {isValidating ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin w-8 h-8 border-2 border-accent-500 border-t-transparent rounded-full" />
-                  <span className="ml-4 text-neutral-400">Analyzing outfit...</span>
-                </div>
-              ) : validation ? (
-                <>
-                  {/* Score */}
-                  <div className="text-center mb-6">
-                    <p className="text-xs uppercase tracking-widest text-neutral-500 mb-2">
-                      Cohesion Score
-                    </p>
-                    <div className="flex items-center justify-center gap-4">
-                      <span className={`text-6xl font-bold ${getScoreColor(validation.cohesion_score)}`}>
-                        {validation.cohesion_score}
-                      </span>
-                      <span className="text-2xl text-neutral-600">/100</span>
-                    </div>
-                    {/* Progress bar */}
-                    <div className="mt-4 h-2 bg-primary-700 rounded-full overflow-hidden">
-                      <div 
-                        className={`h-full transition-all duration-500 ${getScoreBgColor(validation.cohesion_score)}`}
-                        style={{ width: `${validation.cohesion_score}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Verdict */}
-                  <div className="text-center p-4 bg-primary-900/50 rounded-lg">
-                    <Sparkles size={20} className="mx-auto mb-2 text-accent-500" />
-                    <p className="text-white font-medium">{validation.verdict}</p>
-                  </div>
-
-                  {/* Warnings */}
-                  {validation.warnings.length > 0 && (
-                    <div className="mt-6 space-y-2">
-                      <p className="text-xs uppercase tracking-widest text-neutral-500">Notes</p>
-                      {validation.warnings.map((warning, i) => (
-                        <div key={i} className="flex items-start gap-2 p-3 bg-warning-500/10 rounded border border-warning-500/20">
-                          <AlertTriangle size={14} className="text-warning-500 mt-0.5 flex-shrink-0" />
-                          <p className="text-sm text-neutral-300">{warning}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </>
-              ) : (
-                <p className="text-center text-neutral-500">No validation data</p>
-              )}
-            </div>
-
-            {/* Save Section */}
-            {showNameInput ? (
-              <div className="bg-primary-800/50 rounded-xl border border-primary-700 p-6 space-y-4">
-                <div>
-                  <label className="block text-xs uppercase font-bold tracking-widest text-neutral-500 mb-2">
-                    Outfit Name
-                  </label>
-                  <input
-                    type="text"
-                    value={outfitName}
-                    onChange={(e) => setOutfitName(e.target.value)}
-                    placeholder="e.g. Casual Friday, Summer Look..."
-                    disabled={isSaving}
-                    className="w-full px-4 py-3 bg-primary-900 border border-primary-700 text-white
-                      placeholder-neutral-600 focus:outline-none focus:border-accent-500 transition-colors
-                      disabled:opacity-50"
+          {validation?.color_strip && validation.color_strip.length > 0 && (
+            <section>
+              <header className="grid grid-cols-[auto_1fr] gap-4 items-baseline pb-[14px] mb-5 border-b border-ink">
+                <span className="font-display text-[24px] leading-none tracking-[-0.015em]">
+                  Palette
+                </span>
+                <span className="h-px bg-ink" aria-hidden="true" />
+              </header>
+              <div className="flex h-12 border border-ink overflow-hidden">
+                {validation.color_strip.map((hex, i) => (
+                  <div
+                    key={`${hex}-${i}`}
+                    className="flex-1"
+                    style={{ backgroundColor: hex }}
+                    title={hex.toUpperCase()}
+                    aria-label={`Color ${i + 1}: ${hex.toUpperCase()}`}
                   />
-                </div>
-                
-                {saveError && (
-                  <div className="flex items-center gap-2 p-3 bg-error-500/10 rounded border border-error-500/20">
-                    <X size={14} className="text-error-500" />
-                    <p className="text-sm text-error-400">{saveError}</p>
-                  </div>
-                )}
-
-                {isSaving && saveProgress && (
-                  <div className="p-3 bg-accent-500/10 rounded border border-accent-500/20">
-                    <div className="flex items-center gap-3">
-                      <div className="animate-spin w-4 h-4 border-2 border-accent-500 border-t-transparent rounded-full" />
-                      <p className="text-sm text-accent-400">{saveProgress}</p>
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setShowNameInput(false)}
-                    disabled={isSaving}
-                    className="flex-1 px-4 py-3 text-neutral-400 hover:text-white border border-primary-600
-                      text-xs font-bold uppercase tracking-widest transition-colors disabled:opacity-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleSaveOutfit}
-                    disabled={isSaving}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 
-                      bg-accent-500 text-primary-900 hover:bg-accent-400
-                      disabled:opacity-50 disabled:cursor-not-allowed
-                      text-xs font-bold uppercase tracking-widest transition-all"
-                  >
-                    {isSaving ? (
-                      <>
-                        <div className="animate-spin w-4 h-4 border-2 border-primary-900 border-t-transparent rounded-full" />
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Save size={14} />
-                        Save to Closet
-                      </>
-                    )}
-                  </button>
-                </div>
+                ))}
               </div>
-            ) : (
-              <button
-                onClick={handleSaveClick}
-                className="w-full flex items-center justify-center gap-3 px-8 py-4 
-                  bg-accent-500 text-primary-900 hover:bg-accent-400
-                  text-sm font-bold uppercase tracking-widest transition-all"
-              >
-                <Save size={18} />
-                Save to Closet
-                {!user && <span className="text-[10px] opacity-70">(Login Required)</span>}
-              </button>
-            )}
-
-            {/* Try On Outfit Button */}
-            <button
-              onClick={handleTryOnClick}
-              className="w-full flex items-center justify-center gap-3 px-8 py-4 
-                bg-primary-800 text-white hover:bg-primary-700
-                text-sm font-bold uppercase tracking-widest border border-primary-700 transition-all"
-            >
-              <Sparkles size={18} />
-              Try On Outfit
-              {!user && <span className="text-[10px] opacity-70">(Login Required)</span>}
-            </button>
-          </div>
+            </section>
+          )}
         </div>
 
-        {/* Bottom Navigation */}
-        <div className="border-t border-primary-800 mt-12 pt-8">
-          <button
-            onClick={handleBack}
-            className="flex items-center gap-2 px-6 py-3 text-neutral-400 hover:text-white 
-              text-xs font-bold uppercase tracking-widest transition-colors"
-          >
-            <ArrowLeft size={14} />
-            Back to Edit
-          </button>
+        {/* Analysis + actions */}
+        <div className="flex flex-col gap-10">
+          <section>
+            <header className="grid grid-cols-[auto_1fr] gap-4 items-baseline pb-[14px] mb-5 border-b border-ink">
+              <span className="font-display text-[24px] leading-none tracking-[-0.015em]">
+                Cohesion
+              </span>
+              <span className="h-px bg-ink" aria-hidden="true" />
+            </header>
+
+            {isValidating ? (
+              <div className="font-display italic text-[18px] text-ink-2">
+                Analyzing outfit…
+              </div>
+            ) : validation ? (
+              <div className="flex flex-col gap-6">
+                <div className="flex items-baseline gap-3">
+                  <span className="font-display text-[72px] leading-none tracking-[-0.02em]">
+                    {validation.cohesion_score}
+                  </span>
+                  <span className="font-mono text-[12px] uppercase tracking-[0.1em] text-ink-3">
+                    / 100
+                  </span>
+                </div>
+
+                <p className="font-display italic text-[20px] leading-[1.35] text-ink-2 max-w-[42ch]">
+                  {validation.verdict}
+                </p>
+
+                {validation.warnings.length > 0 && (
+                  <div>
+                    <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mb-3">
+                      Notes
+                    </p>
+                    <ul className="flex flex-col gap-2">
+                      {validation.warnings.map((warning, i) => (
+                        <li
+                          key={i}
+                          className="flex items-baseline gap-3 font-display italic text-[16px] leading-[1.4] text-ink-2"
+                        >
+                          <span
+                            className="font-mono text-[10px] uppercase tracking-[0.1em] text-accent shrink-0"
+                            aria-hidden="true"
+                          >
+                            ※
+                          </span>
+                          <span>{warning}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="font-display italic text-[18px] text-ink-2">
+                No validation data.
+              </p>
+            )}
+          </section>
+
+          {/* Save section */}
+          {showNameInput ? (
+            <section className="border-t border-rule-soft pt-7 flex flex-col gap-5">
+              <div>
+                <label className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mb-3 block">
+                  Name this outfit
+                </label>
+                <input
+                  type="text"
+                  value={outfitName}
+                  onChange={(e) => setOutfitName(e.target.value)}
+                  placeholder="e.g. Casual Friday, Summer Look…"
+                  disabled={isSaving}
+                  className="w-full bg-transparent font-display italic text-[20px] text-ink border-b border-ink py-2 placeholder:not-italic placeholder:font-mono placeholder:text-[12px] placeholder:tracking-[0.04em] placeholder:text-ink-3 focus:outline-none disabled:opacity-50"
+                />
+              </div>
+
+              {saveError && (
+                <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-accent">
+                  {saveError}
+                </p>
+              )}
+
+              {isSaving && saveProgress && (
+                <p className="font-display italic text-[16px] text-ink-2">
+                  {saveProgress}
+                </p>
+              )}
+
+              <div className="flex items-center justify-between gap-6">
+                <button
+                  type="button"
+                  onClick={() => setShowNameInput(false)}
+                  disabled={isSaving}
+                  className="font-mono text-[11px] uppercase tracking-[0.12em] pb-[2px] border-b border-transparent hover:border-ink transition-colors disabled:opacity-40"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveOutfit}
+                  disabled={isSaving}
+                  className={cn(
+                    'inline-flex items-center justify-between gap-6 px-[22px] py-[14px]',
+                    'border border-ink bg-ink text-paper',
+                    'font-mono text-[11px] uppercase tracking-[0.12em]',
+                    'transition-colors hover:bg-paper hover:text-ink',
+                    'disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-ink disabled:hover:text-paper',
+                  )}
+                >
+                  <span>{isSaving ? 'Saving…' : 'Save to closet'}</span>
+                  {!isSaving && <span aria-hidden="true">→</span>}
+                </button>
+              </div>
+            </section>
+          ) : (
+            <section className="border-t border-rule-soft pt-7 flex flex-col gap-3">
+              <button
+                type="button"
+                onClick={handleSaveClick}
+                className={cn(
+                  'inline-flex items-center justify-between gap-6 px-[22px] py-[14px]',
+                  'border border-ink bg-ink text-paper',
+                  'font-mono text-[11px] uppercase tracking-[0.12em]',
+                  'transition-colors hover:bg-paper hover:text-ink',
+                )}
+              >
+                <span>
+                  Save to closet
+                  {!user && (
+                    <span className="ml-2 text-ink-3 normal-case font-normal italic">
+                      (login required)
+                    </span>
+                  )}
+                </span>
+                <span aria-hidden="true">→</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleTryOnClick}
+                className={cn(
+                  'inline-flex items-center justify-between gap-6 px-[22px] py-[14px]',
+                  'border border-ink bg-paper text-ink',
+                  'font-mono text-[11px] uppercase tracking-[0.12em]',
+                  'transition-colors hover:bg-ink hover:text-paper',
+                )}
+              >
+                <span>
+                  Try on outfit
+                  {!user && (
+                    <span className="ml-2 text-ink-3 normal-case font-normal italic">
+                      (login required)
+                    </span>
+                  )}
+                </span>
+                <span aria-hidden="true">↗</span>
+              </button>
+            </section>
+          )}
         </div>
       </div>
 
-      {/* Auth Modal */}
-      <AuthModal 
-        isOpen={showAuthModal} 
-        onClose={() => setShowAuthModal(false)} 
-      />
+      {/* Bottom nav */}
+      <div className="border-t border-ink mt-12 pt-7">
+        <button
+          type="button"
+          onClick={handleBack}
+          className="font-mono text-[11px] uppercase tracking-[0.12em] pb-[2px] border-b border-transparent hover:border-ink transition-colors"
+        >
+          ← Back to build
+        </button>
+      </div>
 
-      {/* Try On Outfit Modal */}
+      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+
       {showTryOnModal && session?.access_token && (
         <TryOnOutfitModal
           items={allItemsWithBlobs}
           token={session.access_token}
           onClose={() => setShowTryOnModal(false)}
-          
-          onComplete={(url: string) => {
-            setGeneratedTryOnUrl(url)
-            //close the modal automatically or show a success toast
-          }}
+          onComplete={(url: string) => setGeneratedTryOnUrl(url)}
         />
       )}
     </div>

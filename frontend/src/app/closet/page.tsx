@@ -1,48 +1,60 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
+import Link from 'next/link'
 import { useAuth } from '@/components/AuthProvider'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { getCloset, deleteClothingItem, deleteOutfit } from '@/lib/api'
-import type { ClosetResponse, ClothingItemResponse, OutfitSummary } from '@/types'
-import { Shirt, Package, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/cn'
-import {
-  Button,
-  CardSkeleton,
-  ItemCard,
-  OutfitCard,
-  StatusBadge,
-} from '@/components/ui'
+import type {
+  ClosetResponse,
+  ClothingItemResponse,
+  OutfitSummary,
+} from '@/types'
+import { CardSkeleton } from '@/components/ui'
 import ItemDetailModal from './components/ItemDetailModal'
 import OutfitDetailModal from './components/OutfitDetailModal'
 import TryOnModal from '@/app/style/components/TryOnModal'
 
 type ViewMode = 'items' | 'outfits'
+type OwnershipFilter = 'all' | 'owned' | 'wishlist'
+type SortOrder = 'newest' | 'oldest' | 'color'
 
-const CATEGORY_ORDER = ['Tops', 'Bottoms', 'Shoes', 'Outerwear', 'Accessories']
+const CATEGORY_ORDER = ['Tops', 'Bottoms', 'Outerwear', 'Shoes', 'Accessories']
+
+const pad2 = (n: number) => String(n).padStart(2, '0')
 
 export default function ClosetPage() {
   const { session } = useAuth()
-  const [activeView, setActiveView] = useState<ViewMode>('items')
   const [closetData, setClosetData] = useState<ClosetResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const [selectedItem, setSelectedItem] = useState<ClothingItemResponse | null>(null)
-  const [tryOnItem, setTryOnItem] = useState<ClothingItemResponse | null>(null)
-  const [selectedOutfit, setSelectedOutfit] = useState<OutfitSummary | null>(null)
+  const [activeView, setActiveView] = useState<ViewMode>('items')
+  const [categoryFilter, setCategoryFilter] = useState<string>('All')
+  const [ownershipFilter, setOwnershipFilter] = useState<OwnershipFilter>('all')
+  const [sortOrder, setSortOrder] = useState<SortOrder>('newest')
+  const [searchQuery, setSearchQuery] = useState<string>('')
 
-  const [activeCategory, setActiveCategory] = useState<string>('All')
-  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'color'>('newest')
-  const [ownershipFilter, setOwnershipFilter] = useState<'all' | 'owned' | 'wishlist'>('all')
+  const switchView = (next: ViewMode) => {
+    setActiveView(next)
+    setCategoryFilter('All')
+    setOwnershipFilter('all')
+    setSortOrder('newest')
+    setSearchQuery('')
+  }
+
+  const [selectedItem, setSelectedItem] =
+    useState<ClothingItemResponse | null>(null)
+  const [tryOnItem, setTryOnItem] = useState<ClothingItemResponse | null>(null)
+  const [selectedOutfit, setSelectedOutfit] = useState<OutfitSummary | null>(
+    null,
+  )
 
   const fetchCloset = async () => {
     if (!session?.access_token) return
-
     setIsLoading(true)
     setError(null)
-
     try {
       const data = await getCloset(session.access_token)
       setClosetData(data)
@@ -52,6 +64,10 @@ export default function ClosetPage() {
       setIsLoading(false)
     }
   }
+
+  useEffect(() => {
+    fetchCloset()
+  }, [session?.access_token])
 
   const handleDeleteItem = async (itemId: string) => {
     if (!session?.access_token) return
@@ -65,341 +81,570 @@ export default function ClosetPage() {
     await fetchCloset()
   }
 
-  useEffect(() => {
-    fetchCloset()
-  }, [session?.access_token])
+  const categoriesPresent = useMemo<string[]>(
+    () => (closetData ? Object.keys(closetData.items_by_category) : []),
+    [closetData],
+  )
 
-  const formatDate = (dateString: string) => {
-    try {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
+  const sortedCategories = useMemo<string[]>(() => {
+    const present = new Set(categoriesPresent)
+    return [
+      ...CATEGORY_ORDER.filter((c) => present.has(c)),
+      ...categoriesPresent
+        .filter((c) => !CATEGORY_ORDER.includes(c))
+        .sort(),
+    ]
+  }, [categoriesPresent])
+
+  const sortItems = (items: ClothingItemResponse[]) => {
+    const q = searchQuery.trim().toLowerCase()
+    return [...items]
+      .filter((i) => ownershipFilter === 'all' || i.ownership === ownershipFilter)
+      .filter((i) => {
+        if (!q) return true
+        const haystack = [
+          i.color?.name ?? '',
+          i.category.l2,
+          i.category.l1,
+          (i.aesthetics ?? []).join(' '),
+          i.brand ?? '',
+        ]
+          .join(' ')
+          .toLowerCase()
+        return haystack.includes(q)
       })
-    } catch {
-      return dateString
-    }
-  }
-
-  const getSortedCategories = () => {
-    if (!closetData?.items_by_category) return []
-
-    const categories = Object.keys(closetData.items_by_category)
-    return CATEGORY_ORDER.filter((category) => categories.includes(category)).concat(
-      categories.filter((category) => !CATEGORY_ORDER.includes(category)).sort()
-    )
-  }
-
-  const getSortedItems = (items: ClothingItemResponse[]) =>
-    [...items]
-      .filter((item) => ownershipFilter === 'all' || item.ownership === ownershipFilter)
       .sort((a, b) => {
         if (sortOrder === 'color') return a.color.hsl.h - b.color.hsl.h
-        const diff = new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        const diff =
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         return sortOrder === 'newest' ? diff : -diff
       })
+  }
+
+  const outfitsSorted = useMemo(() => {
+    if (!closetData) return [] as OutfitSummary[]
+    return [...closetData.outfits].sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    )
+  }, [closetData])
+
+  const hasItems = closetData ? closetData.total_items > 0 : false
 
   return (
     <ProtectedRoute>
-      <div className="min-h-[calc(100vh-80px)] w-full max-w-[1920px] mx-auto px-6 py-12 md:px-12">
-        <div className="mb-8 flex flex-col justify-between gap-6 border-b border-primary-800 pb-6 md:flex-row md:items-end">
-          <div>
-            <p className="mb-1 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-accent-500">
-              Your Wardrobe
-            </p>
-            <h1 className="mb-2 text-4xl font-black uppercase tracking-tighter text-white md:text-5xl">
-              My <span className="text-accent-500">Closet</span>
-            </h1>
-            {closetData && (
-              <div className="flex items-center gap-3">
-                <span className="font-mono text-[10px] uppercase tracking-widest text-neutral-900">
-                  {closetData.total_items} Items
-                </span>
-                <span className="h-3 w-px bg-primary-700" aria-hidden="true" />
-                <span className="font-mono text-[10px] uppercase tracking-widest text-neutral-900">
-                  {closetData.total_outfits} Outfits
-                </span>
+      <div className="flex-1">
+        <div className="max-w-[1440px] mx-auto grid grid-cols-[240px_1fr] gap-10 max-md:grid-cols-1 max-md:gap-6 px-10 max-md:px-6 pt-8 pb-24">
+          {/* SIDEBAR */}
+          <aside className="border-r border-ink pr-8 max-md:border-r-0 max-md:border-b max-md:border-ink max-md:pr-0 max-md:pb-8">
+            <div className="sticky top-6 flex flex-col gap-7">
+              {/* Tabs */}
+              <div className="flex flex-col gap-2">
+                <SideTab
+                  active={activeView === 'items'}
+                  onClick={() => switchView('items')}
+                  label="Pieces"
+                  count={closetData ? pad2(closetData.total_items) : '—'}
+                />
+                <SideTab
+                  active={activeView === 'outfits'}
+                  onClick={() => switchView('outfits')}
+                  label="Outfits"
+                  count={closetData ? pad2(closetData.total_outfits) : '—'}
+                />
               </div>
-            )}
-          </div>
 
-          <div className="flex">
-            <button
-              type="button"
-              onClick={() => { setActiveView('items'); setActiveCategory('All'); setOwnershipFilter('all') }}
-              className={cn(
-                'rounded-l-[var(--radius-sm)] rounded-r-none border px-4 py-1.5 text-[11px] font-bold uppercase tracking-wide transition-colors',
-                activeView === 'items'
-                  ? 'border-accent-500 bg-accent-500 text-primary-900'
-                  : 'border-primary-700 bg-transparent text-neutral-700 hover:text-white'
-              )}
-            >
-              Items {closetData && `(${closetData.total_items})`}
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveView('outfits')}
-              className={cn(
-                'rounded-r-[var(--radius-sm)] rounded-l-none border border-l-0 px-4 py-1.5 text-[11px] font-bold uppercase tracking-wide transition-colors',
-                activeView === 'outfits'
-                  ? 'border-accent-500 bg-accent-500 text-primary-900'
-                  : 'border-primary-700 bg-transparent text-neutral-700 hover:text-white'
-              )}
-            >
-              Outfits {closetData && `(${closetData.total_outfits})`}
-            </button>
-          </div>
-        </div>
+              {/* Filters — only for Pieces tab, only when closet has items */}
+              {activeView === 'items' && hasItems && (
+                <>
+                  <hr className="border-t border-rule-soft" />
 
-        {isLoading && (
-          <div className="space-y-4" aria-live="polite" aria-busy="true">
-            <p className="text-sm uppercase tracking-wide text-neutral-500">Loading closet...</p>
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
-              <CardSkeleton count={8} />
-            </div>
-          </div>
-        )}
-
-        {error && !isLoading && (
-          <div className="flex h-[500px] flex-col items-center justify-center gap-6 text-center">
-            <div className="rounded-full bg-primary-800 p-6">
-              <AlertCircle size={48} className="text-error-500" />
-            </div>
-            <div>
-              <h3 className="mb-2 text-xl font-bold uppercase tracking-widest text-white">Failed to Load Closet</h3>
-              <p className="mb-6 text-sm text-neutral-500">{error}</p>
-              <Button onClick={fetchCloset}>Try Again</Button>
-            </div>
-          </div>
-        )}
-
-        {!isLoading && !error && closetData && (
-          <>
-            {activeView === 'items' && (
-              <>
-                {closetData.total_items === 0 ? (
-                  <div className="flex h-[500px] w-full flex-col items-center justify-center rounded-lg border border-dashed border-primary-700 bg-primary-800/20 text-center">
-                    <div className="mb-6 rounded-full bg-primary-800 p-6 text-neutral-500">
-                      <Shirt size={48} strokeWidth={1} />
+                  {/* Search */}
+                  <div>
+                    <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mb-3">
+                      Search
                     </div>
-                    <h3 className="mb-2 text-xl font-bold uppercase tracking-widest text-white">Your closet is empty</h3>
-                    <p className="mx-auto max-w-xs text-xs uppercase tracking-wide text-neutral-500">
-                      Start building outfits to add items to your closet
-                    </p>
-                  </div>
-                ) : (
-                  <>
-                    {/* Filter + Sort bar */}
-                    <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-                      {/* Category filter pills */}
-                      <div className="flex flex-wrap gap-2 flex-1">
+                    <div className="flex items-baseline gap-2 border-b border-ink pb-2">
+                      <input
+                        type="search"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Color, brand, tag…"
+                        aria-label="Search pieces"
+                        className="flex-1 min-w-0 bg-transparent font-display italic text-[16px] text-ink placeholder:text-ink-3 placeholder:not-italic placeholder:font-mono placeholder:text-[11px] placeholder:tracking-[0.04em] focus:outline-none"
+                      />
+                      {searchQuery && (
                         <button
                           type="button"
-                          onClick={() => setActiveCategory('All')}
-                          className={cn(
-                            'rounded-[2px] border px-3 py-1 text-[10px] font-bold uppercase tracking-widest transition-colors',
-                            activeCategory === 'All'
-                              ? 'border-accent-500 bg-accent-500/10 text-accent-500'
-                              : 'border-primary-600 bg-transparent text-neutral-900 hover:border-primary-500 hover:text-white'
-                          )}
+                          onClick={() => setSearchQuery('')}
+                          className="font-mono text-[10px] uppercase tracking-[0.12em] text-ink-3 hover:text-ink shrink-0"
+                          aria-label="Clear search"
                         >
-                          All
+                          ✕
                         </button>
-                        {getSortedCategories().map((cat) => (
-                          <button
-                            key={cat}
-                            type="button"
-                            onClick={() => setActiveCategory(cat)}
-                            className={cn(
-                              'rounded-[2px] border px-3 py-1 text-[10px] font-bold uppercase tracking-widest transition-colors',
-                              activeCategory === cat
-                                ? 'border-accent-500 bg-accent-500/10 text-accent-500'
-                                : 'border-primary-600 bg-transparent text-neutral-900 hover:border-primary-500 hover:text-white'
-                            )}
-                          >
-                            {cat}
-                          </button>
-                        ))}
-                      </div>
-
-                      {/* Ownership filter */}
-                      <div className="flex">
-                        {(['all', 'owned', 'wishlist'] as const).map((opt, i) => (
-                          <button
-                            key={opt}
-                            type="button"
-                            onClick={() => setOwnershipFilter(opt)}
-                            className={cn(
-                              'border px-3 py-1 text-[10px] font-bold uppercase tracking-widest transition-colors',
-                              i === 0 ? 'rounded-l-[2px] rounded-r-none' : i === 2 ? 'rounded-r-[2px] rounded-l-none border-l-0' : 'rounded-none border-l-0',
-                              ownershipFilter === opt
-                                ? 'border-accent-500 bg-accent-500/10 text-accent-500'
-                                : 'border-primary-600 bg-transparent text-neutral-900 hover:text-white'
-                            )}
-                          >
-                            {opt === 'all' ? 'All' : opt === 'owned' ? 'Owned' : 'Wishlist'}
-                          </button>
-                        ))}
-                      </div>
-
-                      {/* Sort segmented control */}
-                      <div className="flex">
-                        {(['newest', 'oldest', 'color'] as const).map((opt, i) => (
-                          <button
-                            key={opt}
-                            type="button"
-                            onClick={() => setSortOrder(opt)}
-                            className={cn(
-                              'border px-3 py-1 text-[10px] font-bold uppercase tracking-widest transition-colors',
-                              i === 0 ? 'rounded-l-[2px] rounded-r-none' : i === 2 ? 'rounded-r-[2px] rounded-l-none border-l-0' : 'rounded-none border-l-0',
-                              sortOrder === opt
-                                ? 'border-accent-500 bg-accent-500/10 text-accent-500'
-                                : 'border-primary-600 bg-transparent text-neutral-900 hover:text-white'
-                            )}
-                          >
-                            {opt === 'newest' ? 'Newest' : opt === 'oldest' ? 'Oldest' : 'Color'}
-                          </button>
-                        ))}
-                      </div>
+                      )}
                     </div>
+                  </div>
 
-                    {activeCategory === 'All' ? (
-                      <div className="space-y-12">
-                        {getSortedCategories().map((categoryL1) => {
-                          const items = getSortedItems(closetData.items_by_category[categoryL1] || [])
-                          if (items.length === 0) return null
+                  <hr className="border-t border-rule-soft" />
 
-                          return (
-                            <div key={categoryL1}>
-                              <div className="mb-4 flex items-center gap-3">
-                                <div className="h-5 w-[3px] flex-shrink-0 rounded-sm bg-accent-500" aria-hidden="true" />
-                                <span className="text-xs font-extrabold uppercase tracking-widest text-white">{categoryL1}</span>
-                                <span className="font-mono text-xs text-neutral-900">{String(items.length).padStart(2, '0')}</span>
-                                <div className="h-px flex-1 bg-gradient-to-r from-primary-700 to-transparent" aria-hidden="true" />
-                              </div>
-
-                              <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
-                                {items.map((item) => (
-                                  <ItemCard
-                                    key={item.id}
-                                    onClick={() => { setTryOnItem(null); setSelectedItem(item) }}
-                                    onTryOn={() => { setSelectedItem(null); setTryOnItem(item) }}
-                                    title={item.category.l2}
-                                    imageUrl={item.image_url}
-                                    imageAlt={item.category.l2}
-                                    colorHex={item.color?.hex}
-                                    colorName={item.color?.name}
-                                    formality={item.formality}
-                                    aesthetics={item.aesthetics}
-                                    fallbackIcon={<Shirt size={32} className="text-neutral-600" aria-hidden="true" />}
-                                    badge={
-                                      item.ownership === 'wishlist' ? (
-                                        <StatusBadge status="wishlist" size="sm" />
-                                      ) : undefined
-                                    }
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    ) : (
-                      <div>
-                        <div className="mb-4 flex items-center gap-3">
-                          <div className="h-5 w-[3px] flex-shrink-0 rounded-sm bg-accent-500" aria-hidden="true" />
-                          <span className="text-xs font-extrabold uppercase tracking-widest text-white">{activeCategory}</span>
-                          <span className="font-mono text-xs text-neutral-900">
-                            {String((closetData.items_by_category[activeCategory] || []).length).padStart(2, '0')}
-                          </span>
-                          <div className="h-px flex-1 bg-gradient-to-r from-primary-700 to-transparent" aria-hidden="true" />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
-                          {getSortedItems(closetData.items_by_category[activeCategory] || []).map((item) => (
-                            <ItemCard
-                              key={item.id}
-                              onClick={() => { setTryOnItem(null); setSelectedItem(item) }}
-                              onTryOn={() => { setSelectedItem(null); setTryOnItem(item) }}
-                              title={item.category.l2}
-                              imageUrl={item.image_url}
-                              imageAlt={item.category.l2}
-                              colorHex={item.color?.hex}
-                              colorName={item.color?.name}
-                              formality={item.formality}
-                              aesthetics={item.aesthetics}
-                              fallbackIcon={<Shirt size={32} className="text-neutral-600" aria-hidden="true" />}
-                              badge={
-                                item.ownership === 'wishlist' ? (
-                                  <StatusBadge status="wishlist" size="sm" />
-                                ) : undefined
-                              }
-                            />
-                          ))}
-                        </div>
-                      </div>
+                  <FilterGroup
+                    label="Category"
+                    options={(['All', ...sortedCategories] as string[]).map(
+                      (c) => ({ value: c, label: c }),
                     )}
-                  </>
+                    value={categoryFilter}
+                    onChange={setCategoryFilter}
+                  />
+
+                  <hr className="border-t border-rule-soft" />
+
+                  <FilterGroup
+                    label="Show"
+                    options={[
+                      { value: 'all', label: 'All' },
+                      { value: 'owned', label: 'Owned' },
+                      { value: 'wishlist', label: 'Wishlist' },
+                    ]}
+                    value={ownershipFilter}
+                    onChange={(v) => setOwnershipFilter(v as OwnershipFilter)}
+                  />
+
+                  <hr className="border-t border-rule-soft" />
+
+                  <FilterGroup
+                    label="Sort"
+                    options={[
+                      { value: 'newest', label: 'Newest' },
+                      { value: 'oldest', label: 'Oldest' },
+                      { value: 'color', label: 'Color' },
+                    ]}
+                    value={sortOrder}
+                    onChange={(v) => setSortOrder(v as SortOrder)}
+                  />
+                </>
+              )}
+
+              {/* Add a piece */}
+              <hr className="border-t border-ink mt-2" />
+              <Link
+                href="/style"
+                className={cn(
+                  'inline-flex items-center justify-between gap-3 px-4 py-3',
+                  'border border-ink bg-paper text-ink',
+                  'font-mono text-[11px] uppercase tracking-[0.12em]',
+                  'transition-colors',
+                  'hover:bg-ink hover:text-paper',
                 )}
-              </>
+              >
+                <span>Add a piece</span>
+                <span aria-hidden="true">＋</span>
+              </Link>
+            </div>
+          </aside>
+
+          {/* MAIN CONTENT */}
+          <main>
+            {isLoading && (
+              <section
+                aria-live="polite"
+                aria-busy="true"
+                className="space-y-4"
+              >
+                <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-ink-3">
+                  Loading closet…
+                </p>
+                <div className="grid grid-cols-4 gap-6 max-md:grid-cols-2">
+                  <CardSkeleton count={4} />
+                </div>
+              </section>
             )}
 
-            {activeView === 'outfits' && (
-              <>
-                {closetData.total_outfits === 0 ? (
-                  <div className="flex h-[500px] w-full flex-col items-center justify-center rounded-lg border border-dashed border-primary-700 bg-primary-800/20 text-center">
-                    <div className="mb-6 rounded-full bg-primary-800 p-6 text-neutral-500">
-                      <Package size={48} strokeWidth={1} />
-                    </div>
-                    <h3 className="mb-2 text-xl font-bold uppercase tracking-widest text-white">No saved outfits yet</h3>
-                    <p className="mx-auto max-w-xs text-xs uppercase tracking-wide text-neutral-500">
-                      Build your first outfit to save it here
-                    </p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
-                    {closetData.outfits.map((outfit) => (
-                      <OutfitCard
-                        key={outfit.id}
-                        onClick={() => setSelectedOutfit(outfit)}
-                        name={outfit.name}
-                        createdAt={formatDate(outfit.created_at)}
-                        thumbnailUrl={outfit.thumbnail_url}
-                        itemCount={outfit.item_count}
-                      />
-                    ))}
-                  </div>
-                )}
-              </>
+            {error && !isLoading && (
+              <section className="py-16 text-center">
+                <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-accent mb-4">
+                  Failed to load closet
+                </p>
+                <p className="font-display italic text-[18px] text-ink-2 mb-6">
+                  {error}
+                </p>
+                <button
+                  type="button"
+                  onClick={fetchCloset}
+                  className="font-mono text-[11px] uppercase tracking-[0.12em] border border-ink px-[22px] py-[18px] bg-paper text-ink hover:bg-ink hover:text-paper transition-colors"
+                >
+                  Try again
+                </button>
+              </section>
             )}
-          </>
-        )}
 
-        {selectedItem && (
-          <ItemDetailModal
-            item={selectedItem}
-            onClose={() => setSelectedItem(null)}
-            onDelete={handleDeleteItem}
-          />
-        )}
+            {!isLoading && !error && closetData && activeView === 'items' && (
+              <ItemsView
+                closetData={closetData}
+                sortedCategories={sortedCategories}
+                categoryFilter={categoryFilter}
+                ownershipFilter={ownershipFilter}
+                sortItems={sortItems}
+                onClearFilters={() => {
+                  setCategoryFilter('All')
+                  setOwnershipFilter('all')
+                  setSearchQuery('')
+                }}
+                hasSearchQuery={searchQuery.trim().length > 0}
+                onItemClick={(item) => {
+                  setTryOnItem(null)
+                  setSelectedItem(item)
+                }}
+              />
+            )}
 
-        {selectedOutfit && session?.access_token && (
-          <OutfitDetailModal
-            outfit={selectedOutfit}
-            token={session.access_token}
-            onClose={() => setSelectedOutfit(null)}
-            onDelete={handleDeleteOutfit}
-          />
-        )}
+            {!isLoading && !error && closetData && activeView === 'outfits' && (
+              <OutfitsView
+                outfits={outfitsSorted}
+                onOutfitClick={setSelectedOutfit}
+              />
+            )}
+          </main>
 
-        {tryOnItem && session?.access_token && (
-          <TryOnModal
-            item={tryOnItem}
-            itemImageUrl={tryOnItem.image_url}
-            token={session.access_token}
-            onClose={() => setTryOnItem(null)}
-          />
-        )}
+          {selectedItem && (
+            <ItemDetailModal
+              item={selectedItem}
+              onClose={() => setSelectedItem(null)}
+              onDelete={handleDeleteItem}
+              onTryOn={() => {
+                setTryOnItem(selectedItem)
+                setSelectedItem(null)
+              }}
+            />
+          )}
+
+          {selectedOutfit && session?.access_token && (
+            <OutfitDetailModal
+              outfit={selectedOutfit}
+              token={session.access_token}
+              onClose={() => setSelectedOutfit(null)}
+              onDelete={handleDeleteOutfit}
+            />
+          )}
+
+          {tryOnItem && session?.access_token && (
+            <TryOnModal
+              item={tryOnItem}
+              itemImageUrl={tryOnItem.image_url}
+              token={session.access_token}
+              onClose={() => setTryOnItem(null)}
+            />
+          )}
+        </div>
       </div>
     </ProtectedRoute>
+  )
+}
+
+// ============================================================================
+// Sidebar sub-components
+// ============================================================================
+
+interface SideTabProps {
+  active: boolean
+  onClick: () => void
+  label: string
+  count: string
+}
+
+function SideTab({ active, onClick, label, count }: SideTabProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-current={active ? 'page' : undefined}
+      className={cn(
+        'flex items-baseline justify-between w-full text-left',
+        'font-display leading-none transition-colors',
+        active
+          ? 'text-[32px] text-ink'
+          : 'text-[24px] text-ink-3 hover:text-ink',
+      )}
+    >
+      <span className={active ? 'italic' : ''}>{label}</span>
+      <span className="font-mono text-[11px] uppercase tracking-[0.1em] opacity-50">
+        {count}
+      </span>
+    </button>
+  )
+}
+
+interface FilterGroupProps {
+  label: string
+  options: { value: string; label: string }[]
+  value: string
+  onChange: (v: string) => void
+}
+
+function FilterGroup({ label, options, value, onChange }: FilterGroupProps) {
+  return (
+    <div>
+      <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mb-3">
+        {label}
+      </div>
+      <ul className="flex flex-col gap-2">
+        {options.map((opt) => {
+          const active = value === opt.value
+          return (
+            <li key={opt.value}>
+              <button
+                type="button"
+                onClick={() => onChange(opt.value)}
+                aria-pressed={active}
+                className={cn(
+                  'flex items-center w-full text-left',
+                  'font-mono text-[12px] uppercase tracking-[0.08em]',
+                  'transition-colors',
+                  active
+                    ? 'text-ink font-bold'
+                    : 'text-ink-3 font-normal hover:text-ink',
+                )}
+              >
+                <span
+                  className={cn(
+                    'inline-block w-5 shrink-0',
+                    active ? 'opacity-100' : 'opacity-0',
+                  )}
+                  aria-hidden="true"
+                >
+                  →
+                </span>
+                {opt.label}
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
+}
+
+// ============================================================================
+// Items view
+// ============================================================================
+
+interface ItemsViewProps {
+  closetData: ClosetResponse
+  sortedCategories: string[]
+  categoryFilter: string
+  ownershipFilter: OwnershipFilter
+  sortItems: (items: ClothingItemResponse[]) => ClothingItemResponse[]
+  onClearFilters: () => void
+  hasSearchQuery: boolean
+  onItemClick: (item: ClothingItemResponse) => void
+}
+
+function ItemsView({
+  closetData,
+  sortedCategories,
+  categoryFilter,
+  ownershipFilter,
+  sortItems,
+  onClearFilters,
+  hasSearchQuery,
+  onItemClick,
+}: ItemsViewProps) {
+  if (closetData.total_items === 0) {
+    return (
+      <section className="py-16 text-center">
+        <p className="font-display italic text-[32px] leading-snug">
+          Empty closet.
+        </p>
+        <p className="font-display italic text-[18px] text-ink-2 mt-3">
+          Tap <em className="italic">Add a piece</em> in the sidebar to upload
+          your first one.
+        </p>
+      </section>
+    )
+  }
+
+  const visibleCategories =
+    categoryFilter === 'All'
+      ? sortedCategories
+      : sortedCategories.filter((c) => c === categoryFilter)
+
+  const sections = visibleCategories
+    .map((category) => ({
+      category,
+      filtered: sortItems(closetData.items_by_category[category] ?? []),
+    }))
+    .filter((s) => s.filtered.length > 0)
+
+  const filtersActive =
+    categoryFilter !== 'All' || ownershipFilter !== 'all' || hasSearchQuery
+  if (sections.length === 0 && filtersActive) {
+    return (
+      <section className="py-16 text-center">
+        <p className="font-display italic text-[32px] leading-snug">
+          {hasSearchQuery
+            ? 'No pieces match your search.'
+            : 'No pieces match this filter.'}
+        </p>
+        <button
+          type="button"
+          onClick={onClearFilters}
+          className="mt-4 font-mono text-[11px] uppercase tracking-[0.12em] underline decoration-ink underline-offset-4 hover:text-ink-2"
+        >
+          Clear filters
+        </button>
+      </section>
+    )
+  }
+
+  return (
+    <div>
+      {sections.map(({ category, filtered }) => (
+        <section key={category}>
+          <header className="grid grid-cols-[auto_auto_1fr] gap-4 items-baseline pb-[14px] mb-5 border-b border-ink">
+            <span className="font-display uppercase text-[28px] leading-none tracking-[-0.015em]">
+              {category}
+            </span>
+            <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
+              {pad2(filtered.length)}{' '}
+              {filtered.length === 1 ? 'piece' : 'pieces'}
+            </span>
+            <span className="h-px bg-ink" aria-hidden="true" />
+          </header>
+
+          <div className="grid grid-cols-4 gap-6 max-md:grid-cols-2 mb-10">
+            {filtered.map((item) => (
+              <ItemTile
+                key={item.id}
+                item={item}
+                onClick={() => onItemClick(item)}
+              />
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+  )
+}
+
+interface ItemTileProps {
+  item: ClothingItemResponse
+  onClick: () => void
+}
+
+function ItemTile({ item, onClick }: ItemTileProps) {
+  const displayName = item.color?.name
+    ? `${item.color.name} ${item.category.l2}`
+    : item.category.l2
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onClick()
+        }
+      }}
+      className="group cursor-pointer focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-ink"
+      aria-label={`Open details for ${displayName}`}
+    >
+      <div className="relative aspect-[4/5] border border-ink overflow-hidden bg-paper-2 transition-transform duration-200 group-hover:-translate-y-[3px]">
+        {item.image_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={item.image_url}
+            alt={displayName}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="absolute inset-0 product__frame--placeholder" />
+        )}
+
+        {item.ownership === 'wishlist' && (
+          <span className="absolute top-[10px] right-[10px] bg-accent text-paper px-2 py-1 font-mono text-[9px] uppercase tracking-[0.1em]">
+            Wishlist
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ============================================================================
+// Outfits view
+// ============================================================================
+
+interface OutfitsViewProps {
+  outfits: OutfitSummary[]
+  onOutfitClick: (outfit: OutfitSummary) => void
+}
+
+function OutfitsView({ outfits, onOutfitClick }: OutfitsViewProps) {
+  if (outfits.length === 0) {
+    return (
+      <section className="py-16 text-center">
+        <p className="font-display italic text-[32px] leading-snug">
+          No outfits saved yet.
+        </p>
+        <p className="font-display italic text-[18px] text-ink-2 mt-3">
+          Build your first outfit to save it here.
+        </p>
+      </section>
+    )
+  }
+
+  return (
+    <section>
+      <header className="grid grid-cols-[auto_auto_1fr] gap-4 items-baseline pb-[14px] mb-5 border-b border-ink">
+        <span className="font-display uppercase text-[28px] leading-none tracking-[-0.015em]">
+          Saved <em className="italic text-ink-3">outfits</em>
+        </span>
+        <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
+          {pad2(outfits.length)} {outfits.length === 1 ? 'look' : 'looks'}
+        </span>
+        <span className="h-px bg-ink" aria-hidden="true" />
+      </header>
+
+      <div className="grid grid-cols-4 gap-6 max-md:grid-cols-2">
+        {outfits.map((outfit) => (
+          <OutfitTile
+            key={outfit.id}
+            outfit={outfit}
+            onClick={() => onOutfitClick(outfit)}
+          />
+        ))}
+      </div>
+    </section>
+  )
+}
+
+interface OutfitTileProps {
+  outfit: OutfitSummary
+  onClick: () => void
+}
+
+function OutfitTile({ outfit, onClick }: OutfitTileProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group text-left cursor-pointer focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-ink"
+      aria-label={`Open ${outfit.name}`}
+    >
+      <div className="relative aspect-[4/5] border border-ink overflow-hidden bg-paper-2 transition-transform duration-200 group-hover:-translate-y-[3px]">
+        {outfit.thumbnail_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={outfit.thumbnail_url}
+            alt={`${outfit.name} preview`}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="absolute inset-0 product__frame--placeholder" />
+        )}
+      </div>
+    </button>
   )
 }

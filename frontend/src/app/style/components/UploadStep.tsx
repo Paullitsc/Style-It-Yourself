@@ -6,18 +6,17 @@ import CropModal from './shared/CropModal'
 import ImageUploadZone from './shared/ImageUploadZone'
 
 export default function UploadStep() {
-  const { 
-    croppedImage, 
+  const {
+    croppedImage,
     pendingUpload,
-    setCroppedImage, 
+    setCroppedImage,
     clearPendingUpload,
-    setStep 
+    setStep,
   } = useStyleStore()
-  
+
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [showCropModal, setShowCropModal] = useState(false)
 
-  // Check for pending upload from home page on mount
   useEffect(() => {
     if (pendingUpload && !croppedImage) {
       setSelectedFile(pendingUpload.file)
@@ -25,82 +24,74 @@ export default function UploadStep() {
     }
   }, [pendingUpload, croppedImage])
 
-  // Handle file selection from zone
   const handleFileSelect = (file: File) => {
     setSelectedFile(file)
     setShowCropModal(true)
   }
 
-  // Handle crop completion
   const handleCropComplete = (croppedBlob: Blob) => {
     if (!selectedFile) return
     const croppedUrl = URL.createObjectURL(croppedBlob)
-    
     setCroppedImage({
       originalFile: selectedFile,
       croppedBlob,
       croppedUrl,
     })
-    
-    // Clear pending upload if it exists
-    if (pendingUpload) {
-      clearPendingUpload()
-    }
-    
+    if (pendingUpload) clearPendingUpload()
     setShowCropModal(false)
     setStep('metadata')
   }
 
-  // Handle skip crop (use full image)
   const handleSkipCrop = () => {
     if (!selectedFile) return
     const croppedUrl = URL.createObjectURL(selectedFile)
-    
     setCroppedImage({
       originalFile: selectedFile,
       croppedBlob: selectedFile,
       croppedUrl,
     })
-    
-    if (pendingUpload) {
-      clearPendingUpload()
-    }
-    
+    if (pendingUpload) clearPendingUpload()
     setShowCropModal(false)
     setStep('metadata')
   }
 
   return (
-    <div className="flex items-center justify-center min-h-[500px] py-12">
-      <div className="w-full max-w-xl">
-        <div className="text-center mb-10">
-          <h2 className="text-2xl md:text-3xl font-bold uppercase tracking-widest text-white mb-2">
-            Start Your Outfit
-          </h2>
-          <p className="text-neutral-500 text-sm uppercase tracking-wide">
-            Upload a photo of your base item
-          </p>
-        </div>
+    <div className="py-16 max-md:py-10">
+      <section className="text-center mb-12 max-md:mb-8">
+        <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mb-4">
+          Step 01
+        </p>
+        <h2 className="m-0 font-display font-normal text-[clamp(48px,6vw,88px)] leading-[0.95] tracking-[-0.02em]">
+          Begin with{' '}
+          <em className="italic text-ink-3">one</em>
+          <br />
+          piece.
+        </h2>
+        <p className="mt-5 mx-auto max-w-[40ch] font-display italic text-[18px] leading-[1.4] text-ink-2">
+          Snap or upload a photo of a single clothing item. We&apos;ll read
+          its color and category, then style around it.
+        </p>
+      </section>
 
-        <ImageUploadZone 
-          onFileSelect={handleFileSelect} 
+      <div className="mx-auto max-w-[640px]">
+        <ImageUploadZone
+          onFileSelect={handleFileSelect}
           label="Drop your base item"
         />
-
-        {/* Crop Modal */}
-        {showCropModal && selectedFile && (
-          <CropModal
-            file={selectedFile}
-            onComplete={handleCropComplete}
-            onSkip={handleSkipCrop}
-            onClose={() => {
-              setShowCropModal(false)
-              setSelectedFile(null)
-              if (pendingUpload) clearPendingUpload()
-            }}
-          />
-        )}
       </div>
+
+      {showCropModal && selectedFile && (
+        <CropModal
+          file={selectedFile}
+          onComplete={handleCropComplete}
+          onSkip={handleSkipCrop}
+          onClose={() => {
+            setShowCropModal(false)
+            setSelectedFile(null)
+            if (pendingUpload) clearPendingUpload()
+          }}
+        />
+      )}
     </div>
   )
 }

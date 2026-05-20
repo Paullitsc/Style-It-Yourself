@@ -8,17 +8,17 @@ export type BadgeSize = 'sm' | 'md'
 type StatusType = 'owned' | 'wishlist' | 'success' | 'warning' | 'error' | 'info'
 
 const toneClasses: Record<BadgeTone, string> = {
-  neutral: 'bg-primary-800 text-neutral-300 border-primary-700',
-  accent: 'bg-accent-500/15 text-accent-400 border-accent-500/40',
-  success: 'bg-success-500/15 text-success-400 border-success-500/40',
-  warning: 'bg-warning-500/15 text-warning-400 border-warning-500/40',
-  danger: 'bg-error-500/15 text-error-400 border-error-500/40',
-  info: 'bg-primary-700/80 text-neutral-100 border-primary-600',
+  neutral: 'border-ink text-ink',
+  accent: 'border-accent text-accent',
+  success: 'border-ink text-ink',
+  warning: 'border-ink text-ink',
+  danger: 'border-accent text-accent',
+  info: 'border-ink text-ink',
 }
 
 const sizeClasses: Record<BadgeSize, string> = {
-  sm: 'px-[var(--space-2)] py-[2px] text-[9px]',
-  md: 'px-[var(--space-2)] py-[var(--space-1)] text-[10px]',
+  sm: 'px-[8px] py-[2px] text-[9px]',
+  md: 'px-[10px] py-[6px] text-[10px]',
 }
 
 const categoryToneMap: Record<string, BadgeTone> = {
@@ -56,7 +56,7 @@ export function Badge({ tone = 'neutral', size = 'md', className, children, ...p
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-[var(--radius-sm)] border font-bold uppercase tracking-wider',
+        'inline-flex items-center font-mono uppercase tracking-[0.08em] border bg-transparent',
         toneClasses[tone],
         sizeClasses[size],
         className

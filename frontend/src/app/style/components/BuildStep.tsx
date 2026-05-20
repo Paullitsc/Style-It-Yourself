@@ -1,33 +1,39 @@
 'use client'
 
 import { useCallback, useMemo, useState } from 'react'
-import { useStyleStore, REQUIRED_CATEGORIES, OPTIONAL_CATEGORIES } from '@/store/styleStore'
+import {
+  useStyleStore,
+  REQUIRED_CATEGORIES,
+  OPTIONAL_CATEGORIES,
+} from '@/store/styleStore'
 import { useAuth } from '@/components/AuthProvider'
-import { ArrowLeft, ArrowRight, Sparkles, X } from 'lucide-react'
 import OutfitSlot from './OutfitSlot'
 import TryOnModal from './TryOnModal'
 import ItemDetailModal from './ItemDetailModal'
 import SuggestionPanel from './shared/SuggestionPanel'
 import AddItemPanel from './AddItemPanel'
-import type { ClothingItemCreate, ClothingItemResponse, CategoryRecommendation, RecommendedColor } from '@/types'
+import { cn } from '@/lib/cn'
+import type {
+  ClothingItemCreate,
+  ClothingItemResponse,
+  CategoryRecommendation,
+  RecommendedColor,
+} from '@/types'
 
 export default function BuildStep() {
   const { session } = useAuth()
-  
+
   const {
-    // Base item
     getBaseItem,
     category: baseCategory,
     croppedImage: baseCroppedImage,
     recommendations,
-    // Outfit
     outfitItems,
     addingCategory,
     getFilledCategories,
     isOutfitComplete,
     getTryOnForCategory,
     setTryOnResult,
-    // Actions
     startAddingItem,
     cancelAddingItem,
     removeOutfitItem,
@@ -35,7 +41,6 @@ export default function BuildStep() {
     setStep,
   } = useStyleStore()
 
-  // View try-on result modal
   const [viewingTryOn, setViewingTryOn] = useState<{
     categoryL1: string
     item: ClothingItemCreate
@@ -44,14 +49,12 @@ export default function BuildStep() {
     tryOnUrl: string
   } | null>(null)
 
-  // View item detail modal
   const [viewingItem, setViewingItem] = useState<{
     categoryL1: string
     item: ClothingItemCreate
     isBase: boolean
   } | null>(null)
 
-  // Try-on from item detail
   const [tryingOnFromDetail, setTryingOnFromDetail] = useState<{
     categoryL1: string
     item: ClothingItemCreate
@@ -59,175 +62,198 @@ export default function BuildStep() {
     imageBlob: Blob
   } | null>(null)
 
-  // Suggested color clicked from left panel
-  const [selectedSuggestedColor, setSelectedSuggestedColor] = useState<RecommendedColor | null>(null)
+  const [selectedSuggestedColor, setSelectedSuggestedColor] =
+    useState<RecommendedColor | null>(null)
 
   const baseItem = getBaseItem()
   const filledCategories = getFilledCategories()
   const outfitComplete = isOutfitComplete()
 
-  // Get item for a category
-  const getItemForCategory = useCallback((categoryL1: string): ClothingItemCreate | null => {
-    if (baseCategory?.l1 === categoryL1) return baseItem
-    const found = outfitItems.find(oi => oi.item.category.l1 === categoryL1)
-    return found ? found.item : null
-  }, [baseCategory, baseItem, outfitItems])
+  const getItemForCategory = useCallback(
+    (categoryL1: string): ClothingItemCreate | null => {
+      if (baseCategory?.l1 === categoryL1) return baseItem
+      const found = outfitItems.find((oi) => oi.item.category.l1 === categoryL1)
+      return found ? found.item : null
+    },
+    [baseCategory, baseItem, outfitItems],
+  )
 
-  // Get image blob for a category
-  const getImageBlobForCategory = useCallback((categoryL1: string): Blob | null => {
-    if (baseCategory?.l1 === categoryL1 && baseCroppedImage) {
-      return baseCroppedImage.croppedBlob
-    }
-    const found = outfitItems.find(oi => oi.item.category.l1 === categoryL1)
-    return found ? found.imageBlob : null
-  }, [baseCategory, baseCroppedImage, outfitItems])
+  const getImageBlobForCategory = useCallback(
+    (categoryL1: string): Blob | null => {
+      if (baseCategory?.l1 === categoryL1 && baseCroppedImage) {
+        return baseCroppedImage.croppedBlob
+      }
+      const found = outfitItems.find((oi) => oi.item.category.l1 === categoryL1)
+      return found ? found.imageBlob : null
+    },
+    [baseCategory, baseCroppedImage, outfitItems],
+  )
 
-  // Get recommendation for a category
-  const getRecommendationForCategory = useCallback((categoryL1: string): CategoryRecommendation | null => {
-    return recommendations.find(rec => rec.category_l1 === categoryL1) || null
-  }, [recommendations])
+  const getRecommendationForCategory = useCallback(
+    (categoryL1: string): CategoryRecommendation | null =>
+      recommendations.find((rec) => rec.category_l1 === categoryL1) || null,
+    [recommendations],
+  )
 
-  // Separate required and optional categories
   const { requiredCategories, optionalCategories } = useMemo(() => {
     const baseCat = baseCategory?.l1
     let required = [...REQUIRED_CATEGORIES]
     let optional = [...OPTIONAL_CATEGORIES]
 
-    // Case 1: Base item is a REQUIRED category (e.g. Tops, Bottoms, Shoes)
-    // We move it to the front of the required list so it's the first thing the user sees.
     if (baseCat && REQUIRED_CATEGORIES.includes(baseCat)) {
-      required = [baseCat, ...REQUIRED_CATEGORIES.filter(c => c !== baseCat)]
-      // Ensure the base cat isn't duplicated in optional (if your constants overlap, though usually they don't)
-      optional = OPTIONAL_CATEGORIES.filter(c => c !== baseCat)
-    }
-    
-    // Case 2: Base item is an OPTIONAL category (e.g. Accessories, Outerwear)
-    // We leave 'required' alone (user still needs to fill Tops/Bottoms/Shoes),
-    // but we move the base item to the front of 'optional' so it renders with the image.
-    else if (baseCat && OPTIONAL_CATEGORIES.includes(baseCat)) {
-      optional = [baseCat, ...OPTIONAL_CATEGORIES.filter(c => c !== baseCat)]
+      required = [baseCat, ...REQUIRED_CATEGORIES.filter((c) => c !== baseCat)]
+      optional = OPTIONAL_CATEGORIES.filter((c) => c !== baseCat)
+    } else if (baseCat && OPTIONAL_CATEGORIES.includes(baseCat)) {
+      optional = [baseCat, ...OPTIONAL_CATEGORIES.filter((c) => c !== baseCat)]
     }
 
     return { requiredCategories: required, optionalCategories: optional }
   }, [baseCategory])
 
-  // Handle slot click (empty slot)
-  const handleSlotClick = useCallback((categoryL1: string) => {
-    if (filledCategories.includes(categoryL1)) return
-    setSelectedSuggestedColor(null) // Reset suggested color
-    startAddingItem(categoryL1)
-  }, [filledCategories, startAddingItem])
+  const handleSlotClick = useCallback(
+    (categoryL1: string) => {
+      if (filledCategories.includes(categoryL1)) return
+      setSelectedSuggestedColor(null)
+      startAddingItem(categoryL1)
+    },
+    [filledCategories, startAddingItem],
+  )
 
-  // Handle item click (filled slot)
-  const handleItemClick = useCallback((categoryL1: string) => {
-    const item = getItemForCategory(categoryL1)
-    if (item) {
-      setViewingItem({
-        categoryL1,
-        item,
-        isBase: baseCategory?.l1 === categoryL1,
-      })
-    }
-  }, [getItemForCategory, baseCategory])
+  const handleItemClick = useCallback(
+    (categoryL1: string) => {
+      const item = getItemForCategory(categoryL1)
+      if (item) {
+        setViewingItem({
+          categoryL1,
+          item,
+          isBase: baseCategory?.l1 === categoryL1,
+        })
+      }
+    },
+    [getItemForCategory, baseCategory],
+  )
 
-  // Handle try-on badge click
-  const handleTryOnClick = useCallback((categoryL1: string) => {
-    const item = getItemForCategory(categoryL1)
-    const tryOn = getTryOnForCategory(categoryL1)
-    const imageBlob = getImageBlobForCategory(categoryL1)
-    
-    if (item && tryOn && imageBlob && item.image_url) {
-      setViewingTryOn({
-        categoryL1,
-        item,
-        imageUrl: item.image_url,
-        imageBlob,
-        tryOnUrl: tryOn.imageUrl,
-      })
-    }
-  }, [getItemForCategory, getTryOnForCategory, getImageBlobForCategory])
+  const handleTryOnClick = useCallback(
+    (categoryL1: string) => {
+      const item = getItemForCategory(categoryL1)
+      const tryOn = getTryOnForCategory(categoryL1)
+      const imageBlob = getImageBlobForCategory(categoryL1)
+      if (item && tryOn && imageBlob && item.image_url) {
+        setViewingTryOn({
+          categoryL1,
+          item,
+          imageUrl: item.image_url,
+          imageBlob,
+          tryOnUrl: tryOn.imageUrl,
+        })
+      }
+    },
+    [getItemForCategory, getTryOnForCategory, getImageBlobForCategory],
+  )
 
-  // Handle color click from suggestion panel
-  const handleSuggestedColorClick = useCallback((color: RecommendedColor) => {
-    setSelectedSuggestedColor(color)
-  }, [])
+  const handleSuggestedColorClick = useCallback(
+    (color: RecommendedColor) => setSelectedSuggestedColor(color),
+    [],
+  )
 
-  // Handle quick add from closet
-  const handleQuickAdd = useCallback((item: ClothingItemResponse) => {
-    if (!addingCategory) return
-    addClosetItemToOutfit(item)
-    setSelectedSuggestedColor(null)
-    cancelAddingItem()
-  }, [addingCategory, addClosetItemToOutfit, cancelAddingItem])
+  const handleQuickAdd = useCallback(
+    (item: ClothingItemResponse) => {
+      if (!addingCategory) return
+      addClosetItemToOutfit(item)
+      setSelectedSuggestedColor(null)
+      cancelAddingItem()
+    },
+    [addingCategory, addClosetItemToOutfit, cancelAddingItem],
+  )
 
-  // Handle close add panel
   const handleCloseAddPanel = useCallback(() => {
     setSelectedSuggestedColor(null)
     cancelAddingItem()
   }, [cancelAddingItem])
 
-  // Navigation
   const handleBack = useCallback(() => setStep('colors'), [setStep])
   const handleReviewOutfit = useCallback(() => setStep('summary'), [setStep])
 
-  // Count filled required categories
-  const filledRequiredCount = REQUIRED_CATEGORIES.filter(cat => 
-    filledCategories.includes(cat)
+  const filledRequiredCount = REQUIRED_CATEGORIES.filter((cat) =>
+    filledCategories.includes(cat),
   ).length
 
-  // Check if split panel is active
+  const missingRequired = REQUIRED_CATEGORIES.filter(
+    (cat) => !filledCategories.includes(cat),
+  )
+
   const isPanelOpen = addingCategory !== null
 
   return (
-    <div className="min-h-[calc(100vh-80px)] bg-primary-900 flex flex-col">
-      {/* Compact Header */}
-      <div className="h-20 border-b border-primary-800 bg-primary-900/95 backdrop-blur-sm sticky top-0 z-20 shrink-0">
-        <div className="max-w-7xl mx-auto px-6 md:px-12 h-full flex items-center justify-between">
+    <div className="flex flex-col">
+      {/* Header */}
+      <div className="border-b border-ink bg-paper sticky top-0 z-20">
+        <div className="max-w-[1100px] mx-auto px-10 max-md:px-6 py-5 flex items-end justify-between gap-6 flex-wrap">
           <div>
-            <h1 className="text-lg md:text-xl font-bold uppercase tracking-widest text-white">
-              Build Your Outfit
-            </h1>
-            <p className="text-neutral-500 text-xs mt-0.5">
-              Click empty slots to add items
+            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mb-1">
+              Build
             </p>
+            <h1 className="m-0 font-display font-normal text-[clamp(28px,3.5vw,40px)] leading-[0.95] tracking-[-0.015em]">
+              Assemble the <em className="italic text-ink-3">outfit.</em>
+            </h1>
           </div>
-          
+
           <div className="text-right">
-            <div className="text-sm text-neutral-400">
-              <span className="text-white font-bold text-lg">{filledRequiredCount}</span>
-              <span className="mx-1 text-neutral-600">/</span>
-              <span>{REQUIRED_CATEGORIES.length}</span>
-              <span className="ml-2 text-[10px] uppercase tracking-wider text-neutral-500">Required</span>
+            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mb-1">
+              Required
+            </p>
+            <div className="flex items-baseline gap-1 justify-end">
+              <span
+                className={cn(
+                  'font-display text-[32px] leading-none',
+                  outfitComplete ? 'text-ink' : 'text-ink-2',
+                )}
+              >
+                {filledRequiredCount}
+              </span>
+              <span className="font-mono text-[12px] uppercase tracking-[0.1em] text-ink-3">
+                / {REQUIRED_CATEGORIES.length}
+              </span>
             </div>
-            {outfitComplete && (
-              <p className="text-success-500 text-[10px] uppercase tracking-wider mt-0.5 flex items-center justify-end gap-1">
-                <Sparkles size={10} />
-                Complete
-              </p>
-            )}
           </div>
         </div>
       </div>
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Side: Outfit Builder (shrinks when panel is open) */}
-        <div className={`transition-all duration-300 ease-in-out overflow-y-auto ${
-          isPanelOpen ? 'w-[45%]' : 'w-full'
-        }`}>
-          <div className="max-w-4xl mx-auto px-6 md:px-8 py-8">
-            {/* Required Items Section */}
-            <div className="mb-10">
-              <h2 className="text-[10px] font-bold uppercase tracking-widest text-neutral-600 mb-4">
-                Required Items
-              </h2>
-              <div className={`grid gap-4 ${isPanelOpen ? 'grid-cols-3' : 'grid-cols-3 lg:grid-cols-4'}`}>
+      {/* Main layout */}
+      <div className="flex">
+        {/* Builder */}
+        <div
+          className={cn(
+            'transition-all duration-300 ease-in-out',
+            isPanelOpen ? 'w-[45%]' : 'w-full',
+          )}
+        >
+          <div className="max-w-[1100px] mx-auto px-10 max-md:px-6 py-10 pb-24">
+            <section className="mb-10">
+              <header className="grid grid-cols-[auto_auto_1fr] gap-4 items-baseline pb-[14px] mb-6 border-b border-ink">
+                <span className="font-display text-[22px] leading-none tracking-[-0.015em]">
+                  Required
+                </span>
+                <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
+                  Tops · Bottoms · Shoes
+                </span>
+                <span className="h-px bg-ink" aria-hidden="true" />
+              </header>
+
+              <div
+                className={cn(
+                  'grid gap-6',
+                  isPanelOpen
+                    ? 'grid-cols-3 max-md:grid-cols-2'
+                    : 'grid-cols-3 lg:grid-cols-4 max-md:grid-cols-2',
+                )}
+              >
                 {requiredCategories.map((categoryL1) => {
                   const item = getItemForCategory(categoryL1)
                   const isBase = baseCategory?.l1 === categoryL1
                   const isSelected = addingCategory === categoryL1
                   const tryOn = getTryOnForCategory(categoryL1)
-                  
+
                   return (
                     <OutfitSlot
                       key={categoryL1}
@@ -237,28 +263,42 @@ export default function BuildStep() {
                       isSelected={isSelected}
                       tryOnUrl={tryOn?.imageUrl}
                       onClick={() => handleSlotClick(categoryL1)}
-                      onItemClick={item ? () => handleItemClick(categoryL1) : undefined}
-                      onRemove={!isBase && item ? () => removeOutfitItem(categoryL1) : undefined}
-                      onTryOnClick={tryOn ? () => handleTryOnClick(categoryL1) : undefined}
+                      onItemClick={
+                        item ? () => handleItemClick(categoryL1) : undefined
+                      }
+                      onRemove={
+                        !isBase && item
+                          ? () => removeOutfitItem(categoryL1)
+                          : undefined
+                      }
+                      onTryOnClick={
+                        tryOn ? () => handleTryOnClick(categoryL1) : undefined
+                      }
                       compact={isPanelOpen}
                     />
                   )
                 })}
               </div>
-            </div>
+            </section>
 
-            {/* Optional Items Section */}
-            <div className="mb-10">
-              <h2 className="text-[10px] font-bold uppercase tracking-widest text-neutral-600 mb-4">
-                Optional Items
-              </h2>
-              <div className="flex gap-4 flex-wrap">
+            <section className="mb-10">
+              <header className="grid grid-cols-[auto_auto_1fr] gap-4 items-baseline pb-[14px] mb-6 border-b border-rule-soft">
+                <span className="font-display text-[22px] leading-none tracking-[-0.015em] text-ink-2">
+                  Optional
+                </span>
+                <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
+                  Layers · accessories
+                </span>
+                <span className="h-px bg-rule-soft" aria-hidden="true" />
+              </header>
+
+              <div className="grid gap-6 grid-cols-3 lg:grid-cols-4 max-md:grid-cols-2">
                 {optionalCategories.map((categoryL1) => {
                   const item = getItemForCategory(categoryL1)
                   const isBase = baseCategory?.l1 === categoryL1
                   const isSelected = addingCategory === categoryL1
                   const tryOn = getTryOnForCategory(categoryL1)
-                  
+
                   return (
                     <OutfitSlot
                       key={categoryL1}
@@ -268,71 +308,85 @@ export default function BuildStep() {
                       isSelected={isSelected}
                       tryOnUrl={tryOn?.imageUrl}
                       onClick={() => handleSlotClick(categoryL1)}
-                      onItemClick={item ? () => handleItemClick(categoryL1) : undefined}
-                      onRemove={!isBase && item ? () => removeOutfitItem(categoryL1) : undefined}
-                      onTryOnClick={tryOn ? () => handleTryOnClick(categoryL1) : undefined}
+                      onItemClick={
+                        item ? () => handleItemClick(categoryL1) : undefined
+                      }
+                      onRemove={
+                        !isBase && item
+                          ? () => removeOutfitItem(categoryL1)
+                          : undefined
+                      }
+                      onTryOnClick={
+                        tryOn ? () => handleTryOnClick(categoryL1) : undefined
+                      }
                       compact={isPanelOpen}
                     />
                   )
                 })}
               </div>
-            </div>
+            </section>
 
-            {/* Status / CTA */}
-            {!isPanelOpen && (
-              <>
-                <div className="border-t border-primary-800 my-8" />
-                <div className="text-center py-8">
-                  {outfitComplete ? (
-                    <>
-                      <div className="w-14 h-14 rounded-full bg-success-500/20 flex items-center justify-center mx-auto mb-4">
-                        <Sparkles size={24} className="text-success-500" />
-                      </div>
-                      <h3 className="text-lg font-bold uppercase tracking-widest text-white mb-2">
-                        Outfit Complete
-                      </h3>
-                      <p className="text-neutral-500 text-sm max-w-md mx-auto">
-                        Review your outfit to see the cohesion score and save it to your closet.
-                      </p>
-                    </>
-                  ) : (
-                    <p className="text-neutral-500 text-sm">
-                      Add <span className="text-white font-medium">Tops, Bottoms, and Shoes</span> to complete your outfit.
-                    </p>
-                  )}
-                </div>
-
-                {/* Bottom Navigation */}
-                <div className="border-t border-primary-800 mt-8 pt-6">
-                  <div className="flex justify-between items-center">
-                    <button
-                      onClick={handleBack}
-                      className="flex items-center gap-2 px-5 py-2.5 text-neutral-400 hover:text-white text-xs font-bold uppercase tracking-widest transition-colors"
-                    >
-                      <ArrowLeft size={14} />
-                      Back
-                    </button>
-
-                    <button
-                      onClick={handleReviewOutfit}
-                      disabled={!outfitComplete}
-                      className="group flex items-center gap-3 px-6 py-2.5 bg-white text-primary-900 hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed text-xs font-bold uppercase tracking-widest transition-all rounded-lg"
-                    >
-                      Review
-                      <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
           </div>
         </div>
 
-        {/* Right Side: Split Panel (Suggestion + Add Item) */}
+        {/* Sticky action bar — hides when the add-item panel is open */}
+        {!isPanelOpen && (
+          <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-ink bg-paper">
+            <div className="max-w-[1100px] mx-auto px-10 max-md:px-6 py-4 flex items-center justify-between gap-6 flex-wrap">
+              <p className="font-display italic text-[16px] leading-snug text-ink-2 flex-1 min-w-[180px]">
+                {outfitComplete ? (
+                  <>
+                    Outfit <em className="italic text-ink-3">complete.</em>{' '}
+                    Review it for the cohesion score.
+                  </>
+                ) : (
+                  <>
+                    Add{' '}
+                    {missingRequired.map((cat, i) => (
+                      <span key={cat}>
+                        {i > 0 &&
+                          (i === missingRequired.length - 1
+                            ? ' and '
+                            : ', ')}
+                        <span className="text-ink">{cat}</span>
+                      </span>
+                    ))}{' '}
+                    to complete the look.
+                  </>
+                )}
+              </p>
+              <div className="flex items-center gap-6 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleBack}
+                  className="font-mono text-[11px] uppercase tracking-[0.12em] pb-[2px] border-b border-transparent hover:border-ink transition-colors"
+                >
+                  ← Back
+                </button>
+                <button
+                  type="button"
+                  onClick={handleReviewOutfit}
+                  disabled={!outfitComplete}
+                  className={cn(
+                    'inline-flex items-center justify-between gap-6 px-[18px] py-[12px]',
+                    'border border-ink bg-ink text-paper',
+                    'font-mono text-[11px] uppercase tracking-[0.12em]',
+                    'transition-colors hover:bg-paper hover:text-ink',
+                    'disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-ink disabled:hover:text-paper',
+                  )}
+                >
+                  <span>Review outfit</span>
+                  <span aria-hidden="true">→</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Split panel (suggestion + add) */}
         {isPanelOpen && (
-          <div className="w-[55%] border-l border-primary-700 flex animate-in slide-in-from-right duration-300">
-            {/* Suggestion Panel (Left of split) */}
-            <div className="w-[45%] border-r border-primary-800 bg-primary-900/50">
+          <div className="w-[55%] border-l border-ink flex">
+            <div className="w-[45%] border-r border-ink bg-paper-2">
               <SuggestionPanel
                 recommendation={getRecommendationForCategory(addingCategory!)}
                 categoryL1={addingCategory!}
@@ -340,9 +394,7 @@ export default function BuildStep() {
                 onQuickAdd={handleQuickAdd}
               />
             </div>
-
-            {/* Add Item Panel (Right of split) */}
-            <div className="w-[55%] bg-primary-900">
+            <div className="w-[55%] bg-paper">
               <AddItemPanel
                 categoryL1={addingCategory!}
                 recommendation={getRecommendationForCategory(addingCategory!)}
@@ -354,7 +406,6 @@ export default function BuildStep() {
         )}
       </div>
 
-      {/* View-only Try-On Modal */}
       {viewingTryOn && session?.access_token && (
         <TryOnModal
           item={{
@@ -372,28 +423,38 @@ export default function BuildStep() {
         />
       )}
 
-      {/* Item Detail Modal */}
       {viewingItem && (
         <ItemDetailModal
           item={viewingItem.item}
           isBase={viewingItem.isBase}
           tryOnUrl={getTryOnForCategory(viewingItem.categoryL1)?.imageUrl}
           onClose={() => setViewingItem(null)}
-          onViewTryOn={getTryOnForCategory(viewingItem.categoryL1) ? () => {
-            const tryOn = getTryOnForCategory(viewingItem.categoryL1)
-            const imageBlob = getImageBlobForCategory(viewingItem.categoryL1)
-            const imageUrl = viewingItem.item.image_url
-            if (tryOn && imageBlob && imageUrl && typeof imageUrl === 'string') {
-              setViewingItem(null)
-              setViewingTryOn({
-                categoryL1: viewingItem.categoryL1,
-                item: viewingItem.item,
-                imageUrl,
-                imageBlob,
-                tryOnUrl: tryOn.imageUrl,
-              })
-            }
-          } : undefined}
+          onViewTryOn={
+            getTryOnForCategory(viewingItem.categoryL1)
+              ? () => {
+                  const tryOn = getTryOnForCategory(viewingItem.categoryL1)
+                  const imageBlob = getImageBlobForCategory(
+                    viewingItem.categoryL1,
+                  )
+                  const imageUrl = viewingItem.item.image_url
+                  if (
+                    tryOn &&
+                    imageBlob &&
+                    imageUrl &&
+                    typeof imageUrl === 'string'
+                  ) {
+                    setViewingItem(null)
+                    setViewingTryOn({
+                      categoryL1: viewingItem.categoryL1,
+                      item: viewingItem.item,
+                      imageUrl,
+                      imageBlob,
+                      tryOnUrl: tryOn.imageUrl,
+                    })
+                  }
+                }
+              : undefined
+          }
           onTryOn={() => {
             const imageBlob = getImageBlobForCategory(viewingItem.categoryL1)
             const imageUrl = viewingItem.item.image_url
@@ -410,7 +471,6 @@ export default function BuildStep() {
         />
       )}
 
-      {/* Try-On Modal (from detail) */}
       {tryingOnFromDetail && session?.access_token && (
         <TryOnModal
           item={{

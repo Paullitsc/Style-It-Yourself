@@ -129,7 +129,7 @@ export function Modal({
   return (
     <div className={cn('fixed inset-0 z-[70] flex items-center justify-center p-[var(--space-4)]', className)}>
       <div
-        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+        className="absolute inset-0 bg-ink/40"
         onClick={closeOnBackdrop ? onClose : undefined}
         aria-hidden="true"
       />
@@ -143,21 +143,21 @@ export function Modal({
         tabIndex={-1}
         onKeyDown={trapFocus}
         className={cn(
-          'relative z-10 flex max-h-[90vh] w-full flex-col overflow-hidden rounded-[var(--radius-xl)] border border-primary-700 bg-primary-900 shadow-2xl',
+          'relative z-10 flex max-h-[90vh] w-full flex-col overflow-hidden border border-ink bg-paper',
           sizeClasses[size],
           panelClassName
         )}
       >
         {(title || showCloseButton) && (
-          <div className="flex items-center justify-between border-b border-primary-800 px-[var(--space-6)] py-[var(--space-4)]">
+          <div className="flex items-center justify-between border-b border-ink px-[var(--space-6)] py-[var(--space-4)]">
             <div>
               {title && (
-                <h2 id={titleId} className="text-lg font-bold uppercase tracking-widest text-white">
+                <h2 id={titleId} className="font-display text-[24px] text-ink">
                   {title}
                 </h2>
               )}
               {description && (
-                <p id={descriptionId} className="mt-[var(--space-1)] text-sm text-neutral-500">
+                <p id={descriptionId} className="mt-[var(--space-1)] font-mono text-[10px] uppercase tracking-[0.06em] text-ink-3">
                   {description}
                 </p>
               )}
@@ -167,7 +167,7 @@ export function Modal({
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-[var(--radius-sm)] p-[var(--space-1)] text-neutral-500 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
+                className="p-[var(--space-1)] text-ink-3 transition-colors hover:text-ink focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-ink"
                 aria-label="Close dialog"
               >
                 <X size={20} aria-hidden="true" />
@@ -178,7 +178,7 @@ export function Modal({
 
         <div className="overflow-y-auto p-[var(--space-6)] scrollbar-hide">{children}</div>
 
-        {footer && <div className="border-t border-primary-800 px-[var(--space-6)] py-[var(--space-4)]">{footer}</div>}
+        {footer && <div className="border-t border-ink px-[var(--space-6)] py-[var(--space-4)]">{footer}</div>}
       </div>
     </div>
   )
@@ -262,9 +262,9 @@ export function ConfirmationModal({
     >
       <div className="flex items-start gap-[var(--space-3)]">
         {tone === 'danger' && (
-          <AlertTriangle size={18} className="mt-[2px] shrink-0 text-error-400" aria-hidden="true" />
+          <AlertTriangle size={18} className="mt-[2px] shrink-0 text-accent" aria-hidden="true" />
         )}
-        <p className="text-sm leading-relaxed text-neutral-300">{description}</p>
+        <p className="font-display text-[18px] leading-relaxed text-ink-2">{description}</p>
       </div>
     </Modal>
   )

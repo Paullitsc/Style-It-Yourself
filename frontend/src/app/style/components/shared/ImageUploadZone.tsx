@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Button, FileUploadInput } from '@/components/ui'
+import { FileUploadInput } from '@/components/ui'
 
 interface ImageUploadZoneProps {
   onFileSelect: (file: File) => void
@@ -30,41 +30,47 @@ export default function ImageUploadZone({
       setPreviewUrl(url)
       return () => URL.revokeObjectURL(url)
     }
-
     setPreviewUrl(null)
   }, [previewFile])
 
-  return (
-    <div className="space-y-[var(--space-3)]">
-      {previewUrl ? (
+  if (previewUrl) {
+    return (
+      <div className="space-y-4">
         <div
-          className={`relative rounded-[var(--radius-lg)] border border-primary-700 bg-primary-800 ${
-            compact ? 'max-h-80' : 'max-h-[28rem]'
-          } flex items-center justify-center`}
+          className={`relative border border-ink bg-paper-2 overflow-hidden ${
+            compact ? 'aspect-[4/5] max-w-[260px]' : 'aspect-[4/5] max-w-[420px] mx-auto'
+          }`}
         >
-          <img src={previewUrl} alt="Preview" className="max-h-80 w-full object-contain" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={previewUrl}
+            alt="Preview"
+            className="absolute inset-0 w-full h-full object-contain"
+          />
           {onClear && (
-            <div className="absolute right-[var(--space-3)] top-[var(--space-3)]">
-              <Button variant="secondary" size="sm" onClick={onClear}>
-                Change
-              </Button>
-            </div>
+            <button
+              type="button"
+              onClick={onClear}
+              className="absolute top-3 right-3 font-mono text-[10px] uppercase tracking-[0.12em] px-3 py-2 border border-ink bg-paper text-ink hover:bg-ink hover:text-paper transition-colors"
+            >
+              Change
+            </button>
           )}
         </div>
-      ) : (
-        <FileUploadInput
-          label={label}
-          dropLabel={compact ? label : `${label} ${subLabel}`}
-          onFileSelect={onFileSelect}
-          onClear={onClear}
-          selectedFile={previewFile}
-          disabled={disabled}
-          accept="image/png,image/jpeg,image/webp,image/heic,image/heif,image/avif"
-          maxSizeMB={10}
-          className={compact ? '' : 'max-w-xl'}
-          hint="PNG, JPG, WEBP, AVIF • Max 10MB"
-        />
-      )}
-    </div>
+      </div>
+    )
+  }
+
+  return (
+    <FileUploadInput
+      label={label}
+      dropLabel={compact ? label : `${label} ${subLabel}`}
+      onFileSelect={onFileSelect}
+      onClear={onClear}
+      selectedFile={previewFile}
+      disabled={disabled}
+      accept="image/png,image/jpeg,image/webp,image/heic,image/heif,image/avif"
+      maxSizeMB={10}
+    />
   )
 }

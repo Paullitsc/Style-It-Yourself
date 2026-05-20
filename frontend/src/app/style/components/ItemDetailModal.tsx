@@ -1,9 +1,10 @@
 'use client'
 
-import { ExternalLink, Sparkles, Tag, DollarSign, Shirt } from 'lucide-react'
+import type { ReactNode } from 'react'
 import type { ClothingItemCreate } from '@/types'
 import { FORMALITY_LEVELS } from '@/types'
-import { Badge, Button, Modal } from '@/components/ui'
+import { Modal } from '@/components/ui'
+import { cn } from '@/lib/cn'
 
 interface ItemDetailModalProps {
   item: ClothingItemCreate
@@ -22,111 +23,180 @@ export default function ItemDetailModal({
   onViewTryOn,
   onTryOn,
 }: ItemDetailModalProps) {
-  const formalityLabel = FORMALITY_LEVELS[item.formality as keyof typeof FORMALITY_LEVELS] || item.formality
+  const formalityLabel =
+    FORMALITY_LEVELS[item.formality as keyof typeof FORMALITY_LEVELS] ||
+    item.formality
+
+  const displayName = item.color?.name
+    ? `${item.color.name} ${item.category.l2}`
+    : item.category.l2
 
   return (
     <Modal
       isOpen={true}
       onClose={onClose}
-      title={item.category.l2}
-      size="md"
+      size="lg"
       footer={
-        <>
+        <div className="flex items-center justify-between gap-6 flex-wrap">
+          <button
+            type="button"
+            onClick={onClose}
+            className="font-mono text-[11px] uppercase tracking-[0.12em] pb-[2px] border-b border-transparent hover:border-ink transition-colors"
+          >
+            Close
+          </button>
           {tryOnUrl && onViewTryOn ? (
-            <Button
+            <button
+              type="button"
               onClick={onViewTryOn}
-              variant="secondary"
-              fullWidth
-              leftIcon={<Sparkles size={16} aria-hidden="true" />}
+              className={cn(
+                'inline-flex items-center justify-between gap-6 px-[22px] py-[14px]',
+                'border border-ink bg-ink text-paper',
+                'font-mono text-[11px] uppercase tracking-[0.12em]',
+                'transition-colors hover:bg-paper hover:text-ink',
+              )}
             >
-              View Try-On Result
-            </Button>
+              <span>View try-on</span>
+              <span aria-hidden="true">↗</span>
+            </button>
           ) : onTryOn ? (
-            <Button onClick={onTryOn} fullWidth leftIcon={<Sparkles size={16} aria-hidden="true" />}>
-              Try On Item
-            </Button>
+            <button
+              type="button"
+              onClick={onTryOn}
+              className={cn(
+                'inline-flex items-center justify-between gap-6 px-[22px] py-[14px]',
+                'border border-ink bg-ink text-paper',
+                'font-mono text-[11px] uppercase tracking-[0.12em]',
+                'transition-colors hover:bg-paper hover:text-ink',
+              )}
+            >
+              <span>Try it on</span>
+              <span aria-hidden="true">→</span>
+            </button>
           ) : null}
-        </>
+        </div>
       }
     >
-      <div className="space-y-[var(--space-6)]">
-        <div className="relative aspect-[3/4] overflow-hidden rounded-[var(--radius-lg)] border border-primary-700 bg-primary-800">
+      <div className="grid grid-cols-[1fr_1fr] max-md:grid-cols-1 gap-10">
+        {/* Image */}
+        <div className="relative aspect-[4/5] border border-ink overflow-hidden bg-paper-2">
           {item.image_url ? (
-            <img src={item.image_url} alt="Item" className="h-full w-full object-contain" />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-neutral-600">
-              <Shirt size={48} strokeWidth={1} aria-hidden="true" />
-            </div>
-          )}
-
-          <div className="absolute bottom-[var(--space-3)] right-[var(--space-3)] flex items-center gap-[var(--space-2)] rounded-full border border-primary-700 bg-primary-900/90 px-[var(--space-3)] py-[var(--space-1)] shadow-sm backdrop-blur">
-            <div
-              className="h-3 w-3 rounded-full ring-1 ring-white/20"
-              style={{ backgroundColor: item.color.hex }}
-              aria-hidden="true"
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={item.image_url}
+              alt={displayName}
+              className="w-full h-full object-cover"
             />
-            <span className="text-[10px] font-bold uppercase tracking-wider text-white">{item.color.name}</span>
-          </div>
-
-          {isBase && <Badge className="absolute right-[var(--space-3)] top-[var(--space-3)]">Base Item</Badge>}
+          ) : (
+            <div className="absolute inset-0 product__frame--placeholder" />
+          )}
+          {isBase && (
+            <span className="absolute top-3 left-3 bg-ink text-paper px-2 py-1 font-mono text-[9px] uppercase tracking-[0.1em]">
+              Base
+            </span>
+          )}
         </div>
 
-        <div className="grid grid-cols-2 gap-[var(--space-6)]">
-          <div>
-            <p className="mb-[var(--space-1)] text-[10px] font-bold uppercase tracking-widest text-neutral-500">Formality</p>
-            <p className="text-sm font-medium text-white">{formalityLabel}</p>
+        {/* Info */}
+        <div className="flex flex-col">
+          <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mb-3">
+            {item.category.l1} · {item.category.l2}
           </div>
-          <div>
-            <p className="mb-[var(--space-1)] text-[10px] font-bold uppercase tracking-widest text-neutral-500">Category</p>
-            <p className="text-sm font-medium text-white">
-              {item.category.l1} / {item.category.l2}
-            </p>
-          </div>
-        </div>
 
-        {item.aesthetics.length > 0 && (
-          <div>
-            <p className="mb-[var(--space-2)] text-[10px] font-bold uppercase tracking-widest text-neutral-500">Aesthetics</p>
-            <div className="flex flex-wrap gap-[var(--space-2)]">
-              {item.aesthetics.map((tag) => (
-                <Badge key={tag} tone="neutral">
-                  {tag}
-                </Badge>
-              ))}
-            </div>
-          </div>
-        )}
+          <h2 className="font-display font-normal text-[clamp(40px,4.5vw,56px)] leading-[0.95] tracking-[-0.02em] m-0">
+            {item.color?.name && (
+              <em className="italic text-ink-3">{item.color.name}</em>
+            )}
+            {item.color?.name ? <br /> : null}
+            {item.category.l2.toLowerCase()}
+            <span className="italic text-ink-3">.</span>
+          </h2>
 
-        {(item.brand || item.price || item.source_url) && (
-          <div className="space-y-[var(--space-3)] border-t border-primary-800 pt-[var(--space-4)]">
+          <hr className="border-t border-ink mt-6 mb-6" />
+
+          <dl className="flex flex-col gap-5">
+            <MetaRow label="Color">
+              <span className="inline-flex items-center gap-3">
+                <i
+                  className="inline-block w-[18px] h-[18px] border border-ink"
+                  style={{ backgroundColor: item.color.hex }}
+                  aria-hidden="true"
+                />
+                <span className="font-display text-[20px] leading-none">
+                  {item.color.name}
+                </span>
+                <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink-3">
+                  {item.color.hex.toUpperCase()}
+                </span>
+              </span>
+            </MetaRow>
+
+            <MetaRow label="Formality">
+              <span className="font-display text-[20px] leading-none">
+                {formalityLabel}
+              </span>
+            </MetaRow>
+
+            {item.aesthetics.length > 0 && (
+              <MetaRow label="Aesthetics">
+                <span className="font-display text-[18px] leading-tight">
+                  {item.aesthetics.map((tag, i) => (
+                    <span key={tag}>
+                      {i > 0 && <span className="text-ink-3"> · </span>}
+                      <em className="italic">{tag}</em>
+                    </span>
+                  ))}
+                </span>
+              </MetaRow>
+            )}
+
             {item.brand && (
-              <div className="flex items-center gap-[var(--space-3)] text-sm text-neutral-300">
-                <Tag size={14} className="text-neutral-500" aria-hidden="true" />
-                <span>{item.brand}</span>
-              </div>
+              <MetaRow label="Brand">
+                <span className="font-display text-[18px] leading-none">
+                  {item.brand}
+                </span>
+              </MetaRow>
             )}
+
             {item.price !== null && item.price !== undefined && (
-              <div className="flex items-center gap-[var(--space-3)] text-sm text-neutral-300">
-                <DollarSign size={14} className="text-neutral-500" aria-hidden="true" />
-                <span>${item.price.toFixed(2)}</span>
-              </div>
+              <MetaRow label="Price">
+                <span className="font-display text-[18px] leading-none">
+                  ${item.price.toFixed(2)}
+                </span>
+              </MetaRow>
             )}
+
             {item.source_url && (
-              <div className="flex items-center gap-[var(--space-3)] text-sm">
-                <ExternalLink size={14} className="text-neutral-500" aria-hidden="true" />
+              <MetaRow label="Source">
                 <a
                   href={item.source_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="truncate text-accent-500 hover:text-accent-400 hover:underline"
+                  className="font-display italic text-[18px] leading-none underline decoration-ink-3 underline-offset-4 hover:decoration-ink"
                 >
-                  View Source
+                  View original →
                 </a>
-              </div>
+              </MetaRow>
             )}
-          </div>
-        )}
+          </dl>
+        </div>
       </div>
     </Modal>
+  )
+}
+
+interface MetaRowProps {
+  label: string
+  children: ReactNode
+}
+
+function MetaRow({ label, children }: MetaRowProps) {
+  return (
+    <div className="grid grid-cols-[110px_1fr] max-md:grid-cols-1 gap-4 items-baseline">
+      <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3">
+        {label}
+      </dt>
+      <dd className="m-0">{children}</dd>
+    </div>
   )
 }

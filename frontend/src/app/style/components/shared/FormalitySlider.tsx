@@ -1,6 +1,7 @@
 'use client'
 
 import { FORMALITY_LEVELS } from '@/types'
+import { cn } from '@/lib/cn'
 
 interface FormalitySliderProps {
   value: number
@@ -8,35 +9,66 @@ interface FormalitySliderProps {
 }
 
 export default function FormalitySlider({ value, onChange }: FormalitySliderProps) {
+  const levels = Object.entries(FORMALITY_LEVELS) as [string, string][]
+
   return (
     <div>
-      <label className="block text-[10px] uppercase font-bold tracking-widest text-neutral-500 mb-3">
-        Formality <span className="text-accent-500">*</span>
-      </label>
-      <div className="space-y-3">
-        <input
-          type="range"
-          min={1}
-          max={5}
-          step={1}
-          value={value}
-          onChange={(e) => onChange(Number(e.target.value))}
-          className="w-full h-1.5 bg-primary-700 rounded-full appearance-none cursor-pointer
-            [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5
-            [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white
-            [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:transition-transform
-            [&::-webkit-slider-thumb]:hover:scale-110"
-        />
-        <div className="flex justify-between text-[10px] uppercase tracking-wider">
-          {Object.entries(FORMALITY_LEVELS).map(([level, label]) => (
-            <span
+      <div className="flex items-baseline gap-3 mb-3">
+        <label className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3">
+          Formality <span className="text-accent ml-1">*</span>
+        </label>
+      </div>
+
+      {/* 5-cell scale */}
+      <div
+        className="flex gap-[3px] mb-3"
+        role="presentation"
+        aria-hidden="true"
+      >
+        {[1, 2, 3, 4, 5].map((n) => (
+          <button
+            key={n}
+            type="button"
+            onClick={() => onChange(n)}
+            aria-label={`Formality ${n}`}
+            className={cn(
+              'h-3 flex-1 border border-ink transition-colors',
+              n <= value ? 'bg-ink' : 'bg-paper hover:bg-paper-2',
+            )}
+          />
+        ))}
+      </div>
+
+      <div className="flex justify-between gap-2">
+        {levels.map(([level, label]) => {
+          const n = Number(level)
+          const isActive = n === value
+          return (
+            <button
               key={level}
-              className={Number(level) === value ? 'text-white font-bold' : 'text-neutral-600'}
+              type="button"
+              onClick={() => onChange(n)}
+              aria-pressed={isActive}
+              className={cn(
+                'flex-1 font-mono text-[10px] uppercase tracking-[0.08em]',
+                n === 1 && 'text-left',
+                n === 5 && 'text-right',
+                n !== 1 && n !== 5 && 'text-center',
+              )}
             >
-              {label}
-            </span>
-          ))}
-        </div>
+              <span
+                className={cn(
+                  'inline-block pb-[2px] border-b transition-colors',
+                  isActive
+                    ? 'text-ink font-bold border-ink'
+                    : 'text-ink-3 font-normal border-transparent hover:text-ink hover:border-ink',
+                )}
+              >
+                {label}
+              </span>
+            </button>
+          )
+        })}
       </div>
     </div>
   )

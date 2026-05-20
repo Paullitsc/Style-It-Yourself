@@ -52,7 +52,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       <div className="space-y-[var(--space-6)]">
         {error && (
           <div
-            className="rounded-[var(--radius-md)] border border-error-500/40 bg-error-500/10 px-[var(--space-3)] py-[var(--space-3)] text-xs font-medium uppercase tracking-wide text-error-400"
+            className="border border-accent bg-transparent px-[var(--space-3)] py-[var(--space-3)] font-mono text-[10px] uppercase tracking-[0.06em] text-accent"
             role="alert"
           >
             {error}
@@ -84,8 +84,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           </Button>
         </form>
 
-        <div className="border-t border-primary-800 pt-[var(--space-4)] text-center">
-          <p className="text-xs uppercase tracking-wide text-neutral-500">
+        <div className="border-t border-ink pt-[var(--space-4)] text-center">
+          <p className="font-mono text-[10px] uppercase tracking-[0.06em] text-ink-3">
             {isLogin ? "Don't have an account?" : 'Already have an account?'}
           </p>
           <Button

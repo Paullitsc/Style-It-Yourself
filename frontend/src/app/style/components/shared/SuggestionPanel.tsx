@@ -1,12 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Sparkles, Lightbulb, Package, Plus } from 'lucide-react'
 import { useAuth } from '@/components/AuthProvider'
 import { getMatchingItems } from '@/lib/api'
-import type { CategoryRecommendation, RecommendedColor, ClothingItemResponse } from '@/types'
+import type {
+  CategoryRecommendation,
+  RecommendedColor,
+  ClothingItemResponse,
+} from '@/types'
 import { FORMALITY_LEVELS } from '@/types'
-import { Badge, RecommendationCard, type BadgeTone } from '@/components/ui'
 
 interface SuggestionPanelProps {
   recommendation: CategoryRecommendation | null
@@ -15,23 +17,8 @@ interface SuggestionPanelProps {
   onQuickAdd?: (item: ClothingItemResponse) => void
 }
 
-const getHarmonyTone = (type: string): BadgeTone => {
-  switch (type) {
-    case 'complementary':
-      return 'accent'
-    case 'analogous':
-      return 'info'
-    case 'triadic':
-      return 'success'
-    case 'neutral':
-      return 'neutral'
-    default:
-      return 'neutral'
-  }
-}
-
-export default function SuggestionPanel({ 
-  recommendation, 
+export default function SuggestionPanel({
+  recommendation,
   categoryL1,
   onColorClick,
   onQuickAdd,
@@ -42,263 +29,275 @@ export default function SuggestionPanel({
   const [isLoadingMatches, setIsLoadingMatches] = useState(false)
   const [matchError, setMatchError] = useState<string | null>(null)
 
-  // Fetch matching items from closet when recommendation changes
   useEffect(() => {
     async function fetchMatches() {
       if (!recommendation || !session?.access_token) {
         setMatchingItems([])
         return
       }
-
       setIsLoadingMatches(true)
       setMatchError(null)
-
       try {
-        const response = await getMatchingItems({
-          category_l1: categoryL1,
-          recommended_colors: recommendation.colors,
-          formality_range: recommendation.formality_range,
-          limit: 50,
-        }, session.access_token)
-
+        const response = await getMatchingItems(
+          {
+            category_l1: categoryL1,
+            recommended_colors: recommendation.colors,
+            formality_range: recommendation.formality_range,
+            limit: 50,
+          },
+          session.access_token,
+        )
         setMatchingItems(response.items)
         setTotalInCategory(response.total_in_category)
       } catch (err) {
         console.error('Failed to fetch matching items:', err)
-        setMatchError('Could not load closet items')
+        setMatchError('Could not load closet items.')
         setMatchingItems([])
       } finally {
         setIsLoadingMatches(false)
       }
     }
-
     fetchMatches()
   }, [recommendation, categoryL1, session?.access_token])
 
   if (!recommendation) {
     return (
       <div className="h-full flex flex-col items-center justify-center text-center p-8">
-        <div className="w-16 h-16 rounded-full bg-primary-800 flex items-center justify-center mb-4">
-          <Sparkles size={24} className="text-neutral-600" />
-        </div>
-        <h3 className="text-sm font-bold uppercase tracking-widest text-neutral-500 mb-2">
-          No Suggestions Available
-        </h3>
-        <p className="text-xs text-neutral-600 max-w-xs">
-          Upload your base item first to get AI-powered recommendations.
+        <p className="font-display italic text-[24px] leading-tight mb-2">
+          No suggestions yet.
+        </p>
+        <p className="font-display italic text-[16px] text-ink-2 max-w-[28ch]">
+          Upload a base item first to get colour and styling recommendations.
         </p>
       </div>
     )
   }
 
+  const lowerCat = categoryL1.toLowerCase()
+
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="p-5 border-b border-primary-700">
-        <div className="flex items-center gap-3 mb-1">
-          <div className="w-8 h-8 rounded-full bg-accent-500/20 flex items-center justify-center">
-            <Sparkles size={14} className="text-accent-500" />
-          </div>
-          <div>
-            <h3 className="text-xs font-bold uppercase tracking-widest text-white">
-              Suggestions
-            </h3>
-            <p className="text-[10px] text-neutral-500">
-              For your {categoryL1.toLowerCase()}
-            </p>
-          </div>
-        </div>
+      <div className="px-5 py-5 border-b border-ink">
+        <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mb-1">
+          Suggestions
+        </p>
+        <h3 className="font-display text-[24px] leading-none tracking-[-0.015em]">
+          For your <em className="italic text-ink-3">{lowerCat}.</em>
+        </h3>
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-5 space-y-6">
-        
-        {/* Quick Picks from Closet */}
+      <div className="flex-1 overflow-y-auto px-5 py-6 flex flex-col gap-8">
+        {/* Quick picks */}
         {session?.access_token && (
-          <div>
-            <label className="block text-[10px] uppercase font-bold tracking-widest text-neutral-500 mb-3 flex items-center gap-2">
-              <Package size={12} />
-              Quick Picks from Your Closet
-            </label>
-            
+          <section>
+            <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mb-3">
+              From your closet
+            </div>
+
             {isLoadingMatches ? (
-              <div className="flex items-center gap-3 p-4 bg-primary-800/50 rounded-lg">
-                <div className="w-4 h-4 border-2 border-accent-500 border-t-transparent rounded-full animate-spin" />
-                <span className="text-xs text-neutral-400">Searching your closet...</span>
-              </div>
+              <p className="font-display italic text-[15px] text-ink-2">
+                Searching your closet…
+              </p>
             ) : matchError ? (
-              <div className="p-4 bg-primary-800/50 rounded-lg">
-                <p className="text-xs text-neutral-500">{matchError}</p>
-              </div>
+              <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-accent">
+                {matchError}
+              </p>
             ) : matchingItems.length > 0 ? (
-              <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
+              <ul className="flex flex-col gap-2 max-h-[280px] overflow-y-auto pr-1">
                 {matchingItems.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => onQuickAdd?.(item)}
-                    className="w-full group flex items-center gap-3 p-3 bg-primary-800 rounded-lg border border-primary-700 hover:border-accent-500/50 hover:bg-primary-800/80 transition-all"
-                  >
-                    {/* Item thumbnail */}
-                    <div className="w-12 h-14 rounded bg-primary-700 overflow-hidden shrink-0">
-                      <img 
-                        src={item.image_url} 
-                        alt={item.category.l2}
-                        className="w-full h-full object-contain"
-                      />
-                    </div>
-                    
-                    {/* Item info */}
-                    <div className="flex-1 text-left min-w-0">
-                      <p className="text-sm text-white font-medium truncate">
-                        {item.category.l2}
-                      </p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <div 
-                          className="w-3 h-3 rounded-full border border-primary-600"
-                          style={{ backgroundColor: item.color.hex }}
+                  <li key={item.id}>
+                    <button
+                      type="button"
+                      onClick={() => onQuickAdd?.(item)}
+                      className="group w-full flex items-center gap-3 px-3 py-2 border border-ink bg-paper hover:bg-paper-3 transition-colors text-left"
+                    >
+                      <div className="w-10 h-12 bg-paper-2 border border-ink shrink-0 overflow-hidden">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={item.image_url}
+                          alt={item.category.l2}
+                          className="w-full h-full object-cover"
                         />
-                        <span className="text-[10px] text-neutral-500 truncate">
-                          {item.color.name} • {FORMALITY_LEVELS[item.formality as keyof typeof FORMALITY_LEVELS]}
-                        </span>
                       </div>
-                    </div>
-
-                    {/* Add indicator */}
-                    <div className="w-8 h-8 rounded-full bg-primary-700 group-hover:bg-accent-500 flex items-center justify-center transition-colors shrink-0">
-                      <Plus size={14} className="text-neutral-400 group-hover:text-primary-900" />
-                    </div>
-                  </button>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-display text-[14px] leading-none truncate">
+                          {item.category.l2}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <i
+                            className="w-2 h-2 border border-ink"
+                            style={{ backgroundColor: item.color.hex }}
+                            aria-hidden="true"
+                          />
+                          <span className="font-mono text-[9px] uppercase tracking-[0.08em] text-ink-3 truncate">
+                            {item.color.name} ·{' '}
+                            {
+                              FORMALITY_LEVELS[
+                                item.formality as keyof typeof FORMALITY_LEVELS
+                              ]
+                            }
+                          </span>
+                        </div>
+                      </div>
+                      <span
+                        className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink-3 group-hover:text-ink shrink-0"
+                        aria-hidden="true"
+                      >
+                        ＋
+                      </span>
+                    </button>
+                  </li>
                 ))}
-                
-              </div>
+              </ul>
             ) : totalInCategory > 0 ? (
-              <div className="p-4 bg-primary-800/50 rounded-lg border border-primary-700/50">
-                <p className="text-xs text-neutral-400 text-center">
-                  No matching items found in your closet.
-                  <br />
-                  <span className="text-neutral-500">
-                    You have {totalInCategory} {categoryL1.toLowerCase()} but none match the recommendations.
-                  </span>
-                </p>
-              </div>
+              <p className="font-display italic text-[14px] text-ink-2 leading-tight">
+                No matches in your closet. You have {totalInCategory}{' '}
+                {lowerCat} but none meet the recommendations.
+              </p>
             ) : (
-              <div className="p-4 bg-primary-800/50 rounded-lg border border-primary-700/50">
-                <p className="text-xs text-neutral-400 text-center">
-                  No {categoryL1.toLowerCase()} in your closet yet.
-                  <br />
-                  <span className="text-neutral-500">Upload a new item below!</span>
-                </p>
-              </div>
+              <p className="font-display italic text-[14px] text-ink-2 leading-tight">
+                No {lowerCat} in your closet yet. Upload one below.
+              </p>
             )}
+          </section>
+        )}
+
+        {session?.access_token && <hr className="border-t border-rule-soft" />}
+
+        {/* Recommended colors */}
+        <section>
+          <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mb-3">
+            Recommended colors
           </div>
-        )}
-
-        {/* Divider if showing quick picks */}
-        {session?.access_token && (
-          <div className="border-t border-primary-800" />
-        )}
-
-        {/* Suggested Colors */}
-        <div>
-          <label className="block text-[10px] uppercase font-bold tracking-widest text-neutral-500 mb-3">
-            Recommended Colors
-          </label>
-          <div className="space-y-2">
+          <ul className="flex flex-col gap-2">
             {recommendation.colors.map((color, i) => (
-              <RecommendationCard
-                key={i}
-                onClick={() => onColorClick?.(color)}
-                title={color.name}
-                description={color.hex}
-                swatchHex={color.hex}
-                meta={<Badge tone={getHarmonyTone(color.harmony_type)}>{color.harmony_type}</Badge>}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Formality Range */}
-        <div>
-          <label className="block text-[10px] uppercase font-bold tracking-widest text-neutral-500 mb-3">
-            Formality Range
-          </label>
-          <div className="p-4 bg-primary-800 rounded-lg border border-primary-700">
-            {/* Visual Track */}
-            <div className="relative h-2 bg-primary-700 rounded-full overflow-hidden mb-3">
-              <div 
-                className="absolute h-full bg-gradient-to-r from-accent-600 to-accent-400 rounded-full"
-                style={{
-                  left: `${(recommendation.formality_range.min - 1) * 25}%`,
-                  width: `${(recommendation.formality_range.max - recommendation.formality_range.min + 1) * 25}%`,
-                }}
-              />
-            </div>
-            {/* Labels */}
-            <div className="flex justify-between">
-              {Object.entries(FORMALITY_LEVELS).map(([level, label]) => {
-                const levelNum = Number(level)
-                const isInRange = levelNum >= recommendation.formality_range.min && 
-                                  levelNum <= recommendation.formality_range.max
-                return (
-                  <span 
-                    key={level}
-                    className={`text-[9px] uppercase tracking-wider ${
-                      isInRange ? 'text-accent-400 font-bold' : 'text-neutral-600'
-                    }`}
-                  >
-                    {label}
+              <li key={i}>
+                <button
+                  type="button"
+                  onClick={() => onColorClick?.(color)}
+                  className="w-full flex items-center gap-3 px-3 py-2 border border-ink bg-paper hover:bg-paper-2 transition-colors text-left"
+                >
+                  <i
+                    className="inline-block w-[20px] h-[20px] border border-ink shrink-0"
+                    style={{ backgroundColor: color.hex }}
+                    aria-hidden="true"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-display text-[15px] leading-none">
+                      {color.name}
+                    </p>
+                    <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-ink-3 mt-1">
+                      {color.hex.toUpperCase()}
+                    </p>
+                  </div>
+                  <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-ink-3 shrink-0">
+                    {color.harmony_type}
                   </span>
-                )
-              })}
-            </div>
-          </div>
-        </div>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
 
-        {/* Suggested Sub-Categories */}
-        <div>
-          <label className="block text-[10px] uppercase font-bold tracking-widest text-neutral-500 mb-3">
-            Suggested Styles
-          </label>
-          <div className="flex flex-wrap gap-2">
+        <hr className="border-t border-rule-soft" />
+
+        {/* Formality range */}
+        <section>
+          <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mb-3">
+            Formality range
+          </div>
+          <div
+            className="flex gap-[3px] mb-3"
+            role="presentation"
+            aria-hidden="true"
+          >
+            {[1, 2, 3, 4, 5].map((n) => {
+              const isInRange =
+                n >= recommendation.formality_range.min &&
+                n <= recommendation.formality_range.max
+              return (
+                <div
+                  key={n}
+                  className={`h-3 flex-1 border border-ink ${
+                    isInRange ? 'bg-ink' : 'bg-paper'
+                  }`}
+                />
+              )
+            })}
+          </div>
+          <div className="flex justify-between gap-1">
+            {Object.entries(FORMALITY_LEVELS).map(([level, label]) => {
+              const levelNum = Number(level)
+              const isInRange =
+                levelNum >= recommendation.formality_range.min &&
+                levelNum <= recommendation.formality_range.max
+              return (
+                <span
+                  key={level}
+                  className={`font-mono text-[9px] uppercase tracking-[0.08em] ${
+                    isInRange ? 'text-ink font-bold' : 'text-ink-3 font-normal'
+                  }`}
+                >
+                  {label}
+                </span>
+              )
+            })}
+          </div>
+        </section>
+
+        <hr className="border-t border-rule-soft" />
+
+        {/* Suggested styles */}
+        <section>
+          <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mb-3">
+            Suggested styles
+          </div>
+          <div className="flex flex-wrap gap-x-5 gap-y-2">
             {recommendation.suggested_l2.map((l2, i) => (
               <span
                 key={i}
-                className="px-3 py-2 bg-primary-800 border border-primary-700 rounded-lg text-xs text-neutral-300 font-medium"
+                className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink"
               >
                 {l2}
               </span>
             ))}
           </div>
-        </div>
+        </section>
 
-        {/* Aesthetics */}
         {recommendation.aesthetics.length > 0 && (
-          <div>
-            <label className="block text-[10px] uppercase font-bold tracking-widest text-neutral-500 mb-3">
-              Matching Aesthetics
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {recommendation.aesthetics.map((tag, i) => (
-                <span
-                  key={i}
-                  className="px-2.5 py-1.5 text-[10px] uppercase tracking-wider text-accent-400 bg-accent-500/10 border border-accent-500/30 rounded"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </div>
+          <>
+            <hr className="border-t border-rule-soft" />
+            <section>
+              <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mb-3">
+                Matching aesthetics
+              </div>
+              <div className="font-display italic text-[16px] leading-snug text-ink-2">
+                {recommendation.aesthetics.map((tag, i) => (
+                  <span key={tag}>
+                    {i > 0 && <span className="text-ink-3"> · </span>}
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </section>
+          </>
         )}
 
-        {/* Pro Tip */}
-        <div className="p-4 bg-primary-800/50 rounded-lg border border-primary-700/50">
-          <div className="flex gap-3">
-            <Lightbulb size={16} className="text-accent-500 shrink-0 mt-0.5" />
-            <p className="text-xs text-neutral-400 leading-relaxed">
-              {recommendation.example}
-            </p>
-          </div>
-        </div>
+        {recommendation.example && (
+          <>
+            <hr className="border-t border-rule-soft" />
+            <section>
+              <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mb-3">
+                Note
+              </div>
+              <p className="font-display italic text-[15px] leading-[1.4] text-ink-2">
+                {recommendation.example}
+              </p>
+            </section>
+          </>
+        )}
       </div>
     </div>
   )

@@ -1,0 +1,216 @@
+/* ============================================================
+   STYLE IT YOURSELF — Editorial × Brutalist × Minimalist
+   Design tokens. Loaded by every artboard.
+   ============================================================ */
+
+:root {
+  /* PAPER + INK — warm off-white paper, deep ink black */
+  --paper:        oklch(0.985 0.004 80);    /* off-white, warm */
+  --paper-2:      oklch(0.965 0.006 80);    /* slightly cooler block */
+  --paper-3:      oklch(0.93  0.008 80);    /* card surface */
+  --ink:          oklch(0.18  0.01  60);    /* deep ink, warm */
+  --ink-2:        oklch(0.32  0.008 60);    /* secondary text */
+  --ink-3:        oklch(0.55  0.006 60);    /* tertiary / labels */
+  --rule:         oklch(0.18  0.01  60 / 1);/* hairlines = ink */
+  --rule-soft:    oklch(0.18  0.01  60 / 0.18);
+
+  /* ACCENT — single bold mark, oxblood by default */
+  --accent:       oklch(0.42  0.14  25);    /* oxblood */
+  --accent-ink:   oklch(0.985 0.004 80);    /* text on accent */
+
+  /* TYPE */
+  --font-display: "Instrument Serif", "Times New Roman", Georgia, serif;
+  --font-sans:    "Söhne", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-mono:    "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* SCALE — editorial, generous */
+  --t-display-xl: clamp(72px, 11vw, 184px);
+  --t-display-l:  clamp(56px, 7vw,  120px);
+  --t-display-m:  clamp(40px, 5vw,  72px);
+  --t-display-s:  clamp(28px, 3vw,  44px);
+  --t-body-l:     20px;
+  --t-body:       16px;
+  --t-body-s:     14px;
+  --t-label:      11px;     /* mono micro-labels */
+  --t-label-s:    10px;
+
+  /* DENSITY — overridable via Tweaks */
+  --density: 1;
+  --gutter: calc(48px * var(--density));
+  --col-gap: calc(32px * var(--density));
+  --section-pad-y: calc(96px * var(--density));
+
+  /* GRID */
+  --hairline: 1px;
+}
+
+/* RESET — minimal
+   Wrapped in @layer base so Tailwind utilities (which live in
+   @layer utilities) can override these element-level defaults.
+   Without the layer, unlayered tag rules win the cascade over
+   layered utilities regardless of selector specificity — which
+   silently kills things like `border-b-2` on a <button>. */
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: var(--t-body);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  img, svg { display: block; max-width: 100%; }
+  a { color: inherit; text-decoration: none; }
+  button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+}
+
+/* TYPOGRAPHY UTILITIES */
+.t-display-xl { font-family: var(--font-display); font-weight: 400; font-size: var(--t-display-xl); line-height: 0.88; letter-spacing: -0.02em; }
+.t-display-l  { font-family: var(--font-display); font-weight: 400; font-size: var(--t-display-l);  line-height: 0.92; letter-spacing: -0.02em; }
+.t-display-m  { font-family: var(--font-display); font-weight: 400; font-size: var(--t-display-m);  line-height: 0.96; letter-spacing: -0.015em; }
+.t-display-s  { font-family: var(--font-display); font-weight: 400; font-size: var(--t-display-s);  line-height: 1.05; letter-spacing: -0.01em; }
+.t-body-l     { font-size: var(--t-body-l); line-height: 1.45; }
+.t-body       { font-size: var(--t-body); line-height: 1.55; }
+.t-body-s     { font-size: var(--t-body-s); line-height: 1.5; }
+.t-mono       { font-family: var(--font-mono); font-size: var(--t-label); letter-spacing: 0.04em; text-transform: uppercase; }
+.t-mono-s     { font-family: var(--font-mono); font-size: var(--t-label-s); letter-spacing: 0.06em; text-transform: uppercase; }
+.italic       { font-style: italic; }
+
+/* PRIMITIVES */
+.rule    { border: 0; border-top: var(--hairline) solid var(--ink); margin: 0; }
+.rule-soft { border: 0; border-top: var(--hairline) solid var(--rule-soft); margin: 0; }
+
+/* BUTTONS */
+.btn {
+  display: inline-flex; align-items: center; justify-content: space-between;
+  gap: 24px;
+  padding: 18px 22px;
+  font-family: var(--font-mono);
+  font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+  border: 1px solid var(--ink);
+  background: var(--ink); color: var(--paper);
+  transition: background 180ms ease, color 180ms ease;
+  min-width: 220px;
+}
+.btn:hover { background: var(--paper); color: var(--ink); }
+.btn--ghost { background: transparent; color: var(--ink); }
+.btn--ghost:hover { background: var(--ink); color: var(--paper); }
+.btn--accent { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn--accent:hover { background: var(--paper); color: var(--accent); }
+
+/* TAG / BADGE */
+.tag {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 10px;
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+  border: 1px solid var(--ink);
+  background: transparent;
+}
+
+/* PRODUCT CARD — sparse retail */
+.product {
+  display: flex; flex-direction: column; gap: 12px;
+}
+.product__frame {
+  position: relative; aspect-ratio: 4 / 5;
+  background: var(--paper-2);
+  overflow: hidden;
+}
+.product__frame--placeholder {
+  background:
+    repeating-linear-gradient(
+      135deg,
+      var(--paper-2) 0 22px,
+      var(--paper-3) 22px 24px
+    );
+}
+.product__index {
+  position: absolute; top: 12px; left: 12px;
+}
+.product__cap {
+  position: absolute; bottom: 12px; right: 12px;
+}
+.product__meta {
+  display: flex; justify-content: space-between; align-items: baseline;
+}
+.product__name {
+  font-family: var(--font-display); font-size: 18px; line-height: 1.1;
+}
+.product__price {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em;
+}
+
+/* COLOR CHIP */
+.chip {
+  display: inline-flex; align-items: center; gap: 10px;
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+}
+.chip__sw {
+  width: 14px; height: 14px; border: 1px solid var(--ink);
+}
+
+/* SPECIMENS — for design system page */
+.specimen {
+  border-top: 1px solid var(--ink);
+  padding: 32px 0 64px;
+}
+.specimen__hdr {
+  display: grid; grid-template-columns: 200px 1fr; gap: 32px;
+  margin-bottom: 24px;
+}
+.specimen__num { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+.specimen__title { font-family: var(--font-display); font-size: 36px; line-height: 1; }
+.specimen__sub { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); margin-top: 8px; }
+
+/* HAIRLINE LAYOUT HELPERS */
+.cols { display: grid; gap: var(--col-gap); }
+.cols-2 { grid-template-columns: 1fr 1fr; }
+.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+.cols-4 { grid-template-columns: repeat(4, 1fr); }
+.cols-6 { grid-template-columns: repeat(6, 1fr); }
+.cols-12 { grid-template-columns: repeat(12, 1fr); }
+
+/* ARTBOARD */
+.artboard {
+  width: 100%; min-height: 100%;
+  background: var(--paper);
+  color: var(--ink);
+  position: relative;
+}
+
+/* IMAGE TREATMENTS */
+.img-fullbleed { background-color: var(--paper-2); }
+.img-framed    { background-color: var(--paper-2); padding: 14px; }
+.img-framed > .product__frame { aspect-ratio: 3/4; }
+
+/* DENSITY-AWARE blocks */
+.block-pad { padding: var(--gutter); }
+
+/* HEADING CASE — controlled at root via data attr */
+[data-case="upper"] .case { text-transform: uppercase; letter-spacing: -0.01em; }
+[data-case="lower"] .case { text-transform: lowercase; letter-spacing: -0.02em; }
+[data-case="title"] .case { text-transform: none; }
+
+/* IMAGE TREATMENT — controlled via data attr from tweaks */
+[data-img="placeholder"] .feature__art {
+  background-image: repeating-linear-gradient(135deg, var(--paper-2) 0 26px, var(--paper-3) 26px 28px);
+}
+[data-img="framed"] .feature__art {
+  outline: 14px solid var(--paper);
+  outline-offset: -14px;
+  border: 1px solid var(--ink);
+  background-image: repeating-linear-gradient(135deg, var(--paper-2) 0 26px, var(--paper-3) 26px 28px);
+}
+[data-img="framed"] .feature__art::after { display: none; }
+[data-img="fullbleed"] .feature__art {
+  background: var(--ink);
+  background-image: none;
+}
+[data-img="fullbleed"] .feature__art::after {
+  color: var(--paper);
+  background: transparent;
+  border-color: var(--paper);
+}
