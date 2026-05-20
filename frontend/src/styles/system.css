@@ -44,21 +44,28 @@
   --hairline: 1px;
 }
 
-/* RESET — minimal */
-*, *::before, *::after { box-sizing: border-box; }
-html, body { margin: 0; padding: 0; }
-body {
-  background: var(--paper);
-  color: var(--ink);
-  font-family: var(--font-sans);
-  font-size: var(--t-body);
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
+/* RESET — minimal
+   Wrapped in @layer base so Tailwind utilities (which live in
+   @layer utilities) can override these element-level defaults.
+   Without the layer, unlayered tag rules win the cascade over
+   layered utilities regardless of selector specificity — which
+   silently kills things like `border-b-2` on a <button>. */
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: var(--t-body);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  img, svg { display: block; max-width: 100%; }
+  a { color: inherit; text-decoration: none; }
+  button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
 }
-img, svg { display: block; max-width: 100%; }
-a { color: inherit; text-decoration: none; }
-button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
 
 /* TYPOGRAPHY UTILITIES */
 .t-display-xl { font-family: var(--font-display); font-weight: 400; font-size: var(--t-display-xl); line-height: 0.88; letter-spacing: -0.02em; }
