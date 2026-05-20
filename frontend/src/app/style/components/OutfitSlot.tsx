@@ -197,7 +197,7 @@ export default function OutfitSlot({
       <div className="mt-3 text-center">
         <span
           className={cn(
-            'font-mono uppercase tracking-[0.12em] pb-[2px] border-b transition-colors',
+            'font-mono uppercase tracking-[0.12em] pb-[2px] border-b-2 transition-colors',
             compact ? 'text-[10px]' : 'text-[11px]',
             isSelected
               ? 'text-ink font-bold border-ink'

@@ -91,7 +91,7 @@ export default function ColorSelector({
                   />
                   <span
                     className={cn(
-                      'font-mono text-[10px] uppercase tracking-[0.08em] pb-[2px] border-b transition-colors',
+                      'font-mono text-[10px] uppercase tracking-[0.08em] pb-[2px] border-b-2 transition-colors',
                       isActive
                         ? 'text-ink font-bold border-ink'
                         : 'text-ink-3 font-normal border-transparent group-hover:text-ink group-hover:border-ink',

@@ -203,7 +203,7 @@ function OwnershipPill({ active, onClick, children }: OwnershipPillProps) {
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        'pb-[2px] border-b transition-colors duration-200',
+        'pb-[2px] border-b-2 transition-colors duration-200',
         'font-mono text-[11px] uppercase tracking-[0.12em]',
         active
           ? 'border-ink text-ink font-bold'
