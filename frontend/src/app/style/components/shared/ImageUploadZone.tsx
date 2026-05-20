@@ -71,7 +71,6 @@ export default function ImageUploadZone({
       disabled={disabled}
       accept="image/png,image/jpeg,image/webp,image/heic,image/heif,image/avif"
       maxSizeMB={10}
-      hint="PNG · JPG · WEBP · AVIF · Max 10MB"
     />
   )
 }
