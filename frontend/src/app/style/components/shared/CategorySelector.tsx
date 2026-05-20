@@ -101,7 +101,7 @@ function ChipButton({ active, onClick, disabled, children }: ChipButtonProps) {
       disabled={disabled}
       aria-pressed={active}
       className={cn(
-        'pb-[2px] border-b-2 transition-colors duration-200',
+        'pb-[2px] border-b transition-colors duration-200',
         'font-mono text-[11px] uppercase tracking-[0.12em]',
         disabled
           ? 'border-transparent text-ink-3 opacity-40 cursor-not-allowed'

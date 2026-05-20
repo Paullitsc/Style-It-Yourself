@@ -58,7 +58,7 @@ export default function FormalitySlider({ value, onChange }: FormalitySliderProp
             >
               <span
                 className={cn(
-                  'inline-block pb-[2px] border-b-2 transition-colors',
+                  'inline-block pb-[2px] border-b transition-colors',
                   isActive
                     ? 'text-ink font-bold border-ink'
                     : 'text-ink-3 font-normal border-transparent hover:text-ink hover:border-ink',
