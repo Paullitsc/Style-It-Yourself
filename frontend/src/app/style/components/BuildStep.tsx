@@ -229,7 +229,7 @@ export default function BuildStep() {
             isPanelOpen ? 'w-[45%]' : 'w-full',
           )}
         >
-          <div className="max-w-[1100px] mx-auto px-10 max-md:px-6 py-10">
+          <div className="max-w-[1100px] mx-auto px-10 max-md:px-6 py-10 pb-32">
             <section className="mb-10">
               <header className="grid grid-cols-[auto_auto_1fr] gap-4 items-baseline pb-[14px] mb-6 border-b border-ink">
                 <span className="font-display text-[22px] leading-none tracking-[-0.015em]">
@@ -327,57 +327,50 @@ export default function BuildStep() {
               </div>
             </section>
 
-            {!isPanelOpen && (
-              <>
-                <div className="border-t border-rule-soft my-8" />
-                <div className="text-center py-8">
-                  {outfitComplete ? (
-                    <>
-                      <h3 className="font-display text-[clamp(28px,3vw,36px)] leading-tight tracking-[-0.015em] mb-2">
-                        Outfit <em className="italic text-ink-3">complete.</em>
-                      </h3>
-                      <p className="font-display italic text-[18px] text-ink-2 max-w-[40ch] mx-auto">
-                        Review it for the cohesion score and save it to your
-                        closet.
-                      </p>
-                    </>
-                  ) : (
-                    <p className="font-display italic text-[18px] text-ink-2 max-w-[42ch] mx-auto">
-                      Add Tops, Bottoms, and Shoes to complete the look.
-                    </p>
-                  )}
-                </div>
-
-                {/* Bottom navigation */}
-                <div className="border-t border-ink mt-8 pt-7 flex justify-between items-center gap-6 flex-wrap">
-                  <button
-                    type="button"
-                    onClick={handleBack}
-                    className="font-mono text-[11px] uppercase tracking-[0.12em] pb-[2px] border-b border-transparent hover:border-ink transition-colors"
-                  >
-                    ← Back
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleReviewOutfit}
-                    disabled={!outfitComplete}
-                    className={cn(
-                      'inline-flex items-center justify-between gap-6 px-[22px] py-[14px]',
-                      'border border-ink bg-ink text-paper',
-                      'font-mono text-[11px] uppercase tracking-[0.12em]',
-                      'transition-colors hover:bg-paper hover:text-ink',
-                      'disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-ink disabled:hover:text-paper',
-                    )}
-                  >
-                    <span>Review outfit</span>
-                    <span aria-hidden="true">→</span>
-                  </button>
-                </div>
-              </>
-            )}
           </div>
         </div>
+
+        {/* Sticky action bar — hides when the add-item panel is open */}
+        {!isPanelOpen && (
+          <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-ink bg-paper">
+            <div className="max-w-[1100px] mx-auto px-10 max-md:px-6 py-4 flex items-center justify-between gap-6 flex-wrap">
+              <p className="font-display italic text-[16px] leading-snug text-ink-2 flex-1 min-w-[180px]">
+                {outfitComplete ? (
+                  <>
+                    Outfit <em className="italic text-ink-3">complete.</em>{' '}
+                    Review it for the cohesion score.
+                  </>
+                ) : (
+                  'Add Tops, Bottoms, and Shoes to complete the look.'
+                )}
+              </p>
+              <div className="flex items-center gap-6 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleBack}
+                  className="font-mono text-[11px] uppercase tracking-[0.12em] pb-[2px] border-b border-transparent hover:border-ink transition-colors"
+                >
+                  ← Back
+                </button>
+                <button
+                  type="button"
+                  onClick={handleReviewOutfit}
+                  disabled={!outfitComplete}
+                  className={cn(
+                    'inline-flex items-center justify-between gap-6 px-[18px] py-[12px]',
+                    'border border-ink bg-ink text-paper',
+                    'font-mono text-[11px] uppercase tracking-[0.12em]',
+                    'transition-colors hover:bg-paper hover:text-ink',
+                    'disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-ink disabled:hover:text-paper',
+                  )}
+                >
+                  <span>Review outfit</span>
+                  <span aria-hidden="true">→</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Split panel (suggestion + add) */}
         {isPanelOpen && (
