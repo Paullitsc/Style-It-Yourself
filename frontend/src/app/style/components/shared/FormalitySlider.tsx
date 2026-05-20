@@ -50,15 +50,22 @@ export default function FormalitySlider({ value, onChange }: FormalitySliderProp
               onClick={() => onChange(n)}
               aria-pressed={isActive}
               className={cn(
-                'flex-1 text-left font-mono text-[10px] uppercase tracking-[0.08em] transition-colors',
-                isActive
-                  ? 'text-ink font-bold'
-                  : 'text-ink-3 font-normal hover:text-ink',
+                'flex-1 font-mono text-[10px] uppercase tracking-[0.08em]',
+                n === 1 && 'text-left',
                 n === 5 && 'text-right',
                 n !== 1 && n !== 5 && 'text-center',
               )}
             >
-              {label}
+              <span
+                className={cn(
+                  'inline-block pb-[2px] border-b transition-colors',
+                  isActive
+                    ? 'text-ink font-bold border-ink'
+                    : 'text-ink-3 font-normal border-transparent hover:text-ink hover:border-ink',
+                )}
+              >
+                {label}
+              </span>
             </button>
           )
         })}
