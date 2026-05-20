@@ -178,13 +178,17 @@ export default function BuildStep() {
     filledCategories.includes(cat),
   ).length
 
+  const missingRequired = REQUIRED_CATEGORIES.filter(
+    (cat) => !filledCategories.includes(cat),
+  )
+
   const isPanelOpen = addingCategory !== null
 
   return (
     <div className="flex flex-col">
       {/* Header */}
       <div className="border-b border-ink bg-paper sticky top-0 z-20">
-        <div className="max-w-[1320px] mx-auto px-14 max-md:px-6 py-5 flex items-end justify-between gap-6 flex-wrap">
+        <div className="max-w-[1100px] mx-auto px-10 max-md:px-6 py-5 flex items-end justify-between gap-6 flex-wrap">
           <div>
             <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mb-1">
               Build
@@ -211,11 +215,6 @@ export default function BuildStep() {
                 / {REQUIRED_CATEGORIES.length}
               </span>
             </div>
-            {outfitComplete && (
-              <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-accent italic mt-1">
-                <em>Complete.</em>
-              </p>
-            )}
           </div>
         </div>
       </div>
@@ -229,7 +228,7 @@ export default function BuildStep() {
             isPanelOpen ? 'w-[45%]' : 'w-full',
           )}
         >
-          <div className="max-w-[1100px] mx-auto px-10 max-md:px-6 py-10 pb-32">
+          <div className="max-w-[1100px] mx-auto px-10 max-md:px-6 py-10 pb-24">
             <section className="mb-10">
               <header className="grid grid-cols-[auto_auto_1fr] gap-4 items-baseline pb-[14px] mb-6 border-b border-ink">
                 <span className="font-display text-[22px] leading-none tracking-[-0.015em]">
@@ -341,7 +340,19 @@ export default function BuildStep() {
                     Review it for the cohesion score.
                   </>
                 ) : (
-                  'Add Tops, Bottoms, and Shoes to complete the look.'
+                  <>
+                    Add{' '}
+                    {missingRequired.map((cat, i) => (
+                      <span key={cat}>
+                        {i > 0 &&
+                          (i === missingRequired.length - 1
+                            ? ' and '
+                            : ', ')}
+                        <span className="text-ink">{cat}</span>
+                      </span>
+                    ))}{' '}
+                    to complete the look.
+                  </>
                 )}
               </p>
               <div className="flex items-center gap-6 shrink-0">
