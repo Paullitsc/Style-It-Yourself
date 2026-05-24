@@ -25,6 +25,21 @@ export interface Category {
   l2: string  // e.g., "T-Shirts", "Jeans"
 }
 
+export interface Sizing {
+  mode?: 'standard' | 'numeric' | 'measurements' | 'brand_specific' | 'hybrid'
+  standard_size?: string
+  numeric_size?: number
+  numeric_type?: 'dress' | 'pants_waist' | 'pants_waist_inseam'
+  numeric_system?: 'US' | 'UK' | 'EU' | 'INT'
+  measurement_unit?: 'cm' | 'in'
+  chest?: number
+  waist?: number
+  hips?: number
+  inseam?: number
+  brand_size_label?: string
+  size_notes?: string
+}
+
 export interface ClothingItemBase {
   color: Color
   category: Category
@@ -35,6 +50,7 @@ export interface ClothingItemBase {
 export interface ClothingItemCreate extends ClothingItemBase {
   image_url?: string  // Optional - set after upload
   brand?: string
+  sizing?: Sizing
   price?: number
   source_url?: string
   ownership?: 'owned' | 'wishlist'
@@ -45,6 +61,7 @@ export interface ClothingItemResponse extends ClothingItemBase {
   user_id: string
   image_url: string
   brand?: string
+  sizing?: Sizing
   price?: number
   source_url?: string
   ownership: 'owned' | 'wishlist'
@@ -202,6 +219,7 @@ export interface ClothingItemCreateRequest {
   formality: number
   aesthetics: string[]
   brand?: string
+  sizing?: Sizing
   price?: number
   source_url?: string
   ownership?: 'owned' | 'wishlist'

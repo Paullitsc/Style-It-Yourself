@@ -17,6 +17,7 @@ export default function MetadataStep() {
     aesthetics,
     ownership,
     brand,
+    size,
     price,
     sourceUrl,
     setCategory,
@@ -25,6 +26,7 @@ export default function MetadataStep() {
     toggleAesthetic,
     setOwnership,
     setBrand,
+    setSize,
     setPrice,
     setSourceUrl,
     setStep,
@@ -39,7 +41,7 @@ export default function MetadataStep() {
     [isMetadataValid, setStep],
   )
 
-  const optionalCount = [brand, price, sourceUrl].filter(Boolean).length
+  const optionalCount = [brand, size, price, sourceUrl].filter(Boolean).length
 
   return (
     <div className="py-12 max-md:py-8">
@@ -136,6 +138,13 @@ export default function MetadataStep() {
                   value={brand}
                   onChange={(e) => setBrand(e.target.value)}
                   placeholder="e.g. Uniqlo, Aimé Leon Dore"
+                />
+                <TextInput
+                  label="Size"
+                  type="text"
+                  value={size}
+                  onChange={(e) => setSize(e.target.value)}
+                  placeholder="e.g. M, 32, 10.5"
                 />
                 <TextInput
                   label="Price"
