@@ -58,6 +58,7 @@ export interface AddingItemState {
   aesthetics: string[]
   ownership: 'owned' | 'wishlist'
   brand: string
+  size: string
   price: string
   sourceUrl: string
   detectedColors: DetectedColor[]
@@ -79,6 +80,7 @@ const initialAddingItemState: AddingItemState = {
   aesthetics: [],
   ownership: 'owned',
   brand: '',
+  size: '',
   price: '',
   sourceUrl: '',
   detectedColors: [],
@@ -106,6 +108,7 @@ interface StyleState {
   aesthetics: string[]
   ownership: 'owned' | 'wishlist'
   brand: string
+  size: string
   price: string  // Store as string for input, convert to number when needed
   sourceUrl: string
   
@@ -156,6 +159,7 @@ interface StyleState {
   toggleAesthetic: (tag: string) => void
   setOwnership: (value: 'owned' | 'wishlist') => void
   setBrand: (value: string) => void
+  setSize: (value: string) => void
   setPrice: (value: string) => void
   setSourceUrl: (value: string) => void
   setDetectedColors: (colors: DetectedColor[]) => void
@@ -175,6 +179,7 @@ interface StyleState {
   toggleAddingItemAesthetic: (tag: string) => void
   setAddingItemOwnership: (value: 'owned' | 'wishlist') => void
   setAddingItemBrand: (value: string) => void
+  setAddingItemSize: (value: string) => void
   setAddingItemPrice: (value: string) => void
   setAddingItemSourceUrl: (value: string) => void
   setAddingItemDetectedColors: (colors: DetectedColor[]) => void
@@ -206,6 +211,7 @@ const initialState = {
   aesthetics: [] as string[],
   ownership: 'owned' as const,
   brand: '',
+  size: '',
   price: '',
   sourceUrl: '',
   detectedColors: [] as DetectedColor[],
@@ -254,6 +260,9 @@ export const useStyleStore = create<StyleState>((set, get) => ({
     if (state.brand.trim()) {
       item.brand = state.brand.trim()
     }
+    if (state.size.trim()) {
+      item.sizing = { mode: 'standard', standard_size: state.size.trim() }
+    }
     if (state.price.trim()) {
       const priceNum = parseFloat(state.price)
       if (!isNaN(priceNum) && priceNum >= 0) {
@@ -263,7 +272,7 @@ export const useStyleStore = create<StyleState>((set, get) => ({
     if (state.sourceUrl.trim()) {
       item.source_url = state.sourceUrl.trim()
     }
-    
+
     return item
   },
 
@@ -415,9 +424,11 @@ export const useStyleStore = create<StyleState>((set, get) => ({
   setOwnership: (ownership) => set({ ownership }),
   
   setBrand: (brand) => set({ brand }),
-  
+
+  setSize: (size) => set({ size }),
+
   setPrice: (price) => set({ price }),
-  
+
   setSourceUrl: (sourceUrl) => set({ sourceUrl }),
 
   // ---------------------------------------------------------------------------
@@ -545,6 +556,10 @@ export const useStyleStore = create<StyleState>((set, get) => ({
     addingItem: { ...state.addingItem, brand }
   })),
 
+  setAddingItemSize: (size) => set((state) => ({
+    addingItem: { ...state.addingItem, size }
+  })),
+
   setAddingItemPrice: (price) => set((state) => ({
     addingItem: { ...state.addingItem, price }
   })),
@@ -611,6 +626,9 @@ export const useStyleStore = create<StyleState>((set, get) => ({
     if (addingItem.brand.trim()) {
       newItem.brand = addingItem.brand.trim()
     }
+    if (addingItem.size.trim()) {
+      newItem.sizing = { mode: 'standard', standard_size: addingItem.size.trim() }
+    }
     if (addingItem.price.trim()) {
       const priceNum = parseFloat(addingItem.price)
       if (!isNaN(priceNum) && priceNum >= 0) {
@@ -669,6 +687,7 @@ export const useStyleStore = create<StyleState>((set, get) => ({
       aesthetics: item.aesthetics,
       ownership: item.ownership as 'owned' | 'wishlist',
       brand: item.brand || undefined,
+      sizing: item.sizing || undefined,
       price: item.price || undefined,
       source_url: item.source_url || undefined,
     }

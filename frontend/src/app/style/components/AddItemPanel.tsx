@@ -69,6 +69,7 @@ export default function AddItemPanel({
     confirmAddItem,
     setTryOnResult,
     setAddingItemBrand,
+    setAddingItemSize,
     setAddingItemPrice,
     setAddingItemSourceUrl,
     setAddingItemOwnership,
@@ -524,6 +525,7 @@ export default function AddItemPanel({
 
   const optionalCount = [
     addingItem.brand,
+    addingItem.size,
     addingItem.price,
     addingItem.sourceUrl,
   ].filter(Boolean).length
@@ -744,6 +746,15 @@ export default function AddItemPanel({
                       value={addingItem.brand}
                       onChange={(e) => setAddingItemBrand(e.target.value)}
                       placeholder="e.g. Uniqlo, A.P.C."
+                      className="w-full bg-transparent border-b border-ink py-2 font-display italic text-[16px] text-ink placeholder:text-ink-3 placeholder:not-italic placeholder:font-mono placeholder:text-[12px] placeholder:tracking-[0.04em] focus:outline-none"
+                    />
+                  </EditorialField>
+                  <EditorialField label="Size">
+                    <input
+                      type="text"
+                      value={addingItem.size}
+                      onChange={(e) => setAddingItemSize(e.target.value)}
+                      placeholder="e.g. M, 32, 10.5"
                       className="w-full bg-transparent border-b border-ink py-2 font-display italic text-[16px] text-ink placeholder:text-ink-3 placeholder:not-italic placeholder:font-mono placeholder:text-[12px] placeholder:tracking-[0.04em] focus:outline-none"
                     />
                   </EditorialField>
