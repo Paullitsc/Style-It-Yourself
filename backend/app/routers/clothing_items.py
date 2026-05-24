@@ -11,6 +11,7 @@ from app.models.schemas import (
     ClothingItemCreate,
     ClothingItemCreateRequest,
     ClothingItemResponse,
+    ErrorResponse,
     User,
 )
 from app.services import supabase
@@ -19,12 +20,93 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/clothing-items", tags=["clothing-items"])
 
+AUTH_RESPONSES = {
+    401: {
+        "model": ErrorResponse,
+        "description": "Missing, invalid, or expired Bearer token.",
+        "content": {
+            "application/json": {"example": {"detail": "Invalid or expired token"}}
+        },
+    }
+}
+
 
 @router.post(
     "",
     response_model=ClothingItemResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create a clothing item",
+    description=(
+        "Creates a clothing item for the authenticated user.\n\n"
+        "This endpoint accepts `multipart/form-data` with:\n"
+        "- `image`: binary image file\n"
+        "- `data`: JSON string that matches `ClothingItemCreateRequest`"
+    ),
+    responses={
+        **AUTH_RESPONSES,
+        201: {
+            "description": "Clothing item created successfully.",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "id": "item-123",
+                        "user_id": "user-123",
+                        "image_url": "https://cdn.example.com/clothing-images/item-123.jpg",
+                        "color": {
+                            "hex": "#0B1C2D",
+                            "hsl": {"h": 210, "s": 61, "l": 11},
+                            "name": "navy",
+                            "is_neutral": True,
+                        },
+                        "category": {"l1": "Tops", "l2": "Knitwear"},
+                        "formality": 3.0,
+                        "aesthetics": ["Minimalist"],
+                        "brand": "Uniqlo",
+                        "price": 39.9,
+                        "source_url": "https://example.com/item/123",
+                        "ownership": "owned",
+                        "created_at": "2025-12-01T10:20:30Z",
+                    }
+                }
+            },
+        },
+        400: {
+            "model": ErrorResponse,
+            "description": "Malformed JSON payload or business validation error.",
+            "content": {
+                "application/json": {"example": {"detail": "Invalid JSON in 'data' field"}}
+            },
+        },
+        500: {
+            "model": ErrorResponse,
+            "description": "Failed to upload image or save item.",
+            "content": {
+                "application/json": {"example": {"detail": "Failed to create clothing item."}}
+            },
+        },
+    },
+    openapi_extra={
+        "requestBody": {
+            "content": {
+                "multipart/form-data": {
+                    "examples": {
+                        "basic_item_upload": {
+                            "summary": "Upload one clothing item",
+                            "value": {
+                                "data": (
+                                    '{"color":{"hex":"#0B1C2D","hsl":{"h":210,"s":61,"l":11},'
+                                    '"name":"navy","is_neutral":true},"category":{"l1":"Tops","l2":"Knitwear"},'
+                                    '"formality":3.0,"aesthetics":["Minimalist"],"brand":"Uniqlo",'
+                                    '"price":39.9,"source_url":"https://example.com/item/123","ownership":"owned"}'
+                                ),
+                                "image": "(binary image file)",
+                            },
+                        }
+                    }
+                }
+            }
+        }
+    },
 )
 async def create_clothing_item(
     image: Annotated[UploadFile, File(description="Clothing item image")],
@@ -100,6 +182,45 @@ async def create_clothing_item(
     "",
     response_model=list[ClothingItemResponse],
     summary="Get all clothing items",
+    description="Returns all clothing items belonging to the authenticated user.",
+    responses={
+        **AUTH_RESPONSES,
+        200: {
+            "description": "List of clothing items.",
+            "content": {
+                "application/json": {
+                    "example": [
+                        {
+                            "id": "item-123",
+                            "user_id": "user-123",
+                            "image_url": "https://cdn.example.com/clothing-images/item-123.jpg",
+                            "color": {
+                                "hex": "#0B1C2D",
+                                "hsl": {"h": 210, "s": 61, "l": 11},
+                                "name": "navy",
+                                "is_neutral": True,
+                            },
+                            "category": {"l1": "Tops", "l2": "Knitwear"},
+                            "formality": 3.0,
+                            "aesthetics": ["Minimalist"],
+                            "brand": "Uniqlo",
+                            "price": 39.9,
+                            "source_url": "https://example.com/item/123",
+                            "ownership": "owned",
+                            "created_at": "2025-12-01T10:20:30Z",
+                        }
+                    ]
+                }
+            },
+        },
+        500: {
+            "model": ErrorResponse,
+            "description": "Unexpected fetch failure.",
+            "content": {
+                "application/json": {"example": {"detail": "Failed to retrieve clothing items."}}
+            },
+        },
+    },
 )
 async def get_clothing_items(
     current_user: User = Depends(get_current_user),
@@ -119,6 +240,23 @@ async def get_clothing_items(
     "/{item_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete a clothing item",
+    description="Deletes one clothing item owned by the authenticated user.",
+    responses={
+        **AUTH_RESPONSES,
+        204: {"description": "Item deleted successfully."},
+        404: {
+            "model": ErrorResponse,
+            "description": "Item does not exist or is not owned by user.",
+            "content": {"application/json": {"example": {"detail": "Clothing item not found."}}},
+        },
+        500: {
+            "model": ErrorResponse,
+            "description": "Unexpected delete failure.",
+            "content": {
+                "application/json": {"example": {"detail": "Failed to delete clothing item."}}
+            },
+        },
+    },
 )
 async def delete_clothing_item(
     item_id: str,

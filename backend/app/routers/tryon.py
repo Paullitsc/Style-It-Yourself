@@ -4,10 +4,11 @@ import base64
 import logging
 import uuid
 import httpx
-from fastapi import APIRouter, HTTPException, status, Depends, File, UploadFile
+from fastapi import APIRouter, Body, Depends, File, HTTPException, UploadFile, status
 
 from app.middleware.auth import get_current_user
 from app.models.schemas import (
+    ErrorResponse,
     User,
     TryOnResponse,
     TryOnSingleRequest,
@@ -19,6 +20,16 @@ from app.services.supabase import upload_generated_image, get_supabase_client
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/try-on", tags=["try-on"])
+
+AUTH_RESPONSES = {
+    401: {
+        "model": ErrorResponse,
+        "description": "Missing, invalid, or expired Bearer token.",
+        "content": {
+            "application/json": {"example": {"detail": "Invalid or expired token"}}
+        },
+    }
+}
 
 
 async def validate_image_url(url: str) -> None:
@@ -45,7 +56,34 @@ async def validate_image_url(url: str) -> None:
         )
 
 
-@router.post("/upload-photo", summary="Upload user photo for try-on")
+@router.post(
+    "/upload-photo",
+    summary="Upload user photo for try-on",
+    description=(
+        "Uploads a user photo to storage and returns a public URL to reuse with try-on generation."
+    ),
+    responses={
+        **AUTH_RESPONSES,
+        200: {
+            "description": "Photo uploaded successfully.",
+            "content": {
+                "application/json": {
+                    "example": {"url": "https://cdn.example.com/user-photos/user-123/photo.jpg"}
+                }
+            },
+        },
+        400: {
+            "model": ErrorResponse,
+            "description": "Invalid file type or file size exceeds limit.",
+            "content": {"application/json": {"example": {"detail": "File must be an image"}}},
+        },
+        500: {
+            "model": ErrorResponse,
+            "description": "Unexpected upload failure.",
+            "content": {"application/json": {"example": {"detail": "Failed to upload photo"}}},
+        },
+    },
+)
 async def upload_user_photo(
     image: UploadFile = File(..., description="User photo for try-on"),
     current_user: User = Depends(get_current_user),
@@ -103,9 +141,72 @@ async def upload_user_photo(
         )
 
 
-@router.post("/single", response_model=TryOnResponse)
+@router.post(
+    "/single",
+    response_model=TryOnResponse,
+    summary="Generate single-item try-on",
+    description=(
+        "Generates an AI try-on image for one clothing item on the user's uploaded photo."
+    ),
+    responses={
+        **AUTH_RESPONSES,
+        200: {
+            "description": "Try-on generated successfully.",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "success": True,
+                        "error": None,
+                        "generated_image_url": "https://cdn.example.com/generated/outfits/abc123.png",
+                        "processing_time": 5.42,
+                    }
+                }
+            },
+        },
+        400: {
+            "model": ErrorResponse,
+            "description": "Input image URLs or payload data are invalid.",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "Could not reach image URL: https://example.com/item.jpg"}
+                }
+            },
+        },
+        502: {
+            "model": ErrorResponse,
+            "description": "AI provider or generated image processing failed.",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "AI service failed to generate image."}
+                }
+            },
+        },
+    },
+)
 async def try_on_single(
-    request: TryOnSingleRequest,
+    request: TryOnSingleRequest = Body(
+        ...,
+        openapi_examples={
+            "single_item_tryon": {
+                "summary": "Try on one jacket",
+                "value": {
+                    "user_photo_url": "https://cdn.example.com/user-photos/user-123/selfie.jpg",
+                    "item_image_url": "https://cdn.example.com/clothing-items/jacket-22.jpg",
+                    "item": {
+                        "color": {
+                            "hex": "#0B1C2D",
+                            "hsl": {"h": 210, "s": 61, "l": 11},
+                            "name": "navy",
+                            "is_neutral": True,
+                        },
+                        "category": {"l1": "Outerwear", "l2": "Blazer"},
+                        "formality": 4.0,
+                        "aesthetics": ["Classic", "Minimalist"],
+                    },
+                },
+            }
+        },
+    ),
     current_user: User = Depends(get_current_user),
 ) -> TryOnResponse:
     """Generate try-on image with a single clothing item."""
@@ -153,9 +254,88 @@ async def try_on_single(
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Failed to process generated image.")
 
 
-@router.post("/outfit", response_model=TryOnResponse)
+@router.post(
+    "/outfit",
+    response_model=TryOnResponse,
+    summary="Generate full-outfit try-on",
+    description="Generates an AI try-on image for a complete multi-item outfit.",
+    responses={
+        **AUTH_RESPONSES,
+        200: {
+            "description": "Outfit try-on generated successfully.",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "success": True,
+                        "error": None,
+                        "generated_image_url": "https://cdn.example.com/generated/outfits/full-456.png",
+                        "processing_time": 8.73,
+                    }
+                }
+            },
+        },
+        400: {
+            "model": ErrorResponse,
+            "description": "Input image URLs or payload data are invalid.",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "Could not reach image URL: https://example.com/shoes.jpg"}
+                }
+            },
+        },
+        502: {
+            "model": ErrorResponse,
+            "description": "AI provider or generated image processing failed.",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "AI service failed to generate image."}
+                }
+            },
+        },
+    },
+)
 async def try_on_outfit(
-    request: TryOnOutfitRequest,
+    request: TryOnOutfitRequest = Body(
+        ...,
+        openapi_examples={
+            "full_outfit_tryon": {
+                "summary": "Try on top, bottom, and shoes",
+                "value": {
+                    "user_photo_url": "https://cdn.example.com/user-photos/user-123/selfie.jpg",
+                    "item_images": [
+                        [
+                            "https://cdn.example.com/items/top-1.jpg",
+                            {
+                                "color": {
+                                    "hex": "#0B1C2D",
+                                    "hsl": {"h": 210, "s": 61, "l": 11},
+                                    "name": "navy",
+                                    "is_neutral": True,
+                                },
+                                "category": {"l1": "Tops", "l2": "Knitwear"},
+                                "formality": 3.0,
+                                "aesthetics": ["Minimalist"],
+                            },
+                        ],
+                        [
+                            "https://cdn.example.com/items/bottom-1.jpg",
+                            {
+                                "color": {
+                                    "hex": "#2E2E2E",
+                                    "hsl": {"h": 0, "s": 0, "l": 18},
+                                    "name": "charcoal",
+                                    "is_neutral": True,
+                                },
+                                "category": {"l1": "Bottoms", "l2": "Trousers"},
+                                "formality": 3.0,
+                                "aesthetics": ["Minimalist"],
+                            },
+                        ],
+                    ],
+                },
+            }
+        },
+    ),
     current_user: User = Depends(get_current_user),
 ) -> TryOnResponse:
     """Generate try-on image with a complete outfit."""

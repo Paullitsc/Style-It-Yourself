@@ -3,12 +3,13 @@ Recommendations router - Generate outfit suggestions based on base item properti
 """
 import logging
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Body, HTTPException, status
 
 from app.models.schemas import (
-    RecommendationRequest,
+    ErrorResponse,
     RecommendationResponse,
     ClothingItemBase,
+    RecommendationRequest,
 )
 from app.services.compatibility import generate_category_recommendations
 
@@ -22,9 +23,79 @@ router = APIRouter(prefix="/api", tags=["recommendations"])
     response_model=RecommendationResponse,
     status_code=status.HTTP_200_OK,
     summary="Generate outfit recommendations",
-    description="Generate color-coordinated outfit suggestions based on a base item",
+    description=(
+        "Generate color-coordinated recommendations for unfilled outfit categories.\n\n"
+        "The algorithm uses the provided base item's color, formality, aesthetics, and category "
+        "to suggest complementary categories, colors, and formality ranges."
+    ),
+    responses={
+        200: {
+            "description": "Recommendations generated successfully.",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "recommendations": [
+                            {
+                                "category_l1": "Bottoms",
+                                "colors": [
+                                    {
+                                        "hex": "#000000",
+                                        "name": "black",
+                                        "harmony_type": "neutral",
+                                    },
+                                    {
+                                        "hex": "#D4A373",
+                                        "name": "tan",
+                                        "harmony_type": "analogous",
+                                    },
+                                ],
+                                "formality_range": {"min": 2.0, "max": 4.0},
+                                "aesthetics": ["Minimalist"],
+                                "suggested_l2": ["Jeans", "Trousers"],
+                                "example": "Black straight-leg trousers with a navy knit top",
+                            }
+                        ]
+                    }
+                }
+            },
+        },
+        400: {
+            "model": ErrorResponse,
+            "description": "Input payload is valid JSON but failed business validation.",
+            "content": {"application/json": {"example": {"detail": "Invalid input"}}},
+        },
+        500: {
+            "model": ErrorResponse,
+            "description": "Unexpected recommendation service error.",
+            "content": {
+                "application/json": {"example": {"detail": "Failed to generate recommendations."}}
+            },
+        },
+    },
 )
-async def get_recommendations(request: RecommendationRequest) -> RecommendationResponse:
+async def get_recommendations(
+    request: RecommendationRequest = Body(
+        ...,
+        openapi_examples={
+            "minimalist_base_item": {
+                "summary": "Navy top, minimalist style",
+                "description": "Common request where tops are already filled.",
+                "value": {
+                    "base_color": {
+                        "hex": "#0B1C2D",
+                        "hsl": {"h": 210, "s": 61, "l": 11},
+                        "name": "navy",
+                        "is_neutral": True,
+                    },
+                    "base_formality": 3.0,
+                    "base_aesthetics": ["Minimalist"],
+                    "base_category": {"l1": "Tops", "l2": "Knitwear"},
+                    "filled_categories": ["Tops"],
+                },
+            }
+        },
+    )
+) -> RecommendationResponse:
     """
     Generate outfit recommendations for empty category slots.
 
