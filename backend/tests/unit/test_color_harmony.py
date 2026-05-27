@@ -214,6 +214,48 @@ def test_get_complementary_hsl_expected_hues(base_h: int, expected_h: int):
     assert (result.s, result.l) == (55, 45)
 
 
+def test_get_triadic_hsl_wraps_and_preserves_sl():
+    base = HSL(h=10, s=40, l=60)
+    result = color_harmony.get_triadic_hsl(base)
+    assert len(result) == 2
+    assert {result[0].h, result[1].h} == {130, 250}
+    for hsl in result:
+        assert (hsl.s, hsl.l) == (40, 60)
+
+
+def test_get_triadic_hsl_wraps_low_end():
+    base = HSL(h=350, s=70, l=40)
+    result = color_harmony.get_triadic_hsl(base)
+    assert {result[0].h, result[1].h} == {110, 230}
+
+
+def test_generate_recommended_colors_includes_triadic_for_chromatic_base():
+    base = Color(hex="#FF0000", hsl=HSL(h=0, s=100, l=50), name="red", is_neutral=False)
+    recs = color_harmony.generate_recommended_colors(base, include_neutrals=False)
+    triadic = [rec for rec in recs if rec.harmony_type == "triadic"]
+    assert len(triadic) == 2
+
+
+def test_generate_recommended_colors_clamps_lightness_for_dark_base():
+    """A very dark navy base (l=11) would otherwise produce muddy dark harmonies.
+    Generated picks should land in a visually usable lightness range."""
+    base = Color(hex="#0B1C2D", hsl=HSL(h=210, s=61, l=11), name="navy", is_neutral=True)
+    recs = color_harmony.generate_recommended_colors(base, include_neutrals=False)
+    for rec in recs:
+        r, g, b = int(rec.hex[1:3], 16), int(rec.hex[3:5], 16), int(rec.hex[5:7], 16)
+        # Naive perceived lightness — anything brighter than the original navy.
+        assert max(r, g, b) > 0x2D
+
+
+def test_generate_recommended_colors_clamps_lightness_for_light_base():
+    base = Color(hex="#F5F5DC", hsl=HSL(h=60, s=56, l=91), name="beige", is_neutral=True)
+    recs = color_harmony.generate_recommended_colors(base, include_neutrals=False)
+    for rec in recs:
+        r, g, b = int(rec.hex[1:3], 16), int(rec.hex[3:5], 16), int(rec.hex[5:7], 16)
+        # Should not all be near-white (every channel >= 0xE0 would be washed out).
+        assert min(r, g, b) < 0xE0 or max(r, g, b) - min(r, g, b) > 0x20
+
+
 def test_generate_recommended_colors_includes_neutrals_and_harmonies():
     base = Color(hex="#FF0000", hsl=HSL(h=0, s=100, l=50), name="red", is_neutral=False)
     recommendations = color_harmony.generate_recommended_colors(base, include_neutrals=True)
@@ -224,7 +266,12 @@ def test_generate_recommended_colors_includes_neutrals_and_harmonies():
     assert {"white", "black", "gray", "navy", "beige"}.issubset({rec.name for rec in neutrals})
     assert len(analogs) == 2
     assert len(complementary) == 1
-    assert {rec.harmony_type for rec in recommendations} <= {"neutral", "analogous", "complementary"}
+    assert {rec.harmony_type for rec in recommendations} <= {
+        "neutral",
+        "analogous",
+        "complementary",
+        "triadic",
+    }
 
     analog_expected = {
         ("orange", "#FF7F00"),
@@ -242,14 +289,62 @@ def test_generate_recommended_colors_without_neutrals():
     assert len([rec for rec in recommendations if rec.harmony_type == "complementary"]) == 1
 
 
-def test_generate_recommended_colors_for_neutral_base():
+def test_generate_recommended_colors_for_achromatic_base():
+    """Achromatic neutrals (s≈0) have no meaningful hue — skip harmony generation.
+    The base color itself is also excluded from the neutral list (no white-on-white)."""
     base = Color(hex="#FFFFFF", hsl=HSL(h=0, s=0, l=100), name="white", is_neutral=True)
     recommendations = color_harmony.generate_recommended_colors(base, include_neutrals=True)
     assert [rec for rec in recommendations if rec.harmony_type != "neutral"] == []
-    assert {"white", "black", "gray", "navy", "beige"}.issubset({rec.name for rec in recommendations})
+    names = {rec.name for rec in recommendations}
+    assert {"black", "gray", "navy", "beige"}.issubset(names)
+    assert "white" not in names
 
 
-def test_generate_recommended_colors_for_neutral_base_without_neutrals():
+def test_generate_recommended_colors_for_achromatic_base_without_neutrals():
     base = Color(hex="#FFFFFF", hsl=HSL(h=0, s=0, l=100), name="white", is_neutral=True)
     recommendations = color_harmony.generate_recommended_colors(base, include_neutrals=False)
     assert recommendations == []
+
+
+def test_generate_recommended_colors_for_chromatic_neutral_base_navy():
+    """Navy is in NEUTRAL_COLORS but has meaningful hue (h=210, s=61) — must get harmonies."""
+    base = Color(hex="#0B1C2D", hsl=HSL(h=210, s=61, l=11), name="navy", is_neutral=True)
+    recommendations = color_harmony.generate_recommended_colors(base, include_neutrals=True)
+    analogs = [rec for rec in recommendations if rec.harmony_type == "analogous"]
+    complementary = [rec for rec in recommendations if rec.harmony_type == "complementary"]
+    assert len(analogs) == 2
+    assert len(complementary) == 1
+
+
+def test_generate_recommended_colors_for_chromatic_neutral_base_beige():
+    base = Color(hex="#F5F5DC", hsl=HSL(h=60, s=56, l=91), name="beige", is_neutral=True)
+    recommendations = color_harmony.generate_recommended_colors(base, include_neutrals=False)
+    analogs = [rec for rec in recommendations if rec.harmony_type == "analogous"]
+    complementary = [rec for rec in recommendations if rec.harmony_type == "complementary"]
+    assert len(analogs) == 2
+    assert len(complementary) == 1
+
+
+def test_generate_recommended_colors_excludes_base_hex_from_neutrals():
+    """Navy base must not be told to wear navy with itself."""
+    base = Color(hex="#0B1C2D", hsl=HSL(h=210, s=61, l=11), name="navy", is_neutral=True)
+    recs = color_harmony.generate_recommended_colors(base, include_neutrals=True)
+    assert all(rec.hex.lower() != "#0b1c2d" for rec in recs)
+
+
+def test_generate_recommended_colors_excludes_base_hex_case_insensitive():
+    """Same dedup regardless of base hex letter case."""
+    base = Color(hex="#0b1c2d", hsl=HSL(h=210, s=61, l=11), name="navy", is_neutral=True)
+    recs = color_harmony.generate_recommended_colors(base, include_neutrals=True)
+    assert all(rec.hex.lower() != "#0b1c2d" for rec in recs)
+
+
+def test_generate_recommended_colors_harmonies_come_before_neutrals():
+    """Harmony picks lead the list so they surface first in the UI and the
+    example string in compatibility.py picks a harmony color, not 'black'."""
+    base = Color(hex="#FF0000", hsl=HSL(h=0, s=100, l=50), name="red", is_neutral=False)
+    recs = color_harmony.generate_recommended_colors(base, include_neutrals=True)
+    first_neutral_idx = next(i for i, r in enumerate(recs) if r.harmony_type == "neutral")
+    harmony_indices = [i for i, r in enumerate(recs) if r.harmony_type != "neutral"]
+    assert all(i < first_neutral_idx for i in harmony_indices)
+    assert recs[0].harmony_type != "neutral"

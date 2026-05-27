@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthProvider'
 import { getMatchingItems } from '@/lib/api'
+import { cn } from '@/lib/cn'
 import type {
   CategoryRecommendation,
   RecommendedColor,
@@ -13,6 +14,7 @@ import { FORMALITY_LEVELS } from '@/types'
 interface SuggestionPanelProps {
   recommendation: CategoryRecommendation | null
   categoryL1: string
+  selectedColor?: RecommendedColor | null
   onColorClick?: (color: RecommendedColor) => void
   onQuickAdd?: (item: ClothingItemResponse) => void
 }
@@ -20,6 +22,7 @@ interface SuggestionPanelProps {
 export default function SuggestionPanel({
   recommendation,
   categoryL1,
+  selectedColor,
   onColorClick,
   onQuickAdd,
 }: SuggestionPanelProps) {
@@ -167,25 +170,49 @@ export default function SuggestionPanel({
         {session?.access_token && <hr className="border-t border-rule-soft" />}
 
         {/* Recommended colors */}
-        <section>
-          <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mb-3">
-            Recommended colors
-          </div>
-          <ul className="flex flex-col gap-2">
-            {recommendation.colors.map((color, i) => (
-              <li key={i}>
+        {(() => {
+          const harmonies = recommendation.colors.filter(
+            (c) => c.harmony_type !== 'neutral',
+          )
+          const neutrals = recommendation.colors.filter(
+            (c) => c.harmony_type === 'neutral',
+          )
+
+          const renderColorButton = (color: RecommendedColor, key: string) => {
+            const isActive =
+              selectedColor?.hex.toLowerCase() === color.hex.toLowerCase()
+            return (
+              <li key={key}>
                 <button
                   type="button"
+                  aria-pressed={isActive}
                   onClick={() => onColorClick?.(color)}
-                  className="w-full flex items-center gap-3 px-3 py-2 border border-ink bg-paper hover:bg-paper-2 transition-colors text-left"
+                  className={cn(
+                    'w-full flex items-center gap-3 px-3 py-2 border border-ink text-left transition-colors',
+                    isActive ? 'bg-paper-3' : 'bg-paper hover:bg-paper-2',
+                  )}
                 >
+                  <span
+                    className={cn(
+                      'font-mono text-[10px] text-ink shrink-0 w-3 text-center',
+                      isActive ? 'opacity-100' : 'opacity-0',
+                    )}
+                    aria-hidden="true"
+                  >
+                    →
+                  </span>
                   <i
                     className="inline-block w-[20px] h-[20px] border border-ink shrink-0"
                     style={{ backgroundColor: color.hex }}
                     aria-hidden="true"
                   />
                   <div className="flex-1 min-w-0">
-                    <p className="font-display text-[15px] leading-none">
+                    <p
+                      className={cn(
+                        'font-display text-[15px] leading-none',
+                        isActive && 'font-bold',
+                      )}
+                    >
                       {color.name}
                     </p>
                     <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-ink-3 mt-1">
@@ -197,9 +224,39 @@ export default function SuggestionPanel({
                   </span>
                 </button>
               </li>
-            ))}
-          </ul>
-        </section>
+            )
+          }
+
+          return (
+            <>
+              {harmonies.length > 0 && (
+                <section>
+                  <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mb-3">
+                    Harmonies
+                  </div>
+                  <ul className="flex flex-col gap-2">
+                    {harmonies.map((color, i) =>
+                      renderColorButton(color, `h-${i}`),
+                    )}
+                  </ul>
+                </section>
+              )}
+
+              {neutrals.length > 0 && (
+                <section>
+                  <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mb-3">
+                    Neutrals
+                  </div>
+                  <ul className="flex flex-col gap-2">
+                    {neutrals.map((color, i) =>
+                      renderColorButton(color, `n-${i}`),
+                    )}
+                  </ul>
+                </section>
+              )}
+            </>
+          )
+        })()}
 
         <hr className="border-t border-rule-soft" />
 

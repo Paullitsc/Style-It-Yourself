@@ -1,14 +1,20 @@
 """Color harmony calculations and utilities.
 uses the HSL (Hue, Saturation, Lightness) color model to mathematically determine if colors look good together and to generate matching color palettes."""
-from pyparsing import Literal
 
 from app.models.schemas import HSL, Color, RecommendedColor
 from app.utils.constants import NEUTRAL_COLORS, NEUTRAL_COLOR_DATA
 
 
+# British/American spelling alias so "grey" still classifies as neutral
+# without having to duplicate the entry in NEUTRAL_COLORS / NEUTRAL_COLOR_DATA.
+_NEUTRAL_NAME_ALIASES = {"grey": "gray"}
+
+
 def is_neutral_color(color_name: str) -> bool:
     """Check if a color name is considered neutral."""
-    return color_name.lower() in NEUTRAL_COLORS
+    name = color_name.lower()
+    name = _NEUTRAL_NAME_ALIASES.get(name, name)
+    return name in NEUTRAL_COLORS
 
 
 
@@ -204,6 +210,14 @@ def get_analogous_hsl(base_hsl: HSL) -> tuple[HSL, HSL]:
 
     return hsl1, hsl2
 
+def get_triadic_hsl(base_hsl: HSL) -> tuple[HSL, HSL]:
+    """Generate triadic colors (±120° from base)."""
+    h, s, l = base_hsl.get_hsl()
+    h1 = (h + 120) % 360
+    h2 = (h - 120) % 360
+    return HSL(h=h1, s=s, l=l), HSL(h=h2, s=s, l=l)
+
+
 def get_complementary_hsl(base_hsl: HSL) -> HSL:
     """Get the complementary color (180° opposite)."""
     h,s,l = base_hsl.get_hsl()
@@ -228,12 +242,12 @@ def generate_recommended_colors(base_color: Color, include_neutrals: bool = True
     3. Return list of RecommendedColor objects
     """
 
-    def hsl_to_rec(rec_hsl: HSL) -> RecommendedColor:
+    def hsl_to_rec(rec_hsl: HSL, harmony: str) -> RecommendedColor:
+        # Label by generation intent, not by re-deriving from check_color_compatibility.
+        # The latter short-circuits to "neutral" whenever either input has a neutral
+        # name (e.g. navy base), masking the actual analogous/complementary relationship.
         hex = hsl_to_hex(rec_hsl)
-        recColor = hsl_to_color(rec_hsl)
-        rec_name = recColor.name
-        harmony = check_color_compatibility(base_color, recColor)[1]
-
+        rec_name = get_color_name_from_hsl(rec_hsl)
         return RecommendedColor(hex=hex, name=rec_name, harmony_type=harmony)
 
 
@@ -241,9 +255,39 @@ def generate_recommended_colors(base_color: Color, include_neutrals: bool = True
     recommended_colors : list[RecommendedColor] = []
     baseHSL : HSL = base_color.hsl
 
-    # TODO: Look into adding all the neutral colors
+    # Harmonies first — they're the differentiator and should lead the list.
+    # Neutrals are appended after as the safe fallback set. Skip harmony
+    # generation only for truly achromatic bases (gray/black/white); chromatic
+    # "fashion neutrals" like navy/beige/tan/khaki have meaningful hue.
+    if baseHSL.s >= 10:
+        anal1, anal2 = get_analogous_hsl(baseHSL)
+        comp = get_complementary_hsl(baseHSL)
+        tri1, tri2 = get_triadic_hsl(baseHSL)
+
+        # When the base is at the lightness extremes (very dark or very light),
+        # generated harmonies that share that lightness look muddy or washed
+        # out. Pull them toward the mid range so the harmony relationship
+        # actually reads visually.
+        def _balance_lightness(hsl: HSL) -> HSL:
+            balanced_l = max(25, min(75, hsl.l))
+            if balanced_l == hsl.l:
+                return hsl
+            return HSL(h=hsl.h, s=hsl.s, l=balanced_l)
+
+        recommended_colors += [
+            hsl_to_rec(_balance_lightness(anal1), "analogous"),
+            hsl_to_rec(_balance_lightness(anal2), "analogous"),
+            hsl_to_rec(_balance_lightness(comp), "complementary"),
+            hsl_to_rec(_balance_lightness(tri1), "triadic"),
+            hsl_to_rec(_balance_lightness(tri2), "triadic"),
+        ]
+
     if include_neutrals:
+        # Seed with already-generated harmonies AND the base color itself so we
+        # never recommend the same color the user uploaded (e.g. navy base
+        # would otherwise suggest navy from the neutral set).
         seen_hex: set[str] = {c.hex.lower() for c in recommended_colors}
+        seen_hex.add(base_color.hex.lower())
 
         for name in NEUTRAL_COLORS:
             data = NEUTRAL_COLOR_DATA.get(name)
@@ -256,16 +300,5 @@ def generate_recommended_colors(base_color: Color, include_neutrals: bool = True
                 RecommendedColor(hex=hx, name=name, harmony_type="neutral")
             )
             seen_hex.add(hx)
-
-
-    # TODO: do something here
-    if is_neutral_color(base_color.name):
-        pass
-    else:
-        anal1, anal2 = get_analogous_hsl(baseHSL)
-        comp = get_complementary_hsl(baseHSL)
-
-        non_neutral_recs = [hsl_to_rec(anal1), hsl_to_rec(anal2), hsl_to_rec(comp)]
-        recommended_colors += non_neutral_recs
 
     return recommended_colors
