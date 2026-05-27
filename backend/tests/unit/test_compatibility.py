@@ -41,6 +41,18 @@ def _make_item(
     )
 
 
+def _make_color_only_item(h: int, s: int, l: int, name: str) -> ClothingItemBase:
+    """Helper for color-clash tests — non-neutral color with controllable HSL.
+    The `name` is intentionally not in NEUTRAL_COLORS so check_color_compatibility
+    doesn't short-circuit to neutral."""
+    return ClothingItemBase(
+        color=Color(hex="#101010", hsl=HSL(h=h, s=s, l=l), name=name, is_neutral=False),
+        category=Category(l1="Tops", l2="T-Shirts"),
+        formality=3.0,
+        aesthetics=[],
+    )
+
+
 # ==============================================================================
 # FORMALITY CHECKING TESTS
 # ==============================================================================
@@ -194,12 +206,31 @@ def test_check_category_pairing_full_body_invalid():
     """Test Full Body category with invalid pairing."""
     sneakers = _make_item("Shoes", "Sneakers")
     dress = _make_item("Full Body", "Dresses")
-    
+
     # Sneakers don't typically pair with Dresses
     status, msg = compatibility.check_category_pairing(sneakers, dress)
     # This depends on SHOE_BOTTOM_PAIRINGS - if Sneakers allows Dresses, it's ok
     # Otherwise it's a warning
     assert status in ["ok", "warning"]
+
+
+def test_check_category_pairing_sandals_with_suit_warns():
+    """Sandals don't pair with Suits — Sandals' allowed list contains Dresses
+    but not Suits, so the bottom-specific check must reject this combo."""
+    sandals = _make_item("Shoes", "Sandals")
+    suit = _make_item("Full Body", "Suits")
+    status, msg = compatibility.check_category_pairing(sandals, suit)
+    assert status == "warning"
+    assert msg is not None and "Sandals" in msg and "Suits" in msg
+
+
+def test_check_category_pairing_oxfords_with_dress_warns():
+    """Oxfords' allowed list contains Suits but not Dresses; the check
+    must reject Oxfords+Dress even though Suits is in the allowed list."""
+    oxfords = _make_item("Shoes", "Oxfords")
+    dress = _make_item("Full Body", "Dresses")
+    status, msg = compatibility.check_category_pairing(oxfords, dress)
+    assert status == "warning"
 
 
 def test_check_category_pairing_non_shoe_bottom():
@@ -213,16 +244,15 @@ def test_check_category_pairing_non_shoe_bottom():
 
 
 def test_check_category_pairing_unknown_shoe_type():
-    """Test with unknown shoe type (should warn if no pairing rule exists)."""
+    """Unknown shoe types have no rule — stay silent instead of falsely
+    warning. Confidently rejecting an unknown combination is worse than
+    saying nothing."""
     unknown_shoe = _make_item("Shoes", "UnknownShoeType")
     jeans = _make_item("Bottoms", "Jeans")
-    
+
     status, msg = compatibility.check_category_pairing(unknown_shoe, jeans)
-    # If shoe type not in SHOE_BOTTOM_PAIRINGS, allowed_bottoms is empty,
-    # so "Jeans" won't be in the list, resulting in a warning
-    # This is correct behavior - warn when pairing rules don't exist
-    assert status == "warning"
-    assert msg is not None
+    assert status == "ok"
+    assert msg is None
 
 
 # ==============================================================================
@@ -348,11 +378,45 @@ def test_calculate_cohesion_score_color_clash():
     ]
     
     score = compatibility.calculate_cohesion_score(items, base_item)
-    # Should be lower due to color penalty (red and unrelated color don't match)
-    # With 1 incompatible pair out of 1 total pair, penalty = (1/1) * 30 = 30
-    # So score should be 100 - 30 = 70 (plus any other penalties)
+    # 1 incompatible pair → penalty = min(1*10, 30) = 10 → score = 90.
     assert score < 100
-    assert score <= 70  # At most 70 if only color penalty applies
+    assert score <= 90
+
+
+def test_calculate_cohesion_score_color_penalty_not_diluted_by_outfit_size():
+    """One color clash in a 2-item outfit and the same clash in a larger outfit
+    should produce the same color penalty. The previous ratio-based scoring
+    (incompatible_pairs / total_pairs) silently reduced the penalty as the
+    outfit grew, so a single clash among 6 items barely registered."""
+    red = _make_color("red", h=0, s=100, l=50, hex_value="#FF0000")
+    yellow = _make_color("yellow", h=80, s=100, l=50, hex_value="#FFFF00")
+    base_item = ClothingItemBase(
+        color=red, category=Category(l1="Tops", l2="T-Shirts"),
+        formality=3.0, aesthetics=["Minimalist", "Streetwear"],
+    )
+
+    def clashing_with(others_count: int) -> int:
+        items = [
+            ClothingItemBase(
+                color=yellow, category=Category(l1="Bottoms", l2="Jeans"),
+                formality=3.0, aesthetics=["Minimalist", "Streetwear"],
+            ),
+        ]
+        # Add `others_count` extra items in neutral white that don't clash with
+        # anything, only inflating total_pairs.
+        white = _make_color("white", h=0, s=0, l=100, hex_value="#FFFFFF")
+        for i in range(others_count):
+            items.append(ClothingItemBase(
+                color=white,
+                category=Category(l1="Accessories", l2=f"Item{i}"),
+                formality=3.0, aesthetics=["Minimalist", "Streetwear"],
+            ))
+        return compatibility.calculate_cohesion_score(items, base_item)
+
+    small_outfit_score = clashing_with(0)
+    big_outfit_score = clashing_with(3)
+    # Color penalty must be the same — the only differing factor is total pairs.
+    assert small_outfit_score == big_outfit_score
 
 
 def test_calculate_cohesion_score_formality_gap():
@@ -485,13 +549,32 @@ def test_validate_item_with_current_outfit():
     current_outfit = [
         _make_item("Bottoms", "Jeans", formality=3.0, color_name="blue"),
     ]
-    
+
     response = compatibility.validate_item(new_item, base_item, current_outfit)
-    
+
     assert isinstance(response, ValidateItemResponse)
     # Should check against both base_item and current_outfit items
-    assert response.color_status in ["ok", "warning"]
+    assert response.color_status in ["ok", "warning", "mismatch"]
     assert response.formality_status in ["ok", "warning", "mismatch"]
+
+
+def test_validate_item_color_clash_returns_mismatch():
+    """Hard color clashes should escalate to 'mismatch', not be capped at
+    'warning'. Formality already has three levels — color should too."""
+    base_item = _make_color_only_item(h=0, s=100, l=50, name="red")    # red
+    new_item = _make_color_only_item(h=80, s=100, l=50, name="yellow")  # incompatible (gap=80°)
+    response = compatibility.validate_item(new_item, base_item, [])
+    assert response.color_status == "mismatch"
+
+
+def test_validate_item_color_clash_warning_text_excludes_internal_label():
+    """Warning text must not leak the internal '(none)' harmony_type label
+    when colors clash."""
+    base_item = _make_color_only_item(h=0, s=100, l=50, name="red")
+    new_item = _make_color_only_item(h=80, s=100, l=50, name="yellow")
+    response = compatibility.validate_item(new_item, base_item, [])
+    for warning in response.warnings:
+        assert "(none)" not in warning
 
 
 # ==============================================================================

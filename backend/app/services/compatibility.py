@@ -145,22 +145,20 @@ def check_category_pairing(item1: ClothingItemBase, item2: ClothingItemBase) -> 
         return ("ok", None)
 
     shoe_l2 = shoe_item.category.l2
-    allowed_bottoms = SHOE_BOTTOM_PAIRINGS.get(shoe_l2, [])
-
-    # Handle Full Body items (Dresses, Suits)
     bottom_l2 = bottom_item.category.l2
-    if bottom_item.category.l1 == "Full Body":
-        # Check if "Dresses" or "Suits" are in allowed list
-        if "Dresses" in allowed_bottoms or "Suits" in allowed_bottoms:
-            return ("ok", None)
-        else:
-            return ("warning", f"{shoe_l2} typically don't pair with {bottom_l2}")
-    
-    # Check regular bottom pairing
+
+    # If we have no rule for this shoe type, stay silent rather than confidently
+    # warning. dict.get(..., []) would conflate "no rule" with "empty allow list"
+    # and flag every bottom as a mismatch.
+    if shoe_l2 not in SHOE_BOTTOM_PAIRINGS:
+        return ("ok", None)
+    allowed_bottoms = SHOE_BOTTOM_PAIRINGS[shoe_l2]
+
+    # Full Body L2 values ("Dresses", "Suits") live in the same allowed_bottoms
+    # list as regular bottoms, so one membership check covers both.
     if bottom_l2 in allowed_bottoms:
         return ("ok", None)
-    else:
-        return ("warning", f"{shoe_l2} typically don't pair with {bottom_l2}")
+    return ("warning", f"{shoe_l2} typically don't pair with {bottom_l2}")
 
 
     
@@ -204,23 +202,26 @@ def validate_item(
     warnings = []
     
     # 1. Color compatibility checks
+    # Any incompatible pair escalates color_status to "mismatch" (parity with
+    # formality_status). The internal harmony_type label is intentionally not
+    # interpolated into the warning text — it would surface as "(none)".
     color_warnings = []
     color_ok = True
-    
+
     # Check vs base_item
-    is_compatible, harmony_type = check_color_compatibility(new_item.color, base_item.color)
+    is_compatible, _ = check_color_compatibility(new_item.color, base_item.color)
     if not is_compatible:
         color_ok = False
-        color_warnings.append(f"Color may clash with base item ({harmony_type})")
-    
+        color_warnings.append("Color may clash with base item")
+
     # Check vs each item in current_outfit
     for item in current_outfit:
-        is_compatible, harmony_type = check_color_compatibility(new_item.color, item.color)
+        is_compatible, _ = check_color_compatibility(new_item.color, item.color)
         if not is_compatible:
             color_ok = False
-            color_warnings.append(f"Color may clash with {item.category.l2} ({harmony_type})")
-    
-    color_status = "ok" if color_ok else "warning"
+            color_warnings.append(f"Color may clash with {item.category.l2}")
+
+    color_status = "ok" if color_ok else "mismatch"
     warnings.extend(color_warnings)
     
     # 2. Formality compatibility checks
@@ -375,20 +376,19 @@ def calculate_cohesion_score(items: list[ClothingItemBase], base_item: ClothingI
     
     score = 100
     
-    # Color penalty (up to -30 points)
+    # Color penalty (up to -30 points): scale by the count of incompatible
+    # pairs, not the ratio. A ratio dilutes the penalty as outfits grow —
+    # one clash among 6 items was -2; the same clash among 3 was -10. Larger
+    # outfits should be at least as sensitive to clashes, not less.
     incompatible_pairs = 0
-    total_pairs = 0
-    
     for i in range(len(all_items)):
         for j in range(i + 1, len(all_items)):
-            total_pairs += 1
             is_compatible, _ = check_color_compatibility(all_items[i].color, all_items[j].color)
             if not is_compatible:
                 incompatible_pairs += 1
-    
-    if total_pairs > 0:
-        color_penalty = (incompatible_pairs / total_pairs) * 30
-        score -= color_penalty
+
+    color_penalty = min(incompatible_pairs * 10, 30)
+    score -= color_penalty
     
     # Formality penalty (up to -40 points)
     # VALIDATION FIX: Explicitly handle float formality values

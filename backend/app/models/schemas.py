@@ -139,7 +139,7 @@ class ValidateItemRequest(BaseModel):
 
 class ValidateItemResponse(BaseModel):
     """Response body for POST /api/validate-item"""
-    color_status: str = Field(..., pattern=r"^(ok|warning)$")
+    color_status: str = Field(..., pattern=r"^(ok|warning|mismatch)$")
     formality_status: str = Field(..., pattern=r"^(ok|warning|mismatch)$")
     aesthetic_status: str = Field(..., pattern=r"^(cohesive|warning)$")
     pairing_status: str = Field(..., pattern=r"^(ok|warning)$")
