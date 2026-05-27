@@ -123,11 +123,23 @@ export default function AddItemPanel({
     }
   }, [recommendation, currentStep, setAddingItemFormality])
 
+  // Track the last suggestion hex we auto-applied. Without this, navigating
+  // back to 'metadata' and forward to 'colors' would silently re-override
+  // whatever color the user picked in between.
+  const lastAppliedSuggestionRef = useRef<string | null>(null)
+
   useEffect(() => {
-    if (suggestedColor && currentStep === 'colors') {
-      setAddingItemAdjustedColor(buildColorFromHex(suggestedColor.hex))
-    }
+    if (!suggestedColor || currentStep !== 'colors') return
+    const hex = suggestedColor.hex.toLowerCase()
+    if (lastAppliedSuggestionRef.current === hex) return
+    setAddingItemAdjustedColor(buildColorFromHex(suggestedColor.hex))
+    lastAppliedSuggestionRef.current = hex
   }, [suggestedColor, currentStep, setAddingItemAdjustedColor])
+
+  const isSuggestionApplied =
+    !!suggestedColor &&
+    addingItem.adjustedColor?.hex.toLowerCase() ===
+      suggestedColor.hex.toLowerCase()
 
   const handleFileSelect = useCallback((file: File) => {
     setSelectedFile(file)
@@ -863,6 +875,24 @@ export default function AddItemPanel({
                 )}
               </div>
             </div>
+
+            {isSuggestionApplied && suggestedColor && (
+              <div className="flex items-center justify-between gap-3 px-3 py-2 border border-ink bg-paper-3">
+                <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3">
+                  Using suggested color
+                </span>
+                <div className="flex items-center gap-2">
+                  <i
+                    className="inline-block w-3 h-3 border border-ink"
+                    style={{ backgroundColor: suggestedColor.hex }}
+                    aria-hidden="true"
+                  />
+                  <span className="font-display italic text-[14px] leading-none">
+                    {suggestedColor.name}
+                  </span>
+                </div>
+              </div>
+            )}
 
             <ColorSelector
               detectedColors={addingItem.detectedColors.map((dc) => ({
