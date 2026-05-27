@@ -376,20 +376,19 @@ def calculate_cohesion_score(items: list[ClothingItemBase], base_item: ClothingI
     
     score = 100
     
-    # Color penalty (up to -30 points)
+    # Color penalty (up to -30 points): scale by the count of incompatible
+    # pairs, not the ratio. A ratio dilutes the penalty as outfits grow —
+    # one clash among 6 items was -2; the same clash among 3 was -10. Larger
+    # outfits should be at least as sensitive to clashes, not less.
     incompatible_pairs = 0
-    total_pairs = 0
-    
     for i in range(len(all_items)):
         for j in range(i + 1, len(all_items)):
-            total_pairs += 1
             is_compatible, _ = check_color_compatibility(all_items[i].color, all_items[j].color)
             if not is_compatible:
                 incompatible_pairs += 1
-    
-    if total_pairs > 0:
-        color_penalty = (incompatible_pairs / total_pairs) * 30
-        score -= color_penalty
+
+    color_penalty = min(incompatible_pairs * 10, 30)
+    score -= color_penalty
     
     # Formality penalty (up to -40 points)
     # VALIDATION FIX: Explicitly handle float formality values

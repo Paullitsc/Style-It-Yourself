@@ -378,11 +378,45 @@ def test_calculate_cohesion_score_color_clash():
     ]
     
     score = compatibility.calculate_cohesion_score(items, base_item)
-    # Should be lower due to color penalty (red and unrelated color don't match)
-    # With 1 incompatible pair out of 1 total pair, penalty = (1/1) * 30 = 30
-    # So score should be 100 - 30 = 70 (plus any other penalties)
+    # 1 incompatible pair → penalty = min(1*10, 30) = 10 → score = 90.
     assert score < 100
-    assert score <= 70  # At most 70 if only color penalty applies
+    assert score <= 90
+
+
+def test_calculate_cohesion_score_color_penalty_not_diluted_by_outfit_size():
+    """One color clash in a 2-item outfit and the same clash in a larger outfit
+    should produce the same color penalty. The previous ratio-based scoring
+    (incompatible_pairs / total_pairs) silently reduced the penalty as the
+    outfit grew, so a single clash among 6 items barely registered."""
+    red = _make_color("red", h=0, s=100, l=50, hex_value="#FF0000")
+    yellow = _make_color("yellow", h=80, s=100, l=50, hex_value="#FFFF00")
+    base_item = ClothingItemBase(
+        color=red, category=Category(l1="Tops", l2="T-Shirts"),
+        formality=3.0, aesthetics=["Minimalist", "Streetwear"],
+    )
+
+    def clashing_with(others_count: int) -> int:
+        items = [
+            ClothingItemBase(
+                color=yellow, category=Category(l1="Bottoms", l2="Jeans"),
+                formality=3.0, aesthetics=["Minimalist", "Streetwear"],
+            ),
+        ]
+        # Add `others_count` extra items in neutral white that don't clash with
+        # anything, only inflating total_pairs.
+        white = _make_color("white", h=0, s=0, l=100, hex_value="#FFFFFF")
+        for i in range(others_count):
+            items.append(ClothingItemBase(
+                color=white,
+                category=Category(l1="Accessories", l2=f"Item{i}"),
+                formality=3.0, aesthetics=["Minimalist", "Streetwear"],
+            ))
+        return compatibility.calculate_cohesion_score(items, base_item)
+
+    small_outfit_score = clashing_with(0)
+    big_outfit_score = clashing_with(3)
+    # Color penalty must be the same — the only differing factor is total pairs.
+    assert small_outfit_score == big_outfit_score
 
 
 def test_calculate_cohesion_score_formality_gap():
