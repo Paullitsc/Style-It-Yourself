@@ -273,3 +273,14 @@ def test_generate_recommended_colors_for_chromatic_neutral_base_beige():
     complementary = [rec for rec in recommendations if rec.harmony_type == "complementary"]
     assert len(analogs) == 2
     assert len(complementary) == 1
+
+
+def test_generate_recommended_colors_harmonies_come_before_neutrals():
+    """Harmony picks lead the list so they surface first in the UI and the
+    example string in compatibility.py picks a harmony color, not 'black'."""
+    base = Color(hex="#FF0000", hsl=HSL(h=0, s=100, l=50), name="red", is_neutral=False)
+    recs = color_harmony.generate_recommended_colors(base, include_neutrals=True)
+    first_neutral_idx = next(i for i, r in enumerate(recs) if r.harmony_type == "neutral")
+    harmony_indices = [i for i, r in enumerate(recs) if r.harmony_type != "neutral"]
+    assert all(i < first_neutral_idx for i in harmony_indices)
+    assert recs[0].harmony_type != "neutral"
