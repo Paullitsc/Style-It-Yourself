@@ -228,12 +228,12 @@ def generate_recommended_colors(base_color: Color, include_neutrals: bool = True
     3. Return list of RecommendedColor objects
     """
 
-    def hsl_to_rec(rec_hsl: HSL) -> RecommendedColor:
+    def hsl_to_rec(rec_hsl: HSL, harmony: str) -> RecommendedColor:
+        # Label by generation intent, not by re-deriving from check_color_compatibility.
+        # The latter short-circuits to "neutral" whenever either input has a neutral
+        # name (e.g. navy base), masking the actual analogous/complementary relationship.
         hex = hsl_to_hex(rec_hsl)
-        recColor = hsl_to_color(rec_hsl)
-        rec_name = recColor.name
-        harmony = check_color_compatibility(base_color, recColor)[1]
-
+        rec_name = get_color_name_from_hsl(rec_hsl)
         return RecommendedColor(hex=hex, name=rec_name, harmony_type=harmony)
 
 
@@ -258,14 +258,18 @@ def generate_recommended_colors(base_color: Color, include_neutrals: bool = True
             seen_hex.add(hx)
 
 
-    # TODO: do something here
-    if is_neutral_color(base_color.name):
-        pass
-    else:
+    # Skip harmony generation only for truly achromatic bases (gray/black/white).
+    # Chromatic "fashion neutrals" like navy/beige/tan/khaki have meaningful hue
+    # and should still receive analogous/complementary picks.
+    if baseHSL.s >= 10:
         anal1, anal2 = get_analogous_hsl(baseHSL)
         comp = get_complementary_hsl(baseHSL)
 
-        non_neutral_recs = [hsl_to_rec(anal1), hsl_to_rec(anal2), hsl_to_rec(comp)]
+        non_neutral_recs = [
+            hsl_to_rec(anal1, "analogous"),
+            hsl_to_rec(anal2, "analogous"),
+            hsl_to_rec(comp, "complementary"),
+        ]
         recommended_colors += non_neutral_recs
 
     return recommended_colors

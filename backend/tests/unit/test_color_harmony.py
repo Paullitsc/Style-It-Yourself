@@ -242,14 +242,34 @@ def test_generate_recommended_colors_without_neutrals():
     assert len([rec for rec in recommendations if rec.harmony_type == "complementary"]) == 1
 
 
-def test_generate_recommended_colors_for_neutral_base():
+def test_generate_recommended_colors_for_achromatic_base():
+    """Achromatic neutrals (s≈0) have no meaningful hue — skip harmony generation."""
     base = Color(hex="#FFFFFF", hsl=HSL(h=0, s=0, l=100), name="white", is_neutral=True)
     recommendations = color_harmony.generate_recommended_colors(base, include_neutrals=True)
     assert [rec for rec in recommendations if rec.harmony_type != "neutral"] == []
     assert {"white", "black", "gray", "navy", "beige"}.issubset({rec.name for rec in recommendations})
 
 
-def test_generate_recommended_colors_for_neutral_base_without_neutrals():
+def test_generate_recommended_colors_for_achromatic_base_without_neutrals():
     base = Color(hex="#FFFFFF", hsl=HSL(h=0, s=0, l=100), name="white", is_neutral=True)
     recommendations = color_harmony.generate_recommended_colors(base, include_neutrals=False)
     assert recommendations == []
+
+
+def test_generate_recommended_colors_for_chromatic_neutral_base_navy():
+    """Navy is in NEUTRAL_COLORS but has meaningful hue (h=210, s=61) — must get harmonies."""
+    base = Color(hex="#0B1C2D", hsl=HSL(h=210, s=61, l=11), name="navy", is_neutral=True)
+    recommendations = color_harmony.generate_recommended_colors(base, include_neutrals=True)
+    analogs = [rec for rec in recommendations if rec.harmony_type == "analogous"]
+    complementary = [rec for rec in recommendations if rec.harmony_type == "complementary"]
+    assert len(analogs) == 2
+    assert len(complementary) == 1
+
+
+def test_generate_recommended_colors_for_chromatic_neutral_base_beige():
+    base = Color(hex="#F5F5DC", hsl=HSL(h=60, s=56, l=91), name="beige", is_neutral=True)
+    recommendations = color_harmony.generate_recommended_colors(base, include_neutrals=False)
+    analogs = [rec for rec in recommendations if rec.harmony_type == "analogous"]
+    complementary = [rec for rec in recommendations if rec.harmony_type == "complementary"]
+    assert len(analogs) == 2
+    assert len(complementary) == 1
