@@ -558,11 +558,12 @@ def generate_category_recommendations(
     
     # Exclude already filled categories
     categories_to_recommend = [cat for cat in categories_to_recommend if cat not in filled_categories]
-    
+
+    # Colors don't depend on the slot category — compute once and reuse.
+    colors = generate_recommended_colors(base_item.color, include_neutrals=True)
+
     # 2. For each category to recommend
     for category_l1 in categories_to_recommend:
-        # Generate colors
-        colors = generate_recommended_colors(base_item.color, include_neutrals=True)
         
         # Calculate formality range: base ± 1, clamped to 1-5
         # VALIDATION FIX: Explicitly handle float formality

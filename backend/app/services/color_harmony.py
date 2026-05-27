@@ -1,14 +1,20 @@
 """Color harmony calculations and utilities.
 uses the HSL (Hue, Saturation, Lightness) color model to mathematically determine if colors look good together and to generate matching color palettes."""
-from pyparsing import Literal
 
 from app.models.schemas import HSL, Color, RecommendedColor
 from app.utils.constants import NEUTRAL_COLORS, NEUTRAL_COLOR_DATA
 
 
+# British/American spelling alias so "grey" still classifies as neutral
+# without having to duplicate the entry in NEUTRAL_COLORS / NEUTRAL_COLOR_DATA.
+_NEUTRAL_NAME_ALIASES = {"grey": "gray"}
+
+
 def is_neutral_color(color_name: str) -> bool:
     """Check if a color name is considered neutral."""
-    return color_name.lower() in NEUTRAL_COLORS
+    name = color_name.lower()
+    name = _NEUTRAL_NAME_ALIASES.get(name, name)
+    return name in NEUTRAL_COLORS
 
 
 
