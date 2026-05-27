@@ -170,61 +170,93 @@ export default function SuggestionPanel({
         {session?.access_token && <hr className="border-t border-rule-soft" />}
 
         {/* Recommended colors */}
-        <section>
-          <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mb-3">
-            Recommended colors
-          </div>
-          <ul className="flex flex-col gap-2">
-            {recommendation.colors.map((color, i) => {
-              const isActive =
-                selectedColor?.hex.toLowerCase() === color.hex.toLowerCase()
-              return (
-                <li key={i}>
-                  <button
-                    type="button"
-                    aria-pressed={isActive}
-                    onClick={() => onColorClick?.(color)}
+        {(() => {
+          const harmonies = recommendation.colors.filter(
+            (c) => c.harmony_type !== 'neutral',
+          )
+          const neutrals = recommendation.colors.filter(
+            (c) => c.harmony_type === 'neutral',
+          )
+
+          const renderColorButton = (color: RecommendedColor, key: string) => {
+            const isActive =
+              selectedColor?.hex.toLowerCase() === color.hex.toLowerCase()
+            return (
+              <li key={key}>
+                <button
+                  type="button"
+                  aria-pressed={isActive}
+                  onClick={() => onColorClick?.(color)}
+                  className={cn(
+                    'w-full flex items-center gap-3 px-3 py-2 border border-ink text-left transition-colors',
+                    isActive ? 'bg-paper-3' : 'bg-paper hover:bg-paper-2',
+                  )}
+                >
+                  <span
                     className={cn(
-                      'w-full flex items-center gap-3 px-3 py-2 border border-ink text-left transition-colors',
-                      isActive ? 'bg-paper-3' : 'bg-paper hover:bg-paper-2',
+                      'font-mono text-[10px] text-ink shrink-0 w-3 text-center',
+                      isActive ? 'opacity-100' : 'opacity-0',
                     )}
+                    aria-hidden="true"
                   >
-                    <span
+                    →
+                  </span>
+                  <i
+                    className="inline-block w-[20px] h-[20px] border border-ink shrink-0"
+                    style={{ backgroundColor: color.hex }}
+                    aria-hidden="true"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p
                       className={cn(
-                        'font-mono text-[10px] text-ink shrink-0 w-3 text-center',
-                        isActive ? 'opacity-100' : 'opacity-0',
+                        'font-display text-[15px] leading-none',
+                        isActive && 'font-bold',
                       )}
-                      aria-hidden="true"
                     >
-                      →
-                    </span>
-                    <i
-                      className="inline-block w-[20px] h-[20px] border border-ink shrink-0"
-                      style={{ backgroundColor: color.hex }}
-                      aria-hidden="true"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p
-                        className={cn(
-                          'font-display text-[15px] leading-none',
-                          isActive && 'font-bold',
-                        )}
-                      >
-                        {color.name}
-                      </p>
-                      <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-ink-3 mt-1">
-                        {color.hex.toUpperCase()}
-                      </p>
-                    </div>
-                    <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-ink-3 shrink-0">
-                      {color.harmony_type}
-                    </span>
-                  </button>
-                </li>
-              )
-            })}
-          </ul>
-        </section>
+                      {color.name}
+                    </p>
+                    <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-ink-3 mt-1">
+                      {color.hex.toUpperCase()}
+                    </p>
+                  </div>
+                  <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-ink-3 shrink-0">
+                    {color.harmony_type}
+                  </span>
+                </button>
+              </li>
+            )
+          }
+
+          return (
+            <>
+              {harmonies.length > 0 && (
+                <section>
+                  <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mb-3">
+                    Harmonies
+                  </div>
+                  <ul className="flex flex-col gap-2">
+                    {harmonies.map((color, i) =>
+                      renderColorButton(color, `h-${i}`),
+                    )}
+                  </ul>
+                </section>
+              )}
+
+              {neutrals.length > 0 && (
+                <section>
+                  <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mb-3">
+                    Neutrals
+                  </div>
+                  <ul className="flex flex-col gap-2">
+                    {neutrals.map((color, i) =>
+                      renderColorButton(color, `n-${i}`),
+                    )}
+                  </ul>
+                </section>
+              )}
+            </>
+          )
+        })()}
 
         <hr className="border-t border-rule-soft" />
 
