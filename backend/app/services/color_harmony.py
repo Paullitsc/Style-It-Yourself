@@ -256,7 +256,11 @@ def generate_recommended_colors(base_color: Color, include_neutrals: bool = True
         ]
 
     if include_neutrals:
+        # Seed with already-generated harmonies AND the base color itself so we
+        # never recommend the same color the user uploaded (e.g. navy base
+        # would otherwise suggest navy from the neutral set).
         seen_hex: set[str] = {c.hex.lower() for c in recommended_colors}
+        seen_hex.add(base_color.hex.lower())
 
         for name in NEUTRAL_COLORS:
             data = NEUTRAL_COLOR_DATA.get(name)

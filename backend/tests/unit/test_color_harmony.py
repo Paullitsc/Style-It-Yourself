@@ -243,11 +243,14 @@ def test_generate_recommended_colors_without_neutrals():
 
 
 def test_generate_recommended_colors_for_achromatic_base():
-    """Achromatic neutrals (s≈0) have no meaningful hue — skip harmony generation."""
+    """Achromatic neutrals (s≈0) have no meaningful hue — skip harmony generation.
+    The base color itself is also excluded from the neutral list (no white-on-white)."""
     base = Color(hex="#FFFFFF", hsl=HSL(h=0, s=0, l=100), name="white", is_neutral=True)
     recommendations = color_harmony.generate_recommended_colors(base, include_neutrals=True)
     assert [rec for rec in recommendations if rec.harmony_type != "neutral"] == []
-    assert {"white", "black", "gray", "navy", "beige"}.issubset({rec.name for rec in recommendations})
+    names = {rec.name for rec in recommendations}
+    assert {"black", "gray", "navy", "beige"}.issubset(names)
+    assert "white" not in names
 
 
 def test_generate_recommended_colors_for_achromatic_base_without_neutrals():
@@ -273,6 +276,20 @@ def test_generate_recommended_colors_for_chromatic_neutral_base_beige():
     complementary = [rec for rec in recommendations if rec.harmony_type == "complementary"]
     assert len(analogs) == 2
     assert len(complementary) == 1
+
+
+def test_generate_recommended_colors_excludes_base_hex_from_neutrals():
+    """Navy base must not be told to wear navy with itself."""
+    base = Color(hex="#0B1C2D", hsl=HSL(h=210, s=61, l=11), name="navy", is_neutral=True)
+    recs = color_harmony.generate_recommended_colors(base, include_neutrals=True)
+    assert all(rec.hex.lower() != "#0b1c2d" for rec in recs)
+
+
+def test_generate_recommended_colors_excludes_base_hex_case_insensitive():
+    """Same dedup regardless of base hex letter case."""
+    base = Color(hex="#0b1c2d", hsl=HSL(h=210, s=61, l=11), name="navy", is_neutral=True)
+    recs = color_harmony.generate_recommended_colors(base, include_neutrals=True)
+    assert all(rec.hex.lower() != "#0b1c2d" for rec in recs)
 
 
 def test_generate_recommended_colors_harmonies_come_before_neutrals():
