@@ -232,16 +232,15 @@ def test_check_category_pairing_non_shoe_bottom():
 
 
 def test_check_category_pairing_unknown_shoe_type():
-    """Test with unknown shoe type (should warn if no pairing rule exists)."""
+    """Unknown shoe types have no rule — stay silent instead of falsely
+    warning. Confidently rejecting an unknown combination is worse than
+    saying nothing."""
     unknown_shoe = _make_item("Shoes", "UnknownShoeType")
     jeans = _make_item("Bottoms", "Jeans")
-    
+
     status, msg = compatibility.check_category_pairing(unknown_shoe, jeans)
-    # If shoe type not in SHOE_BOTTOM_PAIRINGS, allowed_bottoms is empty,
-    # so "Jeans" won't be in the list, resulting in a warning
-    # This is correct behavior - warn when pairing rules don't exist
-    assert status == "warning"
-    assert msg is not None
+    assert status == "ok"
+    assert msg is None
 
 
 # ==============================================================================

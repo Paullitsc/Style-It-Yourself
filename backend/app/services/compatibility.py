@@ -146,12 +146,16 @@ def check_category_pairing(item1: ClothingItemBase, item2: ClothingItemBase) -> 
 
     shoe_l2 = shoe_item.category.l2
     bottom_l2 = bottom_item.category.l2
-    allowed_bottoms = SHOE_BOTTOM_PAIRINGS.get(shoe_l2, [])
+
+    # If we have no rule for this shoe type, stay silent rather than confidently
+    # warning. dict.get(..., []) would conflate "no rule" with "empty allow list"
+    # and flag every bottom as a mismatch.
+    if shoe_l2 not in SHOE_BOTTOM_PAIRINGS:
+        return ("ok", None)
+    allowed_bottoms = SHOE_BOTTOM_PAIRINGS[shoe_l2]
 
     # Full Body L2 values ("Dresses", "Suits") live in the same allowed_bottoms
-    # list as regular bottoms, so one membership check covers both. Previously
-    # the Full Body branch checked "Dresses OR Suits" instead of "this specific
-    # L2", which let Sandals+Suit and Oxfords+Dress through incorrectly.
+    # list as regular bottoms, so one membership check covers both.
     if bottom_l2 in allowed_bottoms:
         return ("ok", None)
     return ("warning", f"{shoe_l2} typically don't pair with {bottom_l2}")
