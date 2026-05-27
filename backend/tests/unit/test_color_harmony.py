@@ -214,6 +214,28 @@ def test_get_complementary_hsl_expected_hues(base_h: int, expected_h: int):
     assert (result.s, result.l) == (55, 45)
 
 
+def test_get_triadic_hsl_wraps_and_preserves_sl():
+    base = HSL(h=10, s=40, l=60)
+    result = color_harmony.get_triadic_hsl(base)
+    assert len(result) == 2
+    assert {result[0].h, result[1].h} == {130, 250}
+    for hsl in result:
+        assert (hsl.s, hsl.l) == (40, 60)
+
+
+def test_get_triadic_hsl_wraps_low_end():
+    base = HSL(h=350, s=70, l=40)
+    result = color_harmony.get_triadic_hsl(base)
+    assert {result[0].h, result[1].h} == {110, 230}
+
+
+def test_generate_recommended_colors_includes_triadic_for_chromatic_base():
+    base = Color(hex="#FF0000", hsl=HSL(h=0, s=100, l=50), name="red", is_neutral=False)
+    recs = color_harmony.generate_recommended_colors(base, include_neutrals=False)
+    triadic = [rec for rec in recs if rec.harmony_type == "triadic"]
+    assert len(triadic) == 2
+
+
 def test_generate_recommended_colors_includes_neutrals_and_harmonies():
     base = Color(hex="#FF0000", hsl=HSL(h=0, s=100, l=50), name="red", is_neutral=False)
     recommendations = color_harmony.generate_recommended_colors(base, include_neutrals=True)
@@ -224,7 +246,12 @@ def test_generate_recommended_colors_includes_neutrals_and_harmonies():
     assert {"white", "black", "gray", "navy", "beige"}.issubset({rec.name for rec in neutrals})
     assert len(analogs) == 2
     assert len(complementary) == 1
-    assert {rec.harmony_type for rec in recommendations} <= {"neutral", "analogous", "complementary"}
+    assert {rec.harmony_type for rec in recommendations} <= {
+        "neutral",
+        "analogous",
+        "complementary",
+        "triadic",
+    }
 
     analog_expected = {
         ("orange", "#FF7F00"),

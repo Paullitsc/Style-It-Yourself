@@ -204,6 +204,14 @@ def get_analogous_hsl(base_hsl: HSL) -> tuple[HSL, HSL]:
 
     return hsl1, hsl2
 
+def get_triadic_hsl(base_hsl: HSL) -> tuple[HSL, HSL]:
+    """Generate triadic colors (±120° from base)."""
+    h, s, l = base_hsl.get_hsl()
+    h1 = (h + 120) % 360
+    h2 = (h - 120) % 360
+    return HSL(h=h1, s=s, l=l), HSL(h=h2, s=s, l=l)
+
+
 def get_complementary_hsl(base_hsl: HSL) -> HSL:
     """Get the complementary color (180° opposite)."""
     h,s,l = base_hsl.get_hsl()
@@ -248,11 +256,14 @@ def generate_recommended_colors(base_color: Color, include_neutrals: bool = True
     if baseHSL.s >= 10:
         anal1, anal2 = get_analogous_hsl(baseHSL)
         comp = get_complementary_hsl(baseHSL)
+        tri1, tri2 = get_triadic_hsl(baseHSL)
 
         recommended_colors += [
             hsl_to_rec(anal1, "analogous"),
             hsl_to_rec(anal2, "analogous"),
             hsl_to_rec(comp, "complementary"),
+            hsl_to_rec(tri1, "triadic"),
+            hsl_to_rec(tri2, "triadic"),
         ]
 
     if include_neutrals:
