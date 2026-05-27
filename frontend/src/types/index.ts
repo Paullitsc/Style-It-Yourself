@@ -117,7 +117,7 @@ export interface ValidateItemRequest {
 }
 
 export interface ValidateItemResponse {
-  color_status: 'ok' | 'warning'
+  color_status: 'ok' | 'warning' | 'mismatch'
   formality_status: 'ok' | 'warning' | 'mismatch'
   aesthetic_status: 'cohesive' | 'warning'
   pairing_status: 'ok' | 'warning'

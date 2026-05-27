@@ -41,6 +41,18 @@ def _make_item(
     )
 
 
+def _make_color_only_item(h: int, s: int, l: int, name: str) -> ClothingItemBase:
+    """Helper for color-clash tests — non-neutral color with controllable HSL.
+    The `name` is intentionally not in NEUTRAL_COLORS so check_color_compatibility
+    doesn't short-circuit to neutral."""
+    return ClothingItemBase(
+        color=Color(hex="#101010", hsl=HSL(h=h, s=s, l=l), name=name, is_neutral=False),
+        category=Category(l1="Tops", l2="T-Shirts"),
+        formality=3.0,
+        aesthetics=[],
+    )
+
+
 # ==============================================================================
 # FORMALITY CHECKING TESTS
 # ==============================================================================
@@ -503,13 +515,32 @@ def test_validate_item_with_current_outfit():
     current_outfit = [
         _make_item("Bottoms", "Jeans", formality=3.0, color_name="blue"),
     ]
-    
+
     response = compatibility.validate_item(new_item, base_item, current_outfit)
-    
+
     assert isinstance(response, ValidateItemResponse)
     # Should check against both base_item and current_outfit items
-    assert response.color_status in ["ok", "warning"]
+    assert response.color_status in ["ok", "warning", "mismatch"]
     assert response.formality_status in ["ok", "warning", "mismatch"]
+
+
+def test_validate_item_color_clash_returns_mismatch():
+    """Hard color clashes should escalate to 'mismatch', not be capped at
+    'warning'. Formality already has three levels — color should too."""
+    base_item = _make_color_only_item(h=0, s=100, l=50, name="red")    # red
+    new_item = _make_color_only_item(h=80, s=100, l=50, name="yellow")  # incompatible (gap=80°)
+    response = compatibility.validate_item(new_item, base_item, [])
+    assert response.color_status == "mismatch"
+
+
+def test_validate_item_color_clash_warning_text_excludes_internal_label():
+    """Warning text must not leak the internal '(none)' harmony_type label
+    when colors clash."""
+    base_item = _make_color_only_item(h=0, s=100, l=50, name="red")
+    new_item = _make_color_only_item(h=80, s=100, l=50, name="yellow")
+    response = compatibility.validate_item(new_item, base_item, [])
+    for warning in response.warnings:
+        assert "(none)" not in warning
 
 
 # ==============================================================================

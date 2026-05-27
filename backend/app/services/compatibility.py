@@ -202,23 +202,26 @@ def validate_item(
     warnings = []
     
     # 1. Color compatibility checks
+    # Any incompatible pair escalates color_status to "mismatch" (parity with
+    # formality_status). The internal harmony_type label is intentionally not
+    # interpolated into the warning text — it would surface as "(none)".
     color_warnings = []
     color_ok = True
-    
+
     # Check vs base_item
-    is_compatible, harmony_type = check_color_compatibility(new_item.color, base_item.color)
+    is_compatible, _ = check_color_compatibility(new_item.color, base_item.color)
     if not is_compatible:
         color_ok = False
-        color_warnings.append(f"Color may clash with base item ({harmony_type})")
-    
+        color_warnings.append("Color may clash with base item")
+
     # Check vs each item in current_outfit
     for item in current_outfit:
-        is_compatible, harmony_type = check_color_compatibility(new_item.color, item.color)
+        is_compatible, _ = check_color_compatibility(new_item.color, item.color)
         if not is_compatible:
             color_ok = False
-            color_warnings.append(f"Color may clash with {item.category.l2} ({harmony_type})")
-    
-    color_status = "ok" if color_ok else "warning"
+            color_warnings.append(f"Color may clash with {item.category.l2}")
+
+    color_status = "ok" if color_ok else "mismatch"
     warnings.extend(color_warnings)
     
     # 2. Formality compatibility checks
