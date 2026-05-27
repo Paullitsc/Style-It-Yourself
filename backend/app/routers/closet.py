@@ -16,7 +16,7 @@ from app.models.schemas import (
     FormalityRange,
 )
 from app.services.supabase import get_closet as get_closet_from_db, get_user_clothing_items
-from app.services.matching import filter_and_rank_items
+from app.services.matching import rank_items_in_category
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +48,13 @@ class MatchingItemsRequest(BaseModel):
 class MatchingItemsResponse(BaseModel):
     """Response body for POST /api/closet/matching-items"""
     items: List[ClothingItemResponse]
+    other_items: List[ClothingItemResponse] = Field(
+        default_factory=list,
+        description=(
+            "Items in the same category that did not clear the match threshold. "
+            "Lets the UI offer an escape hatch when no strict matches exist."
+        ),
+    )
     total_in_category: int = Field(..., description="Total items user has in this category")
 
 
@@ -182,6 +189,7 @@ async def get_closet(current_user: User = Depends(get_current_user)) -> ClosetRe
                                 "created_at": "2025-12-01T10:20:30Z",
                             }
                         ],
+                        "other_items": [],
                         "total_in_category": 5,
                     }
                 }
@@ -239,17 +247,19 @@ async def get_matching_items(
             if item.category.l1 == request.category_l1
         )
         
-        # Filter and rank
-        matching_items = filter_and_rank_items(
+        # Filter and rank — split into strict matches and "other in category"
+        # so the UI can offer an escape hatch when nothing clears the threshold.
+        matching_items, other_items = rank_items_in_category(
             items=all_items,
             category_l1=request.category_l1,
             recommended_colors=request.recommended_colors,
             formality_range=request.formality_range,
             limit=request.limit,
         )
-        
+
         return MatchingItemsResponse(
             items=matching_items,
+            other_items=other_items,
             total_in_category=total_in_category,
         )
 
