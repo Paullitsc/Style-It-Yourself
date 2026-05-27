@@ -390,6 +390,7 @@ export default function BuildStep() {
               <SuggestionPanel
                 recommendation={getRecommendationForCategory(addingCategory!)}
                 categoryL1={addingCategory!}
+                selectedColor={selectedSuggestedColor}
                 onColorClick={handleSuggestedColorClick}
                 onQuickAdd={handleQuickAdd}
               />

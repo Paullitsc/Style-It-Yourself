@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthProvider'
 import { getMatchingItems } from '@/lib/api'
+import { cn } from '@/lib/cn'
 import type {
   CategoryRecommendation,
   RecommendedColor,
@@ -13,6 +14,7 @@ import { FORMALITY_LEVELS } from '@/types'
 interface SuggestionPanelProps {
   recommendation: CategoryRecommendation | null
   categoryL1: string
+  selectedColor?: RecommendedColor | null
   onColorClick?: (color: RecommendedColor) => void
   onQuickAdd?: (item: ClothingItemResponse) => void
 }
@@ -20,6 +22,7 @@ interface SuggestionPanelProps {
 export default function SuggestionPanel({
   recommendation,
   categoryL1,
+  selectedColor,
   onColorClick,
   onQuickAdd,
 }: SuggestionPanelProps) {
@@ -172,32 +175,54 @@ export default function SuggestionPanel({
             Recommended colors
           </div>
           <ul className="flex flex-col gap-2">
-            {recommendation.colors.map((color, i) => (
-              <li key={i}>
-                <button
-                  type="button"
-                  onClick={() => onColorClick?.(color)}
-                  className="w-full flex items-center gap-3 px-3 py-2 border border-ink bg-paper hover:bg-paper-2 transition-colors text-left"
-                >
-                  <i
-                    className="inline-block w-[20px] h-[20px] border border-ink shrink-0"
-                    style={{ backgroundColor: color.hex }}
-                    aria-hidden="true"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-display text-[15px] leading-none">
-                      {color.name}
-                    </p>
-                    <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-ink-3 mt-1">
-                      {color.hex.toUpperCase()}
-                    </p>
-                  </div>
-                  <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-ink-3 shrink-0">
-                    {color.harmony_type}
-                  </span>
-                </button>
-              </li>
-            ))}
+            {recommendation.colors.map((color, i) => {
+              const isActive =
+                selectedColor?.hex.toLowerCase() === color.hex.toLowerCase()
+              return (
+                <li key={i}>
+                  <button
+                    type="button"
+                    aria-pressed={isActive}
+                    onClick={() => onColorClick?.(color)}
+                    className={cn(
+                      'w-full flex items-center gap-3 px-3 py-2 border border-ink text-left transition-colors',
+                      isActive ? 'bg-paper-3' : 'bg-paper hover:bg-paper-2',
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'font-mono text-[10px] text-ink shrink-0 w-3 text-center',
+                        isActive ? 'opacity-100' : 'opacity-0',
+                      )}
+                      aria-hidden="true"
+                    >
+                      →
+                    </span>
+                    <i
+                      className="inline-block w-[20px] h-[20px] border border-ink shrink-0"
+                      style={{ backgroundColor: color.hex }}
+                      aria-hidden="true"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p
+                        className={cn(
+                          'font-display text-[15px] leading-none',
+                          isActive && 'font-bold',
+                        )}
+                      >
+                        {color.name}
+                      </p>
+                      <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-ink-3 mt-1">
+                        {color.hex.toUpperCase()}
+                      </p>
+                    </div>
+                    <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-ink-3 shrink-0">
+                      {color.harmony_type}
+                    </span>
+                  </button>
+                </li>
+              )
+            })}
           </ul>
         </section>
 
