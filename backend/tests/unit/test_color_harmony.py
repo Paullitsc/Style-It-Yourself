@@ -236,6 +236,26 @@ def test_generate_recommended_colors_includes_triadic_for_chromatic_base():
     assert len(triadic) == 2
 
 
+def test_generate_recommended_colors_clamps_lightness_for_dark_base():
+    """A very dark navy base (l=11) would otherwise produce muddy dark harmonies.
+    Generated picks should land in a visually usable lightness range."""
+    base = Color(hex="#0B1C2D", hsl=HSL(h=210, s=61, l=11), name="navy", is_neutral=True)
+    recs = color_harmony.generate_recommended_colors(base, include_neutrals=False)
+    for rec in recs:
+        r, g, b = int(rec.hex[1:3], 16), int(rec.hex[3:5], 16), int(rec.hex[5:7], 16)
+        # Naive perceived lightness — anything brighter than the original navy.
+        assert max(r, g, b) > 0x2D
+
+
+def test_generate_recommended_colors_clamps_lightness_for_light_base():
+    base = Color(hex="#F5F5DC", hsl=HSL(h=60, s=56, l=91), name="beige", is_neutral=True)
+    recs = color_harmony.generate_recommended_colors(base, include_neutrals=False)
+    for rec in recs:
+        r, g, b = int(rec.hex[1:3], 16), int(rec.hex[3:5], 16), int(rec.hex[5:7], 16)
+        # Should not all be near-white (every channel >= 0xE0 would be washed out).
+        assert min(r, g, b) < 0xE0 or max(r, g, b) - min(r, g, b) > 0x20
+
+
 def test_generate_recommended_colors_includes_neutrals_and_harmonies():
     base = Color(hex="#FF0000", hsl=HSL(h=0, s=100, l=50), name="red", is_neutral=False)
     recommendations = color_harmony.generate_recommended_colors(base, include_neutrals=True)

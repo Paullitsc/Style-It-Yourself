@@ -258,12 +258,22 @@ def generate_recommended_colors(base_color: Color, include_neutrals: bool = True
         comp = get_complementary_hsl(baseHSL)
         tri1, tri2 = get_triadic_hsl(baseHSL)
 
+        # When the base is at the lightness extremes (very dark or very light),
+        # generated harmonies that share that lightness look muddy or washed
+        # out. Pull them toward the mid range so the harmony relationship
+        # actually reads visually.
+        def _balance_lightness(hsl: HSL) -> HSL:
+            balanced_l = max(25, min(75, hsl.l))
+            if balanced_l == hsl.l:
+                return hsl
+            return HSL(h=hsl.h, s=hsl.s, l=balanced_l)
+
         recommended_colors += [
-            hsl_to_rec(anal1, "analogous"),
-            hsl_to_rec(anal2, "analogous"),
-            hsl_to_rec(comp, "complementary"),
-            hsl_to_rec(tri1, "triadic"),
-            hsl_to_rec(tri2, "triadic"),
+            hsl_to_rec(_balance_lightness(anal1), "analogous"),
+            hsl_to_rec(_balance_lightness(anal2), "analogous"),
+            hsl_to_rec(_balance_lightness(comp), "complementary"),
+            hsl_to_rec(_balance_lightness(tri1), "triadic"),
+            hsl_to_rec(_balance_lightness(tri2), "triadic"),
         ]
 
     if include_neutrals:
