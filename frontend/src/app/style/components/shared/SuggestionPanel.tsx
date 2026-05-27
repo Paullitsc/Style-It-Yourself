@@ -19,6 +19,63 @@ interface SuggestionPanelProps {
   onQuickAdd?: (item: ClothingItemResponse) => void
 }
 
+function ClosetItemList({
+  items,
+  onQuickAdd,
+}: {
+  items: ClothingItemResponse[]
+  onQuickAdd?: (item: ClothingItemResponse) => void
+}) {
+  return (
+    <ul className="flex flex-col gap-2 max-h-[280px] overflow-y-auto pr-1">
+      {items.map((item) => (
+        <li key={item.id}>
+          <button
+            type="button"
+            onClick={() => onQuickAdd?.(item)}
+            className="group w-full flex items-center gap-3 px-3 py-2 border border-ink bg-paper hover:bg-paper-3 transition-colors text-left"
+          >
+            <div className="w-10 h-12 bg-paper-2 border border-ink shrink-0 overflow-hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={item.image_url}
+                alt={item.category.l2}
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-display text-[14px] leading-none truncate">
+                {item.category.l2}
+              </p>
+              <div className="flex items-center gap-2 mt-1">
+                <i
+                  className="w-2 h-2 border border-ink"
+                  style={{ backgroundColor: item.color.hex }}
+                  aria-hidden="true"
+                />
+                <span className="font-mono text-[9px] uppercase tracking-[0.08em] text-ink-3 truncate">
+                  {item.color.name} ·{' '}
+                  {
+                    FORMALITY_LEVELS[
+                      item.formality as keyof typeof FORMALITY_LEVELS
+                    ]
+                  }
+                </span>
+              </div>
+            </div>
+            <span
+              className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink-3 group-hover:text-ink shrink-0"
+              aria-hidden="true"
+            >
+              ＋
+            </span>
+          </button>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 export default function SuggestionPanel({
   recommendation,
   categoryL1,
@@ -28,6 +85,7 @@ export default function SuggestionPanel({
 }: SuggestionPanelProps) {
   const { session } = useAuth()
   const [matchingItems, setMatchingItems] = useState<ClothingItemResponse[]>([])
+  const [otherItems, setOtherItems] = useState<ClothingItemResponse[]>([])
   const [totalInCategory, setTotalInCategory] = useState(0)
   const [isLoadingMatches, setIsLoadingMatches] = useState(false)
   const [matchError, setMatchError] = useState<string | null>(null)
@@ -36,6 +94,7 @@ export default function SuggestionPanel({
     async function fetchMatches() {
       if (!recommendation || !session?.access_token) {
         setMatchingItems([])
+        setOtherItems([])
         return
       }
       setIsLoadingMatches(true)
@@ -51,11 +110,13 @@ export default function SuggestionPanel({
           session.access_token,
         )
         setMatchingItems(response.items)
+        setOtherItems(response.other_items)
         setTotalInCategory(response.total_in_category)
       } catch (err) {
         console.error('Failed to fetch matching items:', err)
         setMatchError('Could not load closet items.')
         setMatchingItems([])
+        setOtherItems([])
       } finally {
         setIsLoadingMatches(false)
       }
@@ -108,52 +169,15 @@ export default function SuggestionPanel({
                 {matchError}
               </p>
             ) : matchingItems.length > 0 ? (
-              <ul className="flex flex-col gap-2 max-h-[280px] overflow-y-auto pr-1">
-                {matchingItems.map((item) => (
-                  <li key={item.id}>
-                    <button
-                      type="button"
-                      onClick={() => onQuickAdd?.(item)}
-                      className="group w-full flex items-center gap-3 px-3 py-2 border border-ink bg-paper hover:bg-paper-3 transition-colors text-left"
-                    >
-                      <div className="w-10 h-12 bg-paper-2 border border-ink shrink-0 overflow-hidden">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={item.image_url}
-                          alt={item.category.l2}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-display text-[14px] leading-none truncate">
-                          {item.category.l2}
-                        </p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <i
-                            className="w-2 h-2 border border-ink"
-                            style={{ backgroundColor: item.color.hex }}
-                            aria-hidden="true"
-                          />
-                          <span className="font-mono text-[9px] uppercase tracking-[0.08em] text-ink-3 truncate">
-                            {item.color.name} ·{' '}
-                            {
-                              FORMALITY_LEVELS[
-                                item.formality as keyof typeof FORMALITY_LEVELS
-                              ]
-                            }
-                          </span>
-                        </div>
-                      </div>
-                      <span
-                        className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink-3 group-hover:text-ink shrink-0"
-                        aria-hidden="true"
-                      >
-                        ＋
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
+              <ClosetItemList items={matchingItems} onQuickAdd={onQuickAdd} />
+            ) : otherItems.length > 0 ? (
+              <>
+                <p className="font-display italic text-[14px] text-ink-2 leading-snug mb-3">
+                  Nothing matches these recommendations exactly. Here&apos;s
+                  what else you have:
+                </p>
+                <ClosetItemList items={otherItems} onQuickAdd={onQuickAdd} />
+              </>
             ) : totalInCategory > 0 ? (
               <p className="font-display italic text-[14px] text-ink-2 leading-tight">
                 No matches in your closet. You have {totalInCategory}{' '}

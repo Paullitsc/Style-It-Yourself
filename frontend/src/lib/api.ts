@@ -248,6 +248,7 @@ export interface MatchingItemsRequest {
 
 export interface MatchingItemsResponse {
   items: ClothingItemResponse[]
+  other_items: ClothingItemResponse[]
   total_in_category: number
 }
 
