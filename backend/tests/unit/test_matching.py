@@ -8,6 +8,7 @@ from app.services.matching import (
     is_color_similar,
     score_item_match,
     filter_and_rank_items,
+    rank_items_in_category,
 )
 from app.models.schemas import (
     ClothingItemResponse,
@@ -361,8 +362,8 @@ class TestFilterAndRankItems:
         assert results == []
     
     def test_empty_items_list(
-        self, 
-        sample_recommended_colors, 
+        self,
+        sample_recommended_colors,
         sample_formality_range
     ):
         """Should handle empty items list gracefully."""
@@ -372,5 +373,103 @@ class TestFilterAndRankItems:
             recommended_colors=sample_recommended_colors,
             formality_range=sample_formality_range,
         )
-        
+
         assert results == []
+
+
+# =============================================================================
+# TESTS: rank_items_in_category (matches + others split)
+# =============================================================================
+
+class TestRankItemsInCategory:
+    def test_splits_above_and_below_threshold(
+        self,
+        sample_closet_items,
+        sample_recommended_colors,
+        sample_formality_range,
+    ):
+        """Items in the category split by min_score into (matches, others)."""
+        matches, others = rank_items_in_category(
+            sample_closet_items,
+            category_l1="Bottoms",
+            recommended_colors=sample_recommended_colors,
+            formality_range=sample_formality_range,
+            min_score=40.0,
+        )
+        all_in_category = matches + others
+        assert all(item.category.l1 == "Bottoms" for item in all_in_category)
+        # No item appears in both lists
+        match_ids = {item.id for item in matches}
+        other_ids = {item.id for item in others}
+        assert match_ids & other_ids == set()
+
+    def test_others_ranked_descending(
+        self,
+        sample_closet_items,
+        sample_recommended_colors,
+        sample_formality_range,
+    ):
+        """Below-threshold items still come back ranked best-first."""
+        # Use a very high min_score so several items land in 'others'.
+        _, others = rank_items_in_category(
+            sample_closet_items,
+            category_l1="Bottoms",
+            recommended_colors=sample_recommended_colors,
+            formality_range=sample_formality_range,
+            min_score=95.0,
+        )
+        if len(others) >= 2:
+            scores = [
+                score_item_match(item, sample_recommended_colors, sample_formality_range)
+                for item in others
+            ]
+            assert scores == sorted(scores, reverse=True)
+
+    def test_others_empty_when_all_match(
+        self,
+        sample_closet_items,
+        sample_recommended_colors,
+        sample_formality_range,
+    ):
+        """With min_score=0, every category item is a match and others is empty."""
+        matches, others = rank_items_in_category(
+            sample_closet_items,
+            category_l1="Bottoms",
+            recommended_colors=sample_recommended_colors,
+            formality_range=sample_formality_range,
+            min_score=0,
+        )
+        assert others == []
+        assert len(matches) > 0
+
+    def test_respects_limit_for_both_lists(
+        self,
+        sample_closet_items,
+        sample_recommended_colors,
+        sample_formality_range,
+    ):
+        matches, others = rank_items_in_category(
+            sample_closet_items,
+            category_l1="Bottoms",
+            recommended_colors=sample_recommended_colors,
+            formality_range=sample_formality_range,
+            limit=1,
+            min_score=50.0,
+        )
+        assert len(matches) <= 1
+        assert len(others) <= 1
+
+    def test_empty_category_returns_two_empty_lists(
+        self,
+        sample_closet_items,
+        sample_recommended_colors,
+        sample_formality_range,
+    ):
+        matches, others = rank_items_in_category(
+            sample_closet_items,
+            category_l1="Accessories",
+            recommended_colors=sample_recommended_colors,
+            formality_range=sample_formality_range,
+        )
+        assert matches == []
+        assert others == []

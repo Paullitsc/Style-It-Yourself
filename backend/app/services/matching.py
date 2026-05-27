@@ -72,6 +72,22 @@ def score_item_match(
     return score
 
 
+def _score_category_items(
+    items: List[ClothingItemResponse],
+    category_l1: str,
+    recommended_colors: List[RecommendedColor],
+    formality_range: FormalityRange,
+) -> List[Tuple[ClothingItemResponse, float]]:
+    """Filter items to the target category and return (item, score) pairs sorted by score desc."""
+    scored = [
+        (item, score_item_match(item, recommended_colors, formality_range))
+        for item in items
+        if item.category.l1 == category_l1
+    ]
+    scored.sort(key=lambda pair: pair[1], reverse=True)
+    return scored
+
+
 def filter_and_rank_items(
     items: List[ClothingItemResponse],
     category_l1: str,
@@ -80,35 +96,26 @@ def filter_and_rank_items(
     limit: int = 5,
     min_score: float = 40.0,
 ) -> List[ClothingItemResponse]:
+    """Return items in the category whose score >= min_score, sorted best-first."""
+    scored = _score_category_items(items, category_l1, recommended_colors, formality_range)
+    return [item for item, score in scored if score >= min_score][:limit]
+
+
+def rank_items_in_category(
+    items: List[ClothingItemResponse],
+    category_l1: str,
+    recommended_colors: List[RecommendedColor],
+    formality_range: FormalityRange,
+    limit: int = 5,
+    min_score: float = 40.0,
+) -> Tuple[List[ClothingItemResponse], List[ClothingItemResponse]]:
+    """Partition category items into (matches, others) by min_score.
+
+    Both lists are sorted best-first and capped at `limit`. Lets callers offer
+    an escape hatch when no items clear the threshold but the user still has
+    things in this category.
     """
-    Filter items by category and rank by match score.
-    
-    Args:
-        items: All user's closet items
-        category_l1: Category to filter by (e.g., "Bottoms")
-        recommended_colors: List of recommended colors
-        formality_range: Acceptable formality range
-        limit: Maximum items to return
-        min_score: Minimum match score to include
-    
-    Returns:
-        List of matching items sorted by score (best first)
-    """
-    # Filter by category
-    category_items = [
-        item for item in items 
-        if item.category.l1 == category_l1
-    ]
-    
-    # Score and filter
-    scored_items = []
-    for item in category_items:
-        score = score_item_match(item, recommended_colors, formality_range)
-        if score >= min_score:
-            scored_items.append((item, score))
-    
-    # Sort by score descending
-    scored_items.sort(key=lambda x: x[1], reverse=True)
-    
-    # Return top N items
-    return [item for item, score in scored_items[:limit]]
+    scored = _score_category_items(items, category_l1, recommended_colors, formality_range)
+    matches = [item for item, score in scored if score >= min_score][:limit]
+    others = [item for item, score in scored if score < min_score][:limit]
+    return matches, others
