@@ -145,22 +145,16 @@ def check_category_pairing(item1: ClothingItemBase, item2: ClothingItemBase) -> 
         return ("ok", None)
 
     shoe_l2 = shoe_item.category.l2
+    bottom_l2 = bottom_item.category.l2
     allowed_bottoms = SHOE_BOTTOM_PAIRINGS.get(shoe_l2, [])
 
-    # Handle Full Body items (Dresses, Suits)
-    bottom_l2 = bottom_item.category.l2
-    if bottom_item.category.l1 == "Full Body":
-        # Check if "Dresses" or "Suits" are in allowed list
-        if "Dresses" in allowed_bottoms or "Suits" in allowed_bottoms:
-            return ("ok", None)
-        else:
-            return ("warning", f"{shoe_l2} typically don't pair with {bottom_l2}")
-    
-    # Check regular bottom pairing
+    # Full Body L2 values ("Dresses", "Suits") live in the same allowed_bottoms
+    # list as regular bottoms, so one membership check covers both. Previously
+    # the Full Body branch checked "Dresses OR Suits" instead of "this specific
+    # L2", which let Sandals+Suit and Oxfords+Dress through incorrectly.
     if bottom_l2 in allowed_bottoms:
         return ("ok", None)
-    else:
-        return ("warning", f"{shoe_l2} typically don't pair with {bottom_l2}")
+    return ("warning", f"{shoe_l2} typically don't pair with {bottom_l2}")
 
 
     

@@ -194,12 +194,31 @@ def test_check_category_pairing_full_body_invalid():
     """Test Full Body category with invalid pairing."""
     sneakers = _make_item("Shoes", "Sneakers")
     dress = _make_item("Full Body", "Dresses")
-    
+
     # Sneakers don't typically pair with Dresses
     status, msg = compatibility.check_category_pairing(sneakers, dress)
     # This depends on SHOE_BOTTOM_PAIRINGS - if Sneakers allows Dresses, it's ok
     # Otherwise it's a warning
     assert status in ["ok", "warning"]
+
+
+def test_check_category_pairing_sandals_with_suit_warns():
+    """Sandals don't pair with Suits — Sandals' allowed list contains Dresses
+    but not Suits, so the bottom-specific check must reject this combo."""
+    sandals = _make_item("Shoes", "Sandals")
+    suit = _make_item("Full Body", "Suits")
+    status, msg = compatibility.check_category_pairing(sandals, suit)
+    assert status == "warning"
+    assert msg is not None and "Sandals" in msg and "Suits" in msg
+
+
+def test_check_category_pairing_oxfords_with_dress_warns():
+    """Oxfords' allowed list contains Suits but not Dresses; the check
+    must reject Oxfords+Dress even though Suits is in the allowed list."""
+    oxfords = _make_item("Shoes", "Oxfords")
+    dress = _make_item("Full Body", "Dresses")
+    status, msg = compatibility.check_category_pairing(oxfords, dress)
+    assert status == "warning"
 
 
 def test_check_category_pairing_non_shoe_bottom():
