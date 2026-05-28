@@ -695,18 +695,39 @@ export const useStyleStore = create<StyleState>((set, get) => ({
     // Preserve the existing item ID to avoid creating duplicates
     const existingId = item.id
 
+    // The base item already covers its own category slot — refuse to add a
+    // second item there. (Without this guard, base + a closet quick-add of
+    // the same L1 would produce e.g. two Outerwear items, surfacing the
+    // "Too many outerwear pieces" warning from validate_outfit.)
+    const baseItem = get().getBaseItem()
+    if (baseItem?.category?.l1 === outfitItem.category.l1) {
+      return
+    }
+
+    // Same replace-by-category invariant as addOutfitItem: an L1 slot holds
+    // at most one item. Re-quick-adding into the same slot should swap, not
+    // append.
+    const upsertByCategory = (
+      blob: Blob,
+    ): ((state: StyleState) => Partial<StyleState>) => (state) => {
+      const existingIndex = state.outfitItems.findIndex(
+        (oi) => oi.item.category.l1 === outfitItem.category.l1,
+      )
+      const entry = { item: outfitItem, imageBlob: blob, existingId }
+      const newOutfitItems =
+        existingIndex >= 0
+          ? state.outfitItems.map((oi, i) => (i === existingIndex ? entry : oi))
+          : [...state.outfitItems, entry]
+      return { outfitItems: newOutfitItems }
+    }
+
     fetch(item.image_url)
-      .then(res => res.blob())
-      .then(blob => {
-        set((state) => ({
-          outfitItems: [...state.outfitItems, { item: outfitItem, imageBlob: blob, existingId }],
-        }))
+      .then((res) => res.blob())
+      .then((blob) => {
+        set(upsertByCategory(blob))
       })
       .catch(() => {
-        const emptyBlob = new Blob([], { type: 'image/jpeg' })
-        set((state) => ({
-          outfitItems: [...state.outfitItems, { item: outfitItem, imageBlob: emptyBlob, existingId }],
-        }))
+        set(upsertByCategory(new Blob([], { type: 'image/jpeg' })))
       })
   },
 
