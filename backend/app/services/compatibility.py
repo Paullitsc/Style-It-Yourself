@@ -250,12 +250,25 @@ def validate_item(
     
     warnings.extend(formality_warnings)
     
-    # 3. Aesthetic compatibility (only vs base_item)
-    aesthetic_status, aesthetic_msg = check_aesthetic_compatibility(
-        new_item.aesthetics, base_item.aesthetics
-    )
-    if aesthetic_msg:
-        warnings.append(aesthetic_msg)
+    # 3. Aesthetic compatibility — check vs base_item AND each current_outfit
+    # item so a drifted outfit isn't masked by a matching base.
+    aesthetic_status = "cohesive"
+    aesthetic_warnings = []
+
+    status, _ = check_aesthetic_compatibility(new_item.aesthetics, base_item.aesthetics)
+    if status == "warning":
+        aesthetic_status = "warning"
+        aesthetic_warnings.append("No shared aesthetic tags with base item")
+
+    for item in current_outfit:
+        status, _ = check_aesthetic_compatibility(new_item.aesthetics, item.aesthetics)
+        if status == "warning":
+            aesthetic_status = "warning"
+            aesthetic_warnings.append(
+                f"No shared aesthetic tags with {item.category.l2}"
+            )
+
+    warnings.extend(aesthetic_warnings)
     
     # 4. Category pairing checks
     pairing_status = "ok"
@@ -397,22 +410,17 @@ def calculate_cohesion_score(items: list[ClothingItemBase], base_item: ClothingI
     formality_penalty = min(formality_range * 10, 40)
     score -= formality_penalty
     
-    # Aesthetic penalty (up to -30 points)
+    # Aesthetic penalty (up to -30 points). Threshold matches
+    # check_aesthetic_compatibility: ≥1 shared tag is cohesive (no penalty);
+    # 0 shared tags is penalized. The previous "1 shared = -10" middle tier
+    # contradicted what the single-item validator was telling users.
     all_aesthetics = [set(item.aesthetics) for item in all_items if item.aesthetics]
-    
-    if all_aesthetics:
-        # Find common tags across ALL items
-        common_tags = set.intersection(*all_aesthetics) if all_aesthetics else set()
-        
-        if len(common_tags) == 0:
-            aesthetic_penalty = 30
-        elif len(common_tags) == 1:
-            aesthetic_penalty = 10
-        else:  # 2+ common tags
-            aesthetic_penalty = 0
+    if len(all_aesthetics) >= 2:
+        common_tags = set.intersection(*all_aesthetics)
+        aesthetic_penalty = 0 if common_tags else 30
     else:
-        aesthetic_penalty = 0  # No aesthetics = no penalty
-    
+        aesthetic_penalty = 0  # Single or zero items with tags — nothing to disagree about.
+
     score -= aesthetic_penalty
     
     # Ensure score is between 0-100
@@ -499,7 +507,12 @@ def validate_outfit(
             status, msg = check_category_pairing(item1, item2)
             if status == "warning":
                 warnings.append(msg)
-    
+
+    # Outfit-level aesthetic check (not pair-wise to avoid duplicate noise).
+    aesthetic_sets = [set(item.aesthetics) for item in full_outfit if item.aesthetics]
+    if len(aesthetic_sets) >= 2 and not set.intersection(*aesthetic_sets):
+        warnings.append("No shared aesthetic tags across the outfit")
+
     # 6. Build color strip
     color_strip = [item.color.hex for item in full_outfit]
     

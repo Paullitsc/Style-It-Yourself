@@ -438,10 +438,27 @@ def test_calculate_cohesion_score_no_common_aesthetics():
         _make_item("Bottoms", "Jeans", formality=3.0, aesthetics=["Preppy"]),
         _make_item("Shoes", "Sneakers", formality=3.0, aesthetics=["Classic"]),
     ]
-    
+
     score = compatibility.calculate_cohesion_score(items, base_item)
     # Should have aesthetic penalty (-30)
     assert score <= 70
+
+
+def test_calculate_cohesion_score_aesthetic_threshold_matches_validator():
+    """Scoring and check_aesthetic_compatibility must agree: ≥1 shared tag is
+    cohesive and incurs no penalty. Previously the validator said 'cohesive'
+    while the scorer still deducted -10 for exactly 1 shared tag."""
+    base_item = _make_item(
+        "Tops", "T-Shirts", formality=3.0, aesthetics=["Minimalist", "Classic"]
+    )
+    items = [
+        _make_item(
+            "Bottoms", "Jeans", formality=3.0, aesthetics=["Minimalist", "Streetwear"]
+        ),  # only "Minimalist" shared
+    ]
+    score = compatibility.calculate_cohesion_score(items, base_item)
+    # 1 shared tag → no aesthetic penalty.
+    assert score == 100
 
 
 def test_calculate_cohesion_score_float_formality():
@@ -577,6 +594,24 @@ def test_validate_item_color_clash_warning_text_excludes_internal_label():
         assert "(none)" not in warning
 
 
+def test_validate_item_aesthetic_checks_current_outfit():
+    """Aesthetic check shouldn't be limited to base_item — if the current
+    outfit has drifted, a new item that mismatches an outfit piece must warn."""
+    base_item = _make_item(
+        "Tops", "T-Shirts", formality=3.0, aesthetics=["Minimalist"]
+    )
+    outfit_piece = _make_item(
+        "Bottoms", "Jeans", formality=3.0, aesthetics=["Streetwear"]
+    )
+    new_item = _make_item(
+        "Shoes", "Sneakers", formality=3.0, aesthetics=["Minimalist"]
+    )  # matches base but not outfit_piece
+    response = compatibility.validate_item(new_item, base_item, [outfit_piece])
+    assert response.aesthetic_status == "warning"
+    # The Jeans-specific mismatch should be visible in the warnings.
+    assert any("Jeans" in w for w in response.warnings)
+
+
 # ==============================================================================
 # FULL OUTFIT VALIDATION TESTS
 # ==============================================================================
@@ -612,6 +647,21 @@ def test_validate_outfit_incomplete():
     assert "Incomplete" in response.verdict
     assert len(response.warnings) > 0
     assert any("missing" in w.lower() for w in response.warnings)
+
+
+def test_validate_outfit_emits_aesthetic_warning_when_no_shared_tags():
+    """validate_outfit previously checked color/formality/pairing pair-wise
+    but never surfaced aesthetic warnings. An outfit with zero shared tags
+    across items must warn."""
+    base_item = _make_item(
+        "Tops", "T-Shirts", formality=3.0, aesthetics=["Streetwear"]
+    )
+    items = [
+        _make_item("Bottoms", "Jeans", formality=3.0, aesthetics=["Preppy"]),
+        _make_item("Shoes", "Sneakers", formality=3.0, aesthetics=["Classic"]),
+    ]
+    response = compatibility.validate_outfit(items, base_item)
+    assert any("aesthetic" in w.lower() for w in response.warnings)
 
 
 def test_validate_outfit_too_many_items():
