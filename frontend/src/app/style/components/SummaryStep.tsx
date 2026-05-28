@@ -50,7 +50,12 @@ export default function SummaryStep() {
       hasValidated.current = true
       setIsValidating(true)
       try {
-        const result = await validateOutfit(allItems, baseItem)
+        // allItems is [base, ...outfitItems] — slice off the base since the
+        // backend's validate_outfit re-prepends it. Without this, the base
+        // appears twice in full_outfit and triggers spurious duplicate-L1
+        // warnings (notably "Too many outerwear pieces" when base is Outerwear).
+        const otherItems = allItems.slice(1)
+        const result = await validateOutfit(otherItems, baseItem)
         setValidation(result)
       } catch (error) {
         // Don't fake a score-of-0 response — distinguish "validation failed"
