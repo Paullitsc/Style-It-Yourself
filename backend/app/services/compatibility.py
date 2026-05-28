@@ -376,29 +376,26 @@ def get_categories_in_outfit(items: list[ClothingItemBase]) -> dict[str, list[Cl
 
 def calculate_cohesion_score(items: list[ClothingItemBase], base_item: ClothingItemBase) -> int:
     """Calculate outfit cohesion score (0-100).
-    
-    Logic:
-    - Start with 100 points
-    - Combine base_item with items for full outfit
-    
-    - Color penalty (up to -30 points):
-        - Compare all item pairs for color compatibility
-        - Count incompatible pairs
-        - Penalty = (incompatible_pairs / total_pairs) * 30
-    
-    - Formality penalty (up to -40 points):
-        - Find min and max formality in outfit
-        - Penalty = min(range * 10, 40)
-    
-    - Aesthetic penalty (up to -30 points):
-        - Collect all aesthetic tags from all items
-        - Find common tags across ALL items
-        - No common tags: -30 points
-        - Only 1 common tag: -10 points
-        - 2+ common tags: no penalty
-    
+
+    Penalty-based; starts at 100 and deducts per dimension. Single-item
+    outfits short-circuit to 100 (nothing to cohere with).
+
+    - Color clashes — up to -40, 10 per incompatible pair (count, not ratio
+      — larger outfits aren't allowed to dilute a clash).
+    - Formality range — up to -30, `max(0, (max - min) - 0.5) * 10`. The
+      0.5-level dead-zone absorbs small float drift (3.0 vs 3.1).
+    - Aesthetics — -30 when there are 2+ items with tags AND zero shared
+      across all of them, else 0. Threshold matches the single-item
+      validator's "≥1 shared = cohesive" rule.
+
+    No over-max-items penalty: the UI structurally caps the outfit at
+    MAX_OUTFIT_ITEMS so that branch was unreachable. The
+    "Outfit has N items" warning in `validate_outfit` is kept for direct
+    API callers and still downgrades the verdict via `get_verdict`'s
+    no-warnings gate even though it doesn't move the numeric score.
+
     Returns:
-        int: score between 0-100
+        int: score clamped to [0, 100].
     """
     # Combine all items
     all_items = [base_item] + items
@@ -409,10 +406,8 @@ def calculate_cohesion_score(items: list[ClothingItemBase], base_item: ClothingI
     
     score = 100
     
-    # Color penalty (up to -30 points): scale by the count of incompatible
-    # pairs, not the ratio. A ratio dilutes the penalty as outfits grow —
-    # one clash among 6 items was -2; the same clash among 3 was -10. Larger
-    # outfits should be at least as sensitive to clashes, not less.
+    # Count incompatible pairs once; the cap and weighting are in the comment
+    # block below where the penalty is computed.
     incompatible_pairs = 0
     for i in range(len(all_items)):
         for j in range(i + 1, len(all_items)):
@@ -505,6 +500,10 @@ def validate_outfit(
     # 3. Check total items and per-category caps
     warnings = []
     if len(full_outfit) > MAX_OUTFIT_ITEMS:
+        # No score deduction (the UI caps total items at MAX_OUTFIT_ITEMS so
+        # this only fires for direct-API callers). The warning still affects
+        # the verdict via get_verdict's no-warnings gate, so it isn't
+        # entirely inert.
         warnings.append(f"Outfit has {len(full_outfit)} items (max: {MAX_OUTFIT_ITEMS})")
 
     if missing_categories:
