@@ -159,7 +159,6 @@ export default function SummaryStep() {
               <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
                 {allItems.length} in this look
               </span>
-              <span className="h-px bg-ink" aria-hidden="true" />
             </header>
 
             <div className="grid grid-cols-3 gap-4 max-md:grid-cols-2">
@@ -206,11 +205,10 @@ export default function SummaryStep() {
             if (colorStrip.length === 0) return null
             return (
               <section>
-                <header className="grid grid-cols-[auto_1fr] gap-4 items-baseline pb-[14px] mb-5 border-b border-ink">
+                <header className="pb-[14px] mb-5 border-b border-ink">
                   <span className="font-display text-[24px] leading-none tracking-[-0.015em]">
                     Palette
                   </span>
-                  <span className="h-px bg-ink" aria-hidden="true" />
                 </header>
                 <div className="flex h-12 border border-ink overflow-hidden">
                   {colorStrip.map((hex, i) => (
@@ -231,11 +229,10 @@ export default function SummaryStep() {
         {/* Analysis + actions */}
         <div className="flex flex-col gap-10">
           <section>
-            <header className="grid grid-cols-[auto_1fr] gap-4 items-baseline pb-[14px] mb-5 border-b border-ink">
+            <header className="pb-[14px] mb-5 border-b border-ink">
               <span className="font-display text-[24px] leading-none tracking-[-0.015em]">
                 Cohesion
               </span>
-              <span className="h-px bg-ink" aria-hidden="true" />
             </header>
 
             {isValidating ? (

@@ -320,7 +320,6 @@ function SectionHeader({ title, count }: SectionHeaderProps) {
           {count}
         </span>
       )}
-      <span className="h-px bg-ink" aria-hidden="true" />
     </header>
   )
 }
