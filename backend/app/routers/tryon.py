@@ -1,7 +1,11 @@
 """Try-on endpoints for AI-generated outfit visualization."""
 
+import asyncio
 import logging
 import uuid
+from collections import defaultdict, deque
+from time import monotonic
+
 import httpx
 from fastapi import APIRouter, Body, Depends, File, HTTPException, UploadFile, status
 
@@ -19,6 +23,38 @@ from app.services.supabase import (
     delete_user_photo,
     get_supabase_client,
 )
+
+
+# Per-user rate limit on try-on generation. Each Gemini call is paid, so a
+# determined user (or a buggy frontend) can run up a real bill in seconds
+# without this guard. In-memory only — survives a single worker process but
+# not restarts or multi-worker deploys. For a multi-worker setup, move this
+# to Redis or a Supabase counter table.
+_TRYON_WINDOW_SECONDS = 60
+_TRYON_MAX_PER_WINDOW = 10
+_tryon_history: dict[str, deque] = defaultdict(deque)
+_tryon_history_lock = asyncio.Lock()
+
+
+async def _check_tryon_rate_limit(user_id: str) -> None:
+    """Sliding-window rate limit; raises 429 with Retry-After when exceeded."""
+    now = monotonic()
+    cutoff = now - _TRYON_WINDOW_SECONDS
+    async with _tryon_history_lock:
+        history = _tryon_history[user_id]
+        while history and history[0] < cutoff:
+            history.popleft()
+        if len(history) >= _TRYON_MAX_PER_WINDOW:
+            retry_after = max(1, int(history[0] + _TRYON_WINDOW_SECONDS - now) + 1)
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=(
+                    f"Try-on rate limit hit ({_TRYON_MAX_PER_WINDOW} per "
+                    f"{_TRYON_WINDOW_SECONDS}s). Try again in {retry_after}s."
+                ),
+                headers={"Retry-After": str(retry_after)},
+            )
+        history.append(now)
 
 
 async def _cleanup_user_photo(user_id: str, user_photo_url: str) -> None:
@@ -308,6 +344,9 @@ async def try_on_single(
     current_user: User = Depends(get_current_user),
 ) -> TryOnResponse:
     """Generate try-on image with a single clothing item."""
+    # 0. Rate limit BEFORE doing any expensive work (Gemini, downloads).
+    await _check_tryon_rate_limit(current_user.id)
+
     # 1. Validation (HTTP 400)
     await validate_image_url(request.user_photo_url)
     await validate_image_url(request.item_image_url)
@@ -436,6 +475,9 @@ async def try_on_outfit(
     current_user: User = Depends(get_current_user),
 ) -> TryOnResponse:
     """Generate try-on image with a complete outfit."""
+    # 0. Rate limit BEFORE doing any expensive work.
+    await _check_tryon_rate_limit(current_user.id)
+
     # 1. Validation
     await validate_image_url(request.user_photo_url)
 
