@@ -389,6 +389,34 @@ def test_calculate_cohesion_score_color_clash():
     assert score <= 90
 
 
+def test_calculate_cohesion_score_pairing_penalty():
+    """Shoe-bottom rule violations (e.g. Sandals + Suit) now drop the score
+    by 5 each, capped at -10. Previously the warning fired with no score
+    impact, which left users wondering why "Sandals don't pair with Suits"
+    appeared but their 100 stayed put."""
+    # Sandals' allowed list contains Dresses but not Suits → pairing warning.
+    base_item = _make_item("Tops", "T-Shirts", aesthetics=["Minimalist"])
+    items = [
+        _make_item("Full Body", "Suits", aesthetics=["Minimalist"]),
+        _make_item("Shoes", "Sandals", aesthetics=["Minimalist"]),
+    ]
+    score = compatibility.calculate_cohesion_score(items, base_item)
+    # One pairing violation → -5. Other dimensions zero (same formality,
+    # same aesthetics, same default color → no color clash).
+    assert score == 95
+
+
+def test_calculate_cohesion_score_no_pairing_penalty_for_valid_pairs():
+    """Sneakers + Jeans is a valid SHOE_BOTTOM_PAIRINGS combo, no penalty."""
+    base_item = _make_item("Tops", "T-Shirts", aesthetics=["Minimalist"])
+    items = [
+        _make_item("Bottoms", "Jeans", aesthetics=["Minimalist"]),
+        _make_item("Shoes", "Sneakers", aesthetics=["Minimalist"]),
+    ]
+    score = compatibility.calculate_cohesion_score(items, base_item)
+    assert score == 100
+
+
 def test_calculate_cohesion_score_color_penalty_cap_is_40():
     """Color is now the heaviest dimension (industry sources rank color
     discipline above formality range). Four+ incompatible pairs hit the -40 cap."""
