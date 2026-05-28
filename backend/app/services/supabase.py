@@ -11,6 +11,8 @@ Schema matches: backend/supabase_schema.sql
 NOTE: Uses async client (acreate_client) for non-blocking operations.
 """
 
+import base64
+import logging
 import time
 from typing import Optional
 
@@ -259,24 +261,58 @@ async def create_outfit(
     outfit: OutfitCreate,
     generated_image_url: Optional[str] = None,
 ) -> OutfitResponse:
-    """Create a new outfit with its items."""
-    supabase = await get_supabase_client()
-    
-    final_image_url = generated_image_url or outfit.generated_image_url
+    """Create a new outfit with its items.
 
+    If generated_image_url is a base64 data URL (handed back from the try-on
+    endpoint), the file is uploaded to generated-images AFTER the outfit row
+    exists so the storage path can include the real outfit_id. This way the
+    try-on endpoint never creates orphan files for try-ons the user doesn't
+    save — the upload only happens here, gated by the user committing.
+    """
+    supabase = await get_supabase_client()
+
+    final_image_url = generated_image_url or outfit.generated_image_url
+    is_pending_data_url = (
+        isinstance(final_image_url, str) and final_image_url.startswith("data:")
+    )
+
+    # Insert the outfit row first WITHOUT the (very large) data URL — we'll
+    # update it with the real public URL once the file is uploaded.
     outfit_data = {
         "user_id": user_id,
         "name": outfit.name,
-        "generated_image_url": final_image_url,
+        "generated_image_url": None if is_pending_data_url else final_image_url,
     }
-    
+
     result = await supabase.table("outfits").insert(outfit_data).execute()
-    
+
     if not result.data:
         raise ValueError("Failed to create outfit")
-    
+
     outfit_id = result.data[0]["id"]
-    
+
+    # Now upload the data URL using the real outfit_id and patch the row.
+    if is_pending_data_url:
+        try:
+            stored_url = await upload_data_url_image(
+                user_id=user_id,
+                data_url=final_image_url,
+                outfit_id=outfit_id,
+            )
+            await (
+                supabase.table("outfits")
+                .update({"generated_image_url": stored_url})
+                .eq("id", outfit_id)
+                .execute()
+            )
+        except Exception as e:
+            # Don't fail the outfit save if the image upload fails — the
+            # outfit metadata is the primary record. Log and continue with
+            # a null generated_image_url so the user still has their outfit.
+            logging.getLogger(__name__).warning(
+                f"Outfit {outfit_id} saved but image upload failed: {e}"
+            )
+
     # Link clothing items to outfit with position
     if outfit.item_ids:
         outfit_items = [
@@ -288,7 +324,7 @@ async def create_outfit(
             for position, item_id in enumerate(outfit.item_ids)
         ]
         await supabase.table("outfit_items").insert(outfit_items).execute()
-    
+
     return await get_outfit(outfit_id, user_id)
 
 
@@ -574,6 +610,40 @@ async def upload_generated_image(
         file_name,
         bucket="generated-images",
         content_type="image/png",
+    )
+
+
+async def upload_data_url_image(
+    user_id: str,
+    data_url: str,
+    outfit_id: str,
+) -> str:
+    """Decode a `data:image/...;base64,...` URL and upload to generated-images.
+
+    Used by create_outfit to persist the try-on image only when the user
+    commits to saving the outfit, avoiding orphan files for try-ons that
+    were generated but never saved.
+    """
+    if not data_url or not data_url.startswith("data:"):
+        raise ValueError("upload_data_url_image requires a data: URL")
+
+    header, b64_data = data_url.split(",", 1)
+    image_bytes = base64.b64decode(b64_data)
+
+    # Default to PNG; respect declared mime if present.
+    content_type = "image/png"
+    if "image/jpeg" in header:
+        content_type = "image/jpeg"
+    elif "image/webp" in header:
+        content_type = "image/webp"
+
+    file_name = f"tryon_{outfit_id}.{content_type.split('/')[1] if '/' in content_type else 'png'}"
+    return await upload_image(
+        user_id,
+        image_bytes,
+        file_name,
+        bucket="generated-images",
+        content_type=content_type,
     )
 
 

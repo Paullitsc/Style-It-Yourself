@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { tryOnSingle, uploadUserPhoto } from '@/lib/api'
+import { tryOnSingle, uploadUserPhoto, uploadItemImage } from '@/lib/api'
 import type { ClothingItemBase } from '@/types'
 import ImageUploadZone from './shared/ImageUploadZone'
 import TryOnResult from './shared/TryOnResult'
@@ -57,21 +57,8 @@ export default function TryOnModal({
 
       let itemUploadUrl = itemImageUrl
       if (itemImageBlob) {
-        const itemUploadFormData = new FormData()
-        itemUploadFormData.append('image', itemImageBlob)
-        const itemUploadResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/try-on/upload-photo`,
-          {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${token}` },
-            body: itemUploadFormData,
-          },
-        )
-        if (!itemUploadResponse.ok) {
-          throw new Error('Failed to upload item image')
-        }
-        const itemUploadData = await itemUploadResponse.json()
-        itemUploadUrl = itemUploadData.url
+        // Item blobs go to the clothing-images bucket, not user-photos.
+        itemUploadUrl = await uploadItemImage(itemImageBlob, token)
       }
 
       const response = await tryOnSingle(

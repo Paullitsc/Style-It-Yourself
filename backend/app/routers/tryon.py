@@ -1,8 +1,11 @@
 """Try-on endpoints for AI-generated outfit visualization."""
 
-import base64
+import asyncio
 import logging
 import uuid
+from collections import defaultdict, deque
+from time import monotonic
+
 import httpx
 from fastapi import APIRouter, Body, Depends, File, HTTPException, UploadFile, status
 
@@ -15,7 +18,62 @@ from app.models.schemas import (
     TryOnOutfitRequest,
 )
 from app.services.gemini import generate_tryon_single, generate_tryon_outfit
-from app.services.supabase import upload_generated_image, get_supabase_client
+from app.services.supabase import (
+    upload_image,
+    delete_user_photo,
+    get_supabase_client,
+)
+
+
+# Per-user rate limit on try-on generation. Each Gemini call is paid, so a
+# determined user (or a buggy frontend) can run up a real bill in seconds
+# without this guard. In-memory only — survives a single worker process but
+# not restarts or multi-worker deploys. For a multi-worker setup, move this
+# to Redis or a Supabase counter table.
+_TRYON_WINDOW_SECONDS = 60
+_TRYON_MAX_PER_WINDOW = 10
+_tryon_history: dict[str, deque] = defaultdict(deque)
+_tryon_history_lock = asyncio.Lock()
+
+
+async def _check_tryon_rate_limit(user_id: str) -> None:
+    """Sliding-window rate limit; raises 429 with Retry-After when exceeded."""
+    now = monotonic()
+    cutoff = now - _TRYON_WINDOW_SECONDS
+    async with _tryon_history_lock:
+        history = _tryon_history[user_id]
+        while history and history[0] < cutoff:
+            history.popleft()
+        if len(history) >= _TRYON_MAX_PER_WINDOW:
+            retry_after = max(1, int(history[0] + _TRYON_WINDOW_SECONDS - now) + 1)
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=(
+                    f"Try-on rate limit hit ({_TRYON_MAX_PER_WINDOW} per "
+                    f"{_TRYON_WINDOW_SECONDS}s). Try again in {retry_after}s."
+                ),
+                headers={"Retry-After": str(retry_after)},
+            )
+        history.append(now)
+
+
+async def _cleanup_user_photo(user_id: str, user_photo_url: str) -> None:
+    """Best-effort delete of a user-photo URL that we own.
+
+    Guard ensures we only delete URLs scoped to this user's path in the
+    user-photos bucket — an external URL the caller passed in shouldn't be
+    touched. Any deletion failure is logged but doesn't disrupt the response.
+    """
+    if not user_photo_url or "/user-photos/" not in user_photo_url:
+        return
+    # Path inside user-photos bucket starts with {user_id}/, so confirm before
+    # deleting to avoid cross-user removal even with a forged URL.
+    if f"/user-photos/{user_id}/" not in user_photo_url:
+        return
+    try:
+        await delete_user_photo(user_photo_url)
+    except Exception as e:
+        logger.warning(f"Failed to delete user photo after try-on: {e}")
 
 logger = logging.getLogger(__name__)
 
@@ -142,6 +200,82 @@ async def upload_user_photo(
 
 
 @router.post(
+    "/upload-item-image",
+    summary="Upload an item image for try-on",
+    description=(
+        "Uploads a clothing item image (typically a cropped blob from the build "
+        "flow before the item is saved to the closet) to the clothing-images "
+        "bucket. Returns a public URL the try-on endpoints can fetch."
+    ),
+    responses={
+        **AUTH_RESPONSES,
+        200: {
+            "description": "Item image uploaded successfully.",
+            "content": {
+                "application/json": {
+                    "example": {"url": "https://cdn.example.com/clothing-images/user-123/item.jpg"}
+                }
+            },
+        },
+        400: {
+            "model": ErrorResponse,
+            "description": "Invalid file type or file size exceeds limit.",
+            "content": {"application/json": {"example": {"detail": "File must be an image"}}},
+        },
+        500: {
+            "model": ErrorResponse,
+            "description": "Unexpected upload failure.",
+            "content": {"application/json": {"example": {"detail": "Failed to upload image"}}},
+        },
+    },
+)
+async def upload_item_image(
+    image: UploadFile = File(..., description="Clothing item image for try-on"),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    """Upload a clothing item image to the clothing-images bucket.
+
+    Previously this path was hitting /upload-photo which writes to the
+    user-photos bucket, mixing item blobs into a bucket meant for full-body
+    photos. This endpoint puts item blobs where they belong.
+    """
+    try:
+        if not image.content_type or not image.content_type.startswith("image/"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="File must be an image",
+            )
+
+        image_data = await image.read()
+        if len(image_data) > 10 * 1024 * 1024:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Image must be less than 10MB",
+            )
+
+        file_name = image.filename or f"item-{uuid.uuid4()}.jpg"
+        public_url = await upload_image(
+            user_id=current_user.id,
+            file_data=image_data,
+            file_name=file_name,
+            bucket="clothing-images",
+            content_type=image.content_type or "image/jpeg",
+        )
+
+        logger.info(f"Uploaded item image for user {current_user.id}")
+        return {"url": public_url}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to upload item image: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to upload image",
+        )
+
+
+@router.post(
     "/single",
     response_model=TryOnResponse,
     summary="Generate single-item try-on",
@@ -210,12 +344,15 @@ async def try_on_single(
     current_user: User = Depends(get_current_user),
 ) -> TryOnResponse:
     """Generate try-on image with a single clothing item."""
+    # 0. Rate limit BEFORE doing any expensive work (Gemini, downloads).
+    await _check_tryon_rate_limit(current_user.id)
+
     # 1. Validation (HTTP 400)
     await validate_image_url(request.user_photo_url)
     await validate_image_url(request.item_image_url)
-    
-    # 2. Service Call
-    # Note: Service now suppresses exceptions and returns success=False
+
+    # 2. Service Call — user photo is cleaned up in finally regardless of outcome
+    # so storage doesn't grow unboundedly per try-on attempt.
     try:
         result = await generate_tryon_single(
             user_image_url=request.user_photo_url,
@@ -223,35 +360,34 @@ async def try_on_single(
             item=request.item,
             high_quality=True,
         )
-        
-        # Explicit check for service failure (Replacing previous GeminiError catch)
+
         if not result.success:
             logger.error(f"Gemini error for user {current_user.id}: {result.error}")
             raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY, 
+                status_code=status.HTTP_502_BAD_GATEWAY,
                 detail=result.error or "AI service failed to generate image."
             )
 
-        # 3. Save Image (Retaining your original error catching logic)
-        stored_url = await _save_generated_image(current_user.id, result.generated_image_url)
-        
+        # No storage upload here — return the data URL directly. The image
+        # only gets uploaded to Supabase when the user commits by saving an
+        # outfit (see create_outfit), so try-ons the user never saves don't
+        # leave orphan files in storage.
         return TryOnResponse(
             success=True,
-            generated_image_url=stored_url,
+            generated_image_url=result.generated_image_url,
             processing_time=result.processing_time,
         )
 
     except ValueError as e:
-        # Catches validation errors during save/processing
         logger.warning(f"Validation error for user {current_user.id}: {e}")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except HTTPException:
-        # Re-raise HTTPExceptions (like the 502 above)
         raise
     except Exception as e:
-        # Catch-all for unexpected storage/processing errors
         logger.error(f"Unexpected error for user {current_user.id}: {e}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Failed to process generated image.")
+    finally:
+        await _cleanup_user_photo(current_user.id, request.user_photo_url)
 
 
 @router.post(
@@ -339,36 +475,36 @@ async def try_on_outfit(
     current_user: User = Depends(get_current_user),
 ) -> TryOnResponse:
     """Generate try-on image with a complete outfit."""
+    # 0. Rate limit BEFORE doing any expensive work.
+    await _check_tryon_rate_limit(current_user.id)
+
     # 1. Validation
     await validate_image_url(request.user_photo_url)
-    
+
     # Loop over list of tuples [(url, item), ...]
     for img_url, _ in request.item_images:
         await validate_image_url(img_url)
-    
-    # 2. Service Call
+
+    # 2. Service Call — user photo cleaned up in finally regardless of outcome.
     try:
-        # Pass item_images directly (it's already the list of tuples the service expects)
         result = await generate_tryon_outfit(
             user_image_url=request.user_photo_url,
             item_images=request.item_images,
             high_quality=True,
         )
-        
-        # Explicit check for service failure
+
         if not result.success:
             logger.error(f"Gemini error for user {current_user.id}: {result.error}")
             raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY, 
+                status_code=status.HTTP_502_BAD_GATEWAY,
                 detail=result.error or "AI service failed to generate image."
             )
 
-        # 3. Save Image
-        stored_url = await _save_generated_image(current_user.id, result.generated_image_url)
-        
+        # No storage upload here — return the data URL directly (see /single
+        # endpoint for rationale).
         return TryOnResponse(
             success=True,
-            generated_image_url=stored_url,
+            generated_image_url=result.generated_image_url,
             processing_time=result.processing_time,
         )
 
@@ -380,36 +516,5 @@ async def try_on_outfit(
     except Exception as e:
         logger.error(f"Unexpected error for user {current_user.id}: {e}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Failed to process generated image.")
-
-
-async def _save_generated_image(user_id: str, data_url: str) -> str:
-    """Extract image from data URL and upload to Supabase Storage."""
-    if not data_url or not data_url.startswith("data:"):
-        return data_url
-    
-    try:
-        # Parse base64 data URL
-        header, b64_data = data_url.split(",", 1)
-        image_bytes = base64.b64decode(b64_data)
-        
-        # Determine extension from header
-        ext = "png"
-        content_type = "image/png"
-        
-        if "image/jpeg" in header:
-            ext = "jpg"
-            content_type = "image/jpeg"
-        elif "image/webp" in header:
-            ext = "webp"
-            content_type = "image/webp"
-
-        # Upload
-        return await upload_generated_image(
-            user_id=user_id,
-            image_data=image_bytes,
-            outfit_id=str(uuid.uuid4()),
-            # Pass content_type if your upload function supports it, otherwise it defaults
-        )
-    except Exception as e:
-        # This will be caught by the outer try/except in the endpoint
-        raise ValueError(f"Invalid image data: {str(e)}")
+    finally:
+        await _cleanup_user_photo(current_user.id, request.user_photo_url)
