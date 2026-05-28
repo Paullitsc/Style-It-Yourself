@@ -13,6 +13,8 @@ import httpx
 import logging
 import time
 from io import BytesIO
+from typing import Optional
+
 from PIL import Image
 
 from google import genai
@@ -26,8 +28,22 @@ from app.models.schemas import ClothingItemBase, TryOnResponse
 logger = logging.getLogger(__name__)
 
 
-# Initialize client - picks up GEMINI_API_KEY from environment
-client = genai.Client(api_key=settings.GEMINI_API_KEY)
+# Lazy client initialization: instantiating at import time meant a missing
+# or invalid GEMINI_API_KEY would crash the whole API at startup, not just
+# the try-on endpoints. Now the key is only required when try-on is actually
+# invoked.
+_genai_client: Optional[genai.Client] = None
+
+
+def _get_genai_client() -> genai.Client:
+    global _genai_client
+    if _genai_client is None:
+        if not settings.GEMINI_API_KEY:
+            raise RuntimeError(
+                "GEMINI_API_KEY is not configured; try-on is unavailable."
+            )
+        _genai_client = genai.Client(api_key=settings.GEMINI_API_KEY)
+    return _genai_client
 
 # Models
 MODEL_FAST = "gemini-2.5-flash-image"  # Fast, cost-effective
@@ -138,7 +154,7 @@ async def generate_tryon_single(
         
         # Generate image
         logger.info(f"Gemini try-on starting: model={model}, items=1")
-        response = await client.aio.models.generate_content(
+        response = await _get_genai_client().aio.models.generate_content(
             model=model,
             contents=[prompt, user_image, item_image],
             config=types.GenerateContentConfig(
@@ -220,7 +236,7 @@ async def generate_tryon_outfit(
         logger.info(
             f"Gemini try-on starting: model={model}, items={len(items)}"
         )
-        response = await client.aio.models.generate_content(
+        response = await _get_genai_client().aio.models.generate_content(
             model=model,
             contents=contents,
             config=types.GenerateContentConfig(
@@ -291,7 +307,7 @@ async def check_gemini_health() -> dict:
     """
     try:
         # Simple text generation to verify API key works
-        response = await client.aio.models.generate_content(
+        response = await _get_genai_client().aio.models.generate_content(
             model="gemini-2.5-flash",
             contents="Say 'ok'",
             config=types.GenerateContentConfig(
