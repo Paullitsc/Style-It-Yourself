@@ -134,11 +134,17 @@ export interface ValidateOutfitRequest {
   base_item: ClothingItemBase
 }
 
+export interface OutfitWarning {
+  message: string
+  category: 'color' | 'formality' | 'aesthetic' | 'pairing' | 'composition'
+  score_impact: number  // ≤ 0; 0 = informational only (e.g. composition rules)
+}
+
 export interface ValidateOutfitResponse {
   is_complete: boolean
   cohesion_score: number  // 0-100
   verdict: string
-  warnings: string[]
+  warnings: OutfitWarning[]
   color_strip: string[]  // hex codes
 }
 

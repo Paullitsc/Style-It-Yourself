@@ -41,6 +41,7 @@ from app.models.schemas import (
     ClothingItemBase,
     ValidateItemResponse,
     ValidateOutfitResponse,
+    OutfitWarning,
     CategoryRecommendation,
     FormalityRange,
 )
@@ -376,79 +377,57 @@ def get_categories_in_outfit(items: list[ClothingItemBase]) -> dict[str, list[Cl
 def calculate_cohesion_score(items: list[ClothingItemBase], base_item: ClothingItemBase) -> int:
     """Cohesion score (0-100). Penalty-based; single item ⇒ 100.
 
-    - Color: 10 per incompatible pair, capped at 40.
-    - Formality: max(0, range - 0.5) * 10, capped at 30.
-    - Aesthetics: 30 if 2+ tagged items share no tags, else 0.
-    - Pairing: 5 per shoe-bottom rule violation, capped at 10
-      (e.g. Sandals + Suit, Oxfords + Joggers).
-
-    No item-count penalty — UI caps total at MAX_OUTFIT_ITEMS. The
-    "too many items" warning in validate_outfit still downgrades the
-    verdict via get_verdict's no-warnings gate.
+    Caps: see `_score_breakdown` for the full per-dimension formulas. Sum
+    of those (all negative or zero) is applied to a starting score of 100.
     """
-    # Combine all items
+    breakdown = _score_breakdown(items, base_item)
+    return max(0, min(100, 100 + sum(breakdown.values())))
+
+
+def _score_breakdown(
+    items: list[ClothingItemBase], base_item: ClothingItemBase
+) -> dict[str, int]:
+    """Per-dimension penalties (all ≤ 0). Used by both `calculate_cohesion_score`
+    (sums them) and `validate_outfit` (attaches them to warnings for UI display).
+
+    Dimensions:
+    - color: -10 per incompatible pair, capped at -40.
+    - formality: -max(0, range - 0.5) * 10, capped at -30.
+    - aesthetic: -30 when ≥2 tagged items share no tags, else 0.
+    - pairing: -5 per shoe-bottom rule violation, capped at -10.
+
+    No item-count penalty — UI caps total at MAX_OUTFIT_ITEMS.
+    """
     all_items = [base_item] + items
-    total_items = len(all_items)
-    
-    if total_items < 2:
-        return 100  # Single item is always cohesive
-    
-    score = 100
-    
-    # Count incompatible pairs once; the cap and weighting are in the comment
-    # block below where the penalty is computed.
+    if len(all_items) < 2:
+        return {"color": 0, "formality": 0, "aesthetic": 0, "pairing": 0}
+
+    # Pair-wise: color + pairing in one loop.
     incompatible_pairs = 0
+    pairing_violations = 0
     for i in range(len(all_items)):
         for j in range(i + 1, len(all_items)):
             is_compatible, _ = check_color_compatibility(all_items[i].color, all_items[j].color)
             if not is_compatible:
                 incompatible_pairs += 1
-
-    # Color penalty (up to -40 points). Industry sources consistently rank
-    # color discipline (3-color rule, 60-30-10, harmony) as the single most
-    # observable cohesion signal in an outfit — heavier than formality range.
-    color_penalty = min(incompatible_pairs * 10, 40)
-    score -= color_penalty
-
-    # Formality penalty (up to -30 points). Treated as occasion-fit (the
-    # industry framing) rather than the dominant axis; a 0.5-level dead-zone
-    # absorbs small float drift, everything above scales linearly.
-    formality_levels = [float(item.formality) for item in all_items]
-    formality_range = max(formality_levels) - min(formality_levels)
-    formality_penalty = min(max(0.0, formality_range - 0.5) * 10, 30)
-    score -= formality_penalty
-
-    # Aesthetic penalty (up to -30 points). Threshold matches
-    # check_aesthetic_compatibility: ≥1 shared tag is cohesive (no penalty);
-    # 0 shared tags is penalized.
-    all_aesthetics = [set(item.aesthetics) for item in all_items if item.aesthetics]
-    if len(all_aesthetics) >= 2:
-        common_tags = set.intersection(*all_aesthetics)
-        aesthetic_penalty = 0 if common_tags else 30
-    else:
-        aesthetic_penalty = 0  # Single or zero items with tags — nothing to disagree about.
-
-    score -= aesthetic_penalty
-
-    # Pairing penalty (up to -10). Industry treats pairing rules as a "note"
-    # rather than a visual disaster, so the weight is light — 5 per violation,
-    # capped at 10 since the UI has at most one shoe + one bottom pair anyway.
-    pairing_violations = 0
-    for i in range(len(all_items)):
-        for j in range(i + 1, len(all_items)):
             status, _ = check_category_pairing(all_items[i], all_items[j])
             if status == "warning":
                 pairing_violations += 1
-    score -= min(pairing_violations * 5, 10)
 
-    # NB: there used to be an over-max-items penalty here, but the UI caps
-    # each L1 category at one slot (5 outfit slots + 1 base = MAX_OUTFIT_ITEMS),
-    # so it was structurally unreachable. The "Outfit has N items" warning in
-    # validate_outfit stays as defense-in-depth for direct API calls but no
-    # longer moves the score.
+    formality_levels = [float(item.formality) for item in all_items]
+    formality_range = max(formality_levels) - min(formality_levels)
 
-    # Ensure score is between 0-100
-    return max(0, min(100, int(score)))
+    all_aesthetics = [set(item.aesthetics) for item in all_items if item.aesthetics]
+    aesthetic_penalty = 30 if (
+        len(all_aesthetics) >= 2 and not set.intersection(*all_aesthetics)
+    ) else 0
+
+    return {
+        "color": -min(incompatible_pairs * 10, 40),
+        "formality": -int(min(max(0.0, formality_range - 0.5) * 10, 30)),
+        "aesthetic": -aesthetic_penalty,
+        "pairing": -min(pairing_violations * 5, 10),
+    }
 
 
 def get_verdict(score: int, is_complete: bool, warnings: list[str]) -> str:
@@ -493,89 +472,96 @@ def validate_outfit(
     """
     # 1. Combine base_item + items
     full_outfit = [base_item] + items
-    
-    # 2. Check composition
+
+    # 2. Check composition + score breakdown (used to attach per-dimension
+    # score_impact onto warnings).
     is_complete, missing_categories = check_outfit_composition(full_outfit)
-    
-    # 3. Check total items and per-category caps
-    warnings = []
+    breakdown = _score_breakdown(items, base_item)
+    cohesion_score = max(0, min(100, 100 + sum(breakdown.values())))
+
+    warnings: list[OutfitWarning] = []
+
+    def add(message: str, category: str, score_impact: int) -> None:
+        warnings.append(
+            OutfitWarning(
+                message=message, category=category, score_impact=score_impact
+            )
+        )
+
+    # 3. Composition warnings — none move the score (UI caps everything);
+    # they still downgrade the verdict via get_verdict's no-warnings gate.
     if len(full_outfit) > MAX_OUTFIT_ITEMS:
-        # No score impact (UI caps total); still downgrades the verdict
-        # via get_verdict's no-warnings gate.
-        warnings.append(f"Outfit has {len(full_outfit)} items (max: {MAX_OUTFIT_ITEMS})")
-
+        add(f"Outfit has {len(full_outfit)} items (max: {MAX_OUTFIT_ITEMS})", "composition", 0)
     if missing_categories:
-        warnings.append(f"Missing required categories: {', '.join(missing_categories)}")
+        add(f"Missing required categories: {', '.join(missing_categories)}", "composition", 0)
 
-    # Per-category caps and singleton-category checks. MAX_ACCESSORIES and
-    # MAX_OUTERWEAR were unused constants before this; the singleton categories
-    # (Tops/Bottoms/Shoes/Full Body) shouldn't appear more than once.
     items_by_l1 = get_categories_in_outfit(full_outfit)
     if len(items_by_l1.get("Accessories", [])) > MAX_ACCESSORIES:
-        warnings.append(
-            f"Too many accessories ({len(items_by_l1['Accessories'])} — max: {MAX_ACCESSORIES})"
+        add(
+            f"Too many accessories ({len(items_by_l1['Accessories'])} — max: {MAX_ACCESSORIES})",
+            "composition", 0,
         )
     if len(items_by_l1.get("Outerwear", [])) > MAX_OUTERWEAR:
-        warnings.append(
-            f"Too many outerwear pieces ({len(items_by_l1['Outerwear'])} — max: {MAX_OUTERWEAR})"
+        add(
+            f"Too many outerwear pieces ({len(items_by_l1['Outerwear'])} — max: {MAX_OUTERWEAR})",
+            "composition", 0,
         )
     for l1 in ("Tops", "Bottoms", "Shoes", "Full Body"):
         count = len(items_by_l1.get(l1, []))
         if count > 1:
-            warnings.append(f"Multiple {l1} in outfit ({count})")
-    
-    # 4. Calculate cohesion score
-    cohesion_score = calculate_cohesion_score(items, base_item)
-    
-    # 5. Validate each item pair and collect warnings
+            add(f"Multiple {l1} in outfit ({count})", "composition", 0)
+
+    # 4. Pair-wise color + formality + pairing warnings — each tagged with
+    # its dimension's total penalty (so multiple color warnings all show the
+    # same -N representing the dimension's contribution to the score).
     for i in range(len(full_outfit)):
         for j in range(i + 1, len(full_outfit)):
             item1, item2 = full_outfit[i], full_outfit[j]
-            
-            # Color check
-            is_compatible, harmony_type = check_color_compatibility(item1.color, item2.color)
+
+            is_compatible, _ = check_color_compatibility(item1.color, item2.color)
             if not is_compatible:
-                warnings.append(f"{item1.category.l2} and {item2.category.l2} colors may clash")
-            
-            # Formality check — surface both "warning" and "mismatch" tiers.
-            # The cohesion score deducts for any range above the 0.5 dead-zone,
-            # so a "warning"-tier pair (1 < distance ≤ 2) silently reduced the
-            # score with no visible reason. dedup at the end will collapse
-            # identical strings.
+                add(
+                    f"{item1.category.l2} and {item2.category.l2} colors may clash",
+                    "color", breakdown["color"],
+                )
+
             status, msg = check_formality_compatibility(item1.formality, item2.formality)
             if status in ("warning", "mismatch"):
-                warnings.append(msg)
-            
-            # Category pairing check
+                add(msg, "formality", breakdown["formality"])
+
             status, msg = check_category_pairing(item1, item2)
             if status == "warning":
-                warnings.append(msg)
+                add(msg, "pairing", breakdown["pairing"])
 
-    # Outfit-level aesthetic check (not pair-wise to avoid duplicate noise).
+    # 5. Outfit-level aesthetic check (not pair-wise to avoid duplicate noise).
     # Guard `>= 2`: a single tagged item can't disagree with itself, so there's
     # nothing meaningful to warn about until two tagged items exist.
     aesthetic_sets = [set(item.aesthetics) for item in full_outfit if item.aesthetics]
     if len(aesthetic_sets) >= 2 and not set.intersection(*aesthetic_sets):
-        warnings.append("No shared aesthetic tags across the outfit")
+        add("No shared aesthetic tags across the outfit", "aesthetic", breakdown["aesthetic"])
 
-    # Dedupe — pair-wise checks can produce the same warning string from
-    # multiple distinct pairs (e.g. three items at formality 1,1,5 surfaces
-    # the same Casual-vs-Black-Tie mismatch twice). dict.fromkeys preserves
-    # first-seen order on Python 3.7+.
-    warnings = list(dict.fromkeys(warnings))
+    # Dedupe — pair-wise checks can produce the same logical warning from
+    # multiple distinct pairs (e.g. three items at formality 1,1,5 surface
+    # the same Casual-vs-Black-Tie mismatch twice). Match on the (message,
+    # category) pair to keep dedup honest across score-impact updates.
+    seen: set[tuple[str, str]] = set()
+    deduped: list[OutfitWarning] = []
+    for w in warnings:
+        key = (w.message, w.category)
+        if key not in seen:
+            seen.add(key)
+            deduped.append(w)
+    warnings = deduped
 
-    # 6. Build color strip
     color_strip = [item.color.hex for item in full_outfit]
-
-    # 7. Generate verdict
     verdict = get_verdict(cohesion_score, is_complete, warnings)
-    
+
     return ValidateOutfitResponse(
         is_complete=is_complete,
         cohesion_score=cohesion_score,
         verdict=verdict,
         warnings=warnings,
-        color_strip=color_strip
+        color_strip=color_strip,
     )
 
 

@@ -157,12 +157,26 @@ class ValidateOutfitRequest(BaseModel):
     base_item: ClothingItemBase
 
 
+class OutfitWarning(BaseModel):
+    """A single validation note shown to the user, with its score attribution.
+
+    score_impact is the penalty contribution of the warning's dimension (so
+    multiple warnings of the same dimension all carry the same value — that
+    dimension's total penalty). A value of 0 means the warning is
+    informational only (e.g. composition rules that surface for direct-API
+    callers but don't move the score).
+    """
+    message: str
+    category: Literal["color", "formality", "aesthetic", "pairing", "composition"]
+    score_impact: int = Field(..., le=0, description="Points deducted (negative or zero)")
+
+
 class ValidateOutfitResponse(BaseModel):
     """Response body for POST /api/validate-outfit"""
     is_complete: bool
     cohesion_score: int = Field(..., ge=0, le=100)
     verdict: str
-    warnings: list[str] = Field(default_factory=list)
+    warnings: list[OutfitWarning] = Field(default_factory=list)
     color_strip: list[str] = Field(default_factory=list, description="List of hex colors in outfit")
 
 
