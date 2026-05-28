@@ -58,8 +58,13 @@ from app.services.color_harmony import check_color_compatibility, generate_recom
 # ==============================================================================
 
 def _formality_label(f: float) -> str:
-    """Map a float formality to its labelled level (clamped to 1-5)."""
-    return FORMALITY_LEVELS[max(1, min(5, round(f)))]
+    """Map a float formality to its labelled level (clamped to 1-5).
+
+    Uses half-up rounding (int(f + 0.5)) rather than Python's built-in
+    banker's rounding so 2.5 → 3 (not 2) and 3.5 → 4 (not 4-by-banker's),
+    keeping the mapping symmetric and user-predictable.
+    """
+    return FORMALITY_LEVELS[max(1, min(5, int(f + 0.5)))]
 
 
 def check_formality_compatibility(formality1: float, formality2: float) -> tuple[str, str | None]:
@@ -293,7 +298,12 @@ def validate_item(
             pairing_warnings.append(msg)
     
     warnings.extend(pairing_warnings)
-    
+
+    # Two outfit pieces sharing the same l2 (e.g. multiple "Watches" under
+    # MAX_ACCESSORIES=3) would produce identical warning strings. Dedup before
+    # returning so the user sees each issue once.
+    warnings = list(dict.fromkeys(warnings))
+
     return ValidateItemResponse(
         color_status=color_status,
         formality_status=formality_status,
