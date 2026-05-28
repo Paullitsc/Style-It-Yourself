@@ -46,6 +46,8 @@ from app.utils.constants import (
     REQUIRED_CATEGORIES_STANDARD,
     REQUIRED_CATEGORIES_FULLBODY,
     MAX_OUTFIT_ITEMS,
+    MAX_ACCESSORIES,
+    MAX_OUTERWEAR,
 )
 from app.services.color_harmony import check_color_compatibility, generate_recommended_colors
 
@@ -422,7 +424,13 @@ def calculate_cohesion_score(items: list[ClothingItemBase], base_item: ClothingI
         aesthetic_penalty = 0  # Single or zero items with tags — nothing to disagree about.
 
     score -= aesthetic_penalty
-    
+
+    # Over-max-items penalty: previously this only emitted a warning string
+    # in validate_outfit, but a 10-item outfit could still score 100. Five
+    # points per extra item, capped at 20.
+    if total_items > MAX_OUTFIT_ITEMS:
+        score -= min((total_items - MAX_OUTFIT_ITEMS) * 5, 20)
+
     # Ensure score is between 0-100
     return max(0, min(100, int(score)))
 
@@ -477,13 +485,30 @@ def validate_outfit(
     # 2. Check composition
     is_complete, missing_categories = check_outfit_composition(full_outfit)
     
-    # 3. Check total items
+    # 3. Check total items and per-category caps
     warnings = []
     if len(full_outfit) > MAX_OUTFIT_ITEMS:
         warnings.append(f"Outfit has {len(full_outfit)} items (max: {MAX_OUTFIT_ITEMS})")
-    
+
     if missing_categories:
         warnings.append(f"Missing required categories: {', '.join(missing_categories)}")
+
+    # Per-category caps and singleton-category checks. MAX_ACCESSORIES and
+    # MAX_OUTERWEAR were unused constants before this; the singleton categories
+    # (Tops/Bottoms/Shoes/Full Body) shouldn't appear more than once.
+    items_by_l1 = get_categories_in_outfit(full_outfit)
+    if len(items_by_l1.get("Accessories", [])) > MAX_ACCESSORIES:
+        warnings.append(
+            f"Too many accessories ({len(items_by_l1['Accessories'])} — max: {MAX_ACCESSORIES})"
+        )
+    if len(items_by_l1.get("Outerwear", [])) > MAX_OUTERWEAR:
+        warnings.append(
+            f"Too many outerwear pieces ({len(items_by_l1['Outerwear'])} — max: {MAX_OUTERWEAR})"
+        )
+    for l1 in ("Tops", "Bottoms", "Shoes", "Full Body"):
+        count = len(items_by_l1.get(l1, []))
+        if count > 1:
+            warnings.append(f"Multiple {l1} in outfit ({count})")
     
     # 4. Calculate cohesion score
     cohesion_score = calculate_cohesion_score(items, base_item)

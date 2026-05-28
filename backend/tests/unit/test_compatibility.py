@@ -649,6 +649,59 @@ def test_validate_outfit_incomplete():
     assert any("missing" in w.lower() for w in response.warnings)
 
 
+def test_validate_outfit_warns_when_too_many_accessories():
+    """MAX_ACCESSORIES=3 is in constants.py but was previously unenforced."""
+    base_item = _make_item("Tops", "T-Shirts", aesthetics=["Minimalist"])
+    items = [
+        _make_item("Bottoms", "Jeans", aesthetics=["Minimalist"]),
+        _make_item("Shoes", "Sneakers", aesthetics=["Minimalist"]),
+        _make_item("Accessories", "Watches", aesthetics=["Minimalist"]),
+        _make_item("Accessories", "Belts", aesthetics=["Minimalist"]),
+        _make_item("Accessories", "Hats", aesthetics=["Minimalist"]),
+        _make_item("Accessories", "Bags", aesthetics=["Minimalist"]),  # 4th — over cap
+    ]
+    response = compatibility.validate_outfit(items, base_item)
+    assert any("accessor" in w.lower() for w in response.warnings)
+
+
+def test_validate_outfit_warns_when_too_many_outerwear():
+    """MAX_OUTERWEAR=1 is in constants.py but was previously unenforced."""
+    base_item = _make_item("Tops", "T-Shirts", aesthetics=["Minimalist"])
+    items = [
+        _make_item("Bottoms", "Jeans", aesthetics=["Minimalist"]),
+        _make_item("Shoes", "Sneakers", aesthetics=["Minimalist"]),
+        _make_item("Outerwear", "Jackets", aesthetics=["Minimalist"]),
+        _make_item("Outerwear", "Coats", aesthetics=["Minimalist"]),
+    ]
+    response = compatibility.validate_outfit(items, base_item)
+    assert any("outerwear" in w.lower() for w in response.warnings)
+
+
+def test_validate_outfit_warns_on_duplicate_singleton_category():
+    """Two pairs of Shoes in one outfit shouldn't pass silently."""
+    base_item = _make_item("Tops", "T-Shirts", aesthetics=["Minimalist"])
+    items = [
+        _make_item("Bottoms", "Jeans", aesthetics=["Minimalist"]),
+        _make_item("Shoes", "Sneakers", aesthetics=["Minimalist"]),
+        _make_item("Shoes", "Boots", aesthetics=["Minimalist"]),
+    ]
+    response = compatibility.validate_outfit(items, base_item)
+    assert any("shoes" in w.lower() for w in response.warnings)
+
+
+def test_cohesion_score_penalized_when_over_max_items():
+    """Over-max-items previously surfaced a warning but didn't move the score.
+    The score should reflect that the outfit is over budget."""
+    base_item = _make_item("Tops", "T-Shirts", aesthetics=["Minimalist"])
+    # 8 extra items, way over MAX_OUTFIT_ITEMS=6 (incl. base = 9 total).
+    items = [
+        _make_item("Accessories", f"X{i}", aesthetics=["Minimalist"])
+        for i in range(8)
+    ]
+    score = compatibility.calculate_cohesion_score(items, base_item)
+    assert score < 100
+
+
 def test_validate_outfit_emits_aesthetic_warning_when_no_shared_tags():
     """validate_outfit previously checked color/formality/pairing pair-wise
     but never surfaced aesthetic warnings. An outfit with zero shared tags
