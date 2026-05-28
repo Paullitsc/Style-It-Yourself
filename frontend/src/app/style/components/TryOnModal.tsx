@@ -76,7 +76,15 @@ export default function TryOnModal({
       onTryOnComplete?.(response.generated_image_url)
     } catch (err) {
       console.error('Try-on failed:', err)
-      setError('Failed to generate try-on. Please try again.')
+      // Surface the backend's user-facing message (e.g. "Your photo couldn't
+      // be processed. Try a clear, full-body photo...") instead of swallowing
+      // it into a generic "Failed". fetchApi throws Error with the detail
+      // field as the message.
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Failed to generate try-on. Please try again.',
+      )
       setStep('upload')
     }
   }
