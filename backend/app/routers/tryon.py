@@ -18,8 +18,28 @@ from app.services.gemini import generate_tryon_single, generate_tryon_outfit
 from app.services.supabase import (
     upload_generated_image,
     upload_image,
+    delete_user_photo,
     get_supabase_client,
 )
+
+
+async def _cleanup_user_photo(user_id: str, user_photo_url: str) -> None:
+    """Best-effort delete of a user-photo URL that we own.
+
+    Guard ensures we only delete URLs scoped to this user's path in the
+    user-photos bucket — an external URL the caller passed in shouldn't be
+    touched. Any deletion failure is logged but doesn't disrupt the response.
+    """
+    if not user_photo_url or "/user-photos/" not in user_photo_url:
+        return
+    # Path inside user-photos bucket starts with {user_id}/, so confirm before
+    # deleting to avoid cross-user removal even with a forged URL.
+    if f"/user-photos/{user_id}/" not in user_photo_url:
+        return
+    try:
+        await delete_user_photo(user_photo_url)
+    except Exception as e:
+        logger.warning(f"Failed to delete user photo after try-on: {e}")
 
 logger = logging.getLogger(__name__)
 
@@ -293,9 +313,9 @@ async def try_on_single(
     # 1. Validation (HTTP 400)
     await validate_image_url(request.user_photo_url)
     await validate_image_url(request.item_image_url)
-    
-    # 2. Service Call
-    # Note: Service now suppresses exceptions and returns success=False
+
+    # 2. Service Call — user photo is cleaned up in finally regardless of outcome
+    # so storage doesn't grow unboundedly per try-on attempt.
     try:
         result = await generate_tryon_single(
             user_image_url=request.user_photo_url,
@@ -303,18 +323,17 @@ async def try_on_single(
             item=request.item,
             high_quality=True,
         )
-        
-        # Explicit check for service failure (Replacing previous GeminiError catch)
+
         if not result.success:
             logger.error(f"Gemini error for user {current_user.id}: {result.error}")
             raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY, 
+                status_code=status.HTTP_502_BAD_GATEWAY,
                 detail=result.error or "AI service failed to generate image."
             )
 
-        # 3. Save Image (Retaining your original error catching logic)
+        # 3. Save Image
         stored_url = await _save_generated_image(current_user.id, result.generated_image_url)
-        
+
         return TryOnResponse(
             success=True,
             generated_image_url=stored_url,
@@ -322,16 +341,15 @@ async def try_on_single(
         )
 
     except ValueError as e:
-        # Catches validation errors during save/processing
         logger.warning(f"Validation error for user {current_user.id}: {e}")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except HTTPException:
-        # Re-raise HTTPExceptions (like the 502 above)
         raise
     except Exception as e:
-        # Catch-all for unexpected storage/processing errors
         logger.error(f"Unexpected error for user {current_user.id}: {e}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Failed to process generated image.")
+    finally:
+        await _cleanup_user_photo(current_user.id, request.user_photo_url)
 
 
 @router.post(
@@ -421,31 +439,28 @@ async def try_on_outfit(
     """Generate try-on image with a complete outfit."""
     # 1. Validation
     await validate_image_url(request.user_photo_url)
-    
+
     # Loop over list of tuples [(url, item), ...]
     for img_url, _ in request.item_images:
         await validate_image_url(img_url)
-    
-    # 2. Service Call
+
+    # 2. Service Call — user photo cleaned up in finally regardless of outcome.
     try:
-        # Pass item_images directly (it's already the list of tuples the service expects)
         result = await generate_tryon_outfit(
             user_image_url=request.user_photo_url,
             item_images=request.item_images,
             high_quality=True,
         )
-        
-        # Explicit check for service failure
+
         if not result.success:
             logger.error(f"Gemini error for user {current_user.id}: {result.error}")
             raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY, 
+                status_code=status.HTTP_502_BAD_GATEWAY,
                 detail=result.error or "AI service failed to generate image."
             )
 
-        # 3. Save Image
         stored_url = await _save_generated_image(current_user.id, result.generated_image_url)
-        
+
         return TryOnResponse(
             success=True,
             generated_image_url=stored_url,
@@ -460,6 +475,8 @@ async def try_on_outfit(
     except Exception as e:
         logger.error(f"Unexpected error for user {current_user.id}: {e}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Failed to process generated image.")
+    finally:
+        await _cleanup_user_photo(current_user.id, request.user_photo_url)
 
 
 async def _save_generated_image(user_id: str, data_url: str) -> str:
