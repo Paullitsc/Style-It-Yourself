@@ -87,7 +87,12 @@ export default function TryOnOutfitModal({
       setStep('result')
     } catch (err) {
       console.error('Outfit try-on failed:', err)
-      setError('Failed to generate outfit try-on. Please try again.')
+      // Surface backend's user-facing message instead of a generic "Failed".
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Failed to generate outfit try-on. Please try again.',
+      )
       setStep('upload')
     }
   }

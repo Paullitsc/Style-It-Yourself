@@ -648,14 +648,18 @@ async def upload_data_url_image(
 
 
 async def delete_image(image_url: str, bucket: str = "clothing-images") -> bool:
-    """Delete an image from Supabase Storage."""
+    """Delete an image from Supabase Storage. Logs (rather than silently
+    swallows) failures so storage/DB drift is observable."""
     supabase = await get_supabase_client()
-    
+
     try:
         path = image_url.split(f"/{bucket}/")[1]
         await supabase.storage.from_(bucket).remove([path])
         return True
-    except Exception:
+    except Exception as e:
+        logging.getLogger(__name__).warning(
+            f"delete_image failed for bucket={bucket} url={image_url!r}: {e!r}"
+        )
         return False
 
 

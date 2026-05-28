@@ -4,10 +4,12 @@ import asyncio
 import logging
 import uuid
 from collections import defaultdict, deque
+from io import BytesIO
 from time import monotonic
 
 import httpx
 from fastapi import APIRouter, Body, Depends, File, HTTPException, UploadFile, status
+from PIL import Image, UnidentifiedImageError
 
 from app.middleware.auth import get_current_user
 from app.models.schemas import (
@@ -23,6 +25,68 @@ from app.services.supabase import (
     delete_user_photo,
     get_supabase_client,
 )
+
+
+# Map service-layer error categories (TryOnResponse.error_kind) onto the
+# HTTP status the endpoint should return. Default 502 mirrors the previous
+# behavior; specific kinds get more accurate codes.
+_ERROR_KIND_TO_STATUS = {
+    "timeout": status.HTTP_504_GATEWAY_TIMEOUT,
+    "api_error": status.HTTP_503_SERVICE_UNAVAILABLE,
+    "image_fetch": status.HTTP_400_BAD_REQUEST,
+    "validation": status.HTTP_400_BAD_REQUEST,
+    "unexpected": status.HTTP_500_INTERNAL_SERVER_ERROR,
+}
+
+
+# Upload validation: cap each image side at 4096 px. Larger images get
+# rejected by Gemini anyway (and cost more to process), and they're a
+# common decompression-bomb-adjacent pattern we'd rather block at the
+# boundary.
+MAX_IMAGE_DIMENSION = 4096
+
+
+def _validate_image_bytes(data: bytes) -> None:
+    """Confirm bytes are a real image and within size limits.
+
+    Trusts the content_type header on its own aren't enough — a malicious or
+    misconfigured client can mark anything as image/jpeg. Pillow's open()
+    raises UnidentifiedImageError on non-image content and DecompressionBomb
+    family on suspicious dimensions; we additionally enforce an explicit
+    per-side cap for actionable error copy.
+    """
+    try:
+        with Image.open(BytesIO(data)) as img:
+            img.verify()
+    except UnidentifiedImageError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File is not a valid image",
+        )
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Could not decode image",
+        )
+
+    # verify() invalidates the image; reopen to read dimensions.
+    try:
+        with Image.open(BytesIO(data)) as img:
+            width, height = img.size
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Could not read image dimensions",
+        )
+
+    if width > MAX_IMAGE_DIMENSION or height > MAX_IMAGE_DIMENSION:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Image too large ({width}x{height}px; "
+                f"max {MAX_IMAGE_DIMENSION}px per side)"
+            ),
+        )
 
 
 # Per-user rate limit on try-on generation. Each Gemini call is paid, so a
@@ -91,26 +155,43 @@ AUTH_RESPONSES = {
 
 
 async def validate_image_url(url: str) -> None:
-    """Validate that an image URL is accessible."""
-    # Skip validation for data URLs
+    """Validate that a URL points at a reachable image.
+
+    Checks:
+    - 2xx status (was previously "anything <400 plus 405")
+    - Content-Type starts with image/ when present
+
+    A 405 from the server is treated as "HEAD not supported" and lets the
+    request through; the GET inside fetch_image_as_pil will surface the
+    real failure if the URL is broken. Data URLs are exempt entirely.
+    """
     if url.startswith("data:"):
         return
-        
+
     try:
         async with httpx.AsyncClient() as client:
             response = await client.head(url, timeout=5.0)
-            if response.status_code >= 400:
-                # Some servers block HEAD, allow if 405 Method Not Allowed
-                if response.status_code == 405:
-                    return
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Image URL not accessible: {url}",
-                )
     except httpx.RequestError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Could not reach image URL: {url}",
+        )
+
+    if response.status_code == 405:
+        # Server blocks HEAD; rely on the downstream GET.
+        return
+
+    if not 200 <= response.status_code < 300:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Image URL returned status {response.status_code}",
+        )
+
+    content_type = response.headers.get("content-type", "").lower()
+    if content_type and not content_type.startswith("image/"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"URL is not an image (Content-Type: {content_type})",
         )
 
 
@@ -160,14 +241,18 @@ async def upload_user_photo(
         
         # Read image data
         image_data = await image.read()
-        
+
         # Validate file size (max 10MB)
         if len(image_data) > 10 * 1024 * 1024:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Image must be less than 10MB",
             )
-        
+
+        # Content-Type alone is client-supplied; verify the bytes are
+        # actually an image of a reasonable size.
+        _validate_image_bytes(image_data)
+
         # Generate unique filename
         file_ext = image.filename.split(".")[-1] if image.filename and "." in image.filename else "jpg"
         file_path = f"user-photos/{current_user.id}/{uuid.uuid4()}.{file_ext}"
@@ -252,6 +337,9 @@ async def upload_item_image(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Image must be less than 10MB",
             )
+
+        # Content-Type alone is client-supplied; verify the bytes.
+        _validate_image_bytes(image_data)
 
         file_name = image.filename or f"item-{uuid.uuid4()}.jpg"
         public_url = await upload_image(
@@ -358,14 +446,18 @@ async def try_on_single(
             user_image_url=request.user_photo_url,
             item_image_url=request.item_image_url,
             item=request.item,
-            high_quality=True,
         )
 
         if not result.success:
-            logger.error(f"Gemini error for user {current_user.id}: {result.error}")
+            logger.error(
+                f"Gemini error for user {current_user.id}: "
+                f"kind={result.error_kind}, msg={result.error}"
+            )
             raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=result.error or "AI service failed to generate image."
+                status_code=_ERROR_KIND_TO_STATUS.get(
+                    result.error_kind, status.HTTP_502_BAD_GATEWAY
+                ),
+                detail=result.error or "AI service failed to generate image.",
             )
 
         # No storage upload here — return the data URL directly. The image
@@ -490,14 +582,18 @@ async def try_on_outfit(
         result = await generate_tryon_outfit(
             user_image_url=request.user_photo_url,
             item_images=request.item_images,
-            high_quality=True,
         )
 
         if not result.success:
-            logger.error(f"Gemini error for user {current_user.id}: {result.error}")
+            logger.error(
+                f"Gemini error for user {current_user.id}: "
+                f"kind={result.error_kind}, msg={result.error}"
+            )
             raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=result.error or "AI service failed to generate image."
+                status_code=_ERROR_KIND_TO_STATUS.get(
+                    result.error_kind, status.HTTP_502_BAD_GATEWAY
+                ),
+                detail=result.error or "AI service failed to generate image.",
             )
 
         # No storage upload here — return the data URL directly (see /single
