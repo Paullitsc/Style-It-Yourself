@@ -196,7 +196,9 @@ export default function SummaryStep() {
           {(() => {
             // Use the validated color strip when available; otherwise fall
             // back to item colors directly so the palette still renders even
-            // if validation failed.
+            // if validation failed. Both sources should produce the same
+            // sequence under normal operation — the fallback only matters
+            // when the validation API was unreachable.
             const colorStrip =
               validation?.color_strip && validation.color_strip.length > 0
                 ? validation.color_strip

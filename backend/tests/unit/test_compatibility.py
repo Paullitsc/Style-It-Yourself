@@ -12,7 +12,7 @@ from app.models.schemas import (
     ValidateOutfitResponse,
 )
 from app.services import compatibility
-from app.utils.constants import SHOE_BOTTOM_PAIRINGS, MAX_OUTFIT_ITEMS
+from app.utils.constants import SHOE_BOTTOM_PAIRINGS, MAX_OUTFIT_ITEMS, FORMALITY_LEVELS
 
 
 # ==============================================================================
@@ -82,10 +82,12 @@ def test_check_formality_compatibility(formality1: float, formality2: float, exp
     else:
         assert msg is not None
         # Warning text uses labelled levels (e.g. "Casual", "Smart Casual"),
-        # not the raw float values.
-        label1 = compatibility._formality_label(formality1)
-        label2 = compatibility._formality_label(formality2)
-        assert label1 in msg or label2 in msg
+        # not the raw float values. Computed from FORMALITY_LEVELS directly
+        # rather than via compatibility._formality_label so the test isn't
+        # coupled to a private helper.
+        def _expected_label(f: float) -> str:
+            return FORMALITY_LEVELS[max(1, min(5, int(f + 0.5)))]
+        assert _expected_label(formality1) in msg or _expected_label(formality2) in msg
 
 
 def test_check_formality_compatibility_boundary_cases():
@@ -696,16 +698,33 @@ def test_validate_outfit_warns_when_too_many_outerwear():
     assert any("outerwear" in w.lower() for w in response.warnings)
 
 
-def test_validate_outfit_warns_on_duplicate_singleton_category():
-    """Two pairs of Shoes in one outfit shouldn't pass silently."""
-    base_item = _make_item("Tops", "T-Shirts", aesthetics=["Minimalist"])
+@pytest.mark.parametrize(
+    "duplicate_l1, l2_pair",
+    [
+        ("Tops", ("T-Shirts", "Casual Shirts")),
+        ("Bottoms", ("Jeans", "Chinos")),
+        ("Shoes", ("Sneakers", "Boots")),
+        ("Full Body", ("Dresses", "Suits")),
+    ],
+)
+def test_validate_outfit_warns_on_duplicate_singleton_category(
+    duplicate_l1: str, l2_pair: tuple[str, str]
+):
+    """All four singleton L1s (Tops/Bottoms/Shoes/Full Body) must warn on dups."""
+    # Base in a different category so the duplicate is in the outfit items.
+    base_item = _make_item(
+        "Accessories" if duplicate_l1 != "Accessories" else "Tops",
+        "Watches",
+        aesthetics=["Minimalist"],
+    )
     items = [
-        _make_item("Bottoms", "Jeans", aesthetics=["Minimalist"]),
-        _make_item("Shoes", "Sneakers", aesthetics=["Minimalist"]),
-        _make_item("Shoes", "Boots", aesthetics=["Minimalist"]),
+        _make_item(duplicate_l1, l2_pair[0], aesthetics=["Minimalist"]),
+        _make_item(duplicate_l1, l2_pair[1], aesthetics=["Minimalist"]),
     ]
     response = compatibility.validate_outfit(items, base_item)
-    assert any("shoes" in w.lower() for w in response.warnings)
+    assert any(
+        duplicate_l1.lower() in w.lower() for w in response.warnings
+    ), f"expected a 'Multiple {duplicate_l1}' warning, got {response.warnings!r}"
 
 
 def test_cohesion_score_penalized_when_over_max_items():
