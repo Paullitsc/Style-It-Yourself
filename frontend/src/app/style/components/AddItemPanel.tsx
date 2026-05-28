@@ -85,6 +85,7 @@ export default function AddItemPanel({
   const [showOptional, setShowOptional] = useState(false)
   const [isExtracting, setIsExtracting] = useState(false)
   const [isValidating, setIsValidating] = useState(false)
+  const [validationError, setValidationError] = useState<string | null>(null)
   const [pendingTryOnUrl, setPendingTryOnUrl] = useState<string | null>(null)
 
   const [magnifierPosition, setMagnifierPosition] = useState<{
@@ -489,6 +490,7 @@ export default function AddItemPanel({
       return
 
     setIsValidating(true)
+    setValidationError(null)
     try {
       const newItem = {
         image_url: addingItem.croppedImage.croppedUrl,
@@ -503,14 +505,16 @@ export default function AddItemPanel({
       setItemValidation(validation)
       setCurrentStep('validate')
     } catch (error) {
+      // Don't fake a successful validation response — surface the failure
+      // explicitly so the user can distinguish "compatible" from "we couldn't
+      // check".
       console.error('Validation failed', error)
-      setItemValidation({
-        color_status: 'ok',
-        formality_status: 'ok',
-        aesthetic_status: 'cohesive',
-        pairing_status: 'ok',
-        warnings: ['Validation service unavailable — proceeding with caution.'],
-      })
+      setItemValidation(null)
+      setValidationError(
+        error instanceof Error
+          ? error.message
+          : 'Could not reach the validation service.',
+      )
       setCurrentStep('validate')
     } finally {
       setIsValidating(false)
@@ -962,7 +966,47 @@ export default function AddItemPanel({
         )}
 
         {/* STEP 4 — VALIDATE */}
-        {currentStep === 'validate' && itemValidation && (
+        {currentStep === 'validate' && validationError && (
+          <div className="flex flex-col gap-6">
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-accent mb-2">
+                Validation unavailable
+              </p>
+              <h3 className="font-display text-[32px] leading-tight tracking-[-0.015em]">
+                We couldn&apos;t check this <em className="italic text-ink-3">piece</em>.
+              </h3>
+              <p className="font-display italic text-[16px] text-ink-2 mt-2 max-w-[34ch]">
+                {validationError}
+              </p>
+            </div>
+            <div className="flex items-center justify-between gap-6 pt-3">
+              <button
+                type="button"
+                onClick={() => setCurrentStep('colors')}
+                className="font-mono text-[11px] uppercase tracking-[0.12em] pb-[2px] border-b border-transparent hover:border-ink transition-colors"
+              >
+                ← Back
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmAdd}
+                disabled={isAdding}
+                className={cn(
+                  'inline-flex items-center justify-between gap-6 px-[18px] py-[12px]',
+                  'border border-ink bg-paper text-ink',
+                  'font-mono text-[11px] uppercase tracking-[0.12em]',
+                  'transition-colors hover:bg-ink hover:text-paper',
+                  'disabled:opacity-40 disabled:cursor-not-allowed',
+                )}
+              >
+                <span>Add anyway</span>
+                <span aria-hidden="true">→</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {currentStep === 'validate' && itemValidation && !validationError && (
           <div className="flex flex-col gap-6">
             <div>
               <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mb-2">
