@@ -412,9 +412,7 @@ def test_calculate_cohesion_score_color_penalty_cap_is_40():
         ]
     ]
     score = compatibility.calculate_cohesion_score(items, base_item)
-    # Contract: color penalty saturates at -40 ⇒ score is at most 100 - 40.
-    # (Other dimensions contribute 0 in this scenario, so in practice the
-    # score will sit at the cap; the assertion is the contract.)
+    # Contract: color penalty caps at -40, so score ≤ 60.
     assert score <= 60
 
 
@@ -827,24 +825,17 @@ def test_validate_outfit_emits_aesthetic_warning_when_no_shared_tags():
 
 
 def test_validate_outfit_too_many_items():
-    """Over-max-items emits a warning (defense-in-depth for direct API
-    callers) but no longer moves the cohesion score — the penalty was
-    removed because the UI structurally caps total items at
-    MAX_OUTFIT_ITEMS."""
+    """Over-max warns but no longer deducts (UI caps total items)."""
     base_item = _make_item("Tops", "T-Shirts", aesthetics=["Minimalist"])
     items = [
         _make_item("Bottoms", "Jeans", aesthetics=["Minimalist"]),
         _make_item("Shoes", "Sneakers", aesthetics=["Minimalist"]),
-    ] * (MAX_OUTFIT_ITEMS // 2 + 1)  # Create more than MAX_OUTFIT_ITEMS
+    ] * (MAX_OUTFIT_ITEMS // 2 + 1)
 
     response = compatibility.validate_outfit(items, base_item)
 
-    # Warning still fires.
-    assert len(response.warnings) > 0
+    # Warning fires, score unaffected, verdict downgraded via no-warnings gate.
     assert any(str(MAX_OUTFIT_ITEMS) in w for w in response.warnings)
-
-    # ...but no score impact from the item count itself. The verdict is
-    # still downgraded from "Excellent" via get_verdict's no-warnings gate.
     assert response.cohesion_score == 100
     assert "Excellent" not in response.verdict
 

@@ -375,27 +375,15 @@ def get_categories_in_outfit(items: list[ClothingItemBase]) -> dict[str, list[Cl
 # ==============================================================================
 
 def calculate_cohesion_score(items: list[ClothingItemBase], base_item: ClothingItemBase) -> int:
-    """Calculate outfit cohesion score (0-100).
+    """Cohesion score (0-100). Penalty-based; single item ⇒ 100.
 
-    Penalty-based; starts at 100 and deducts per dimension. Single-item
-    outfits short-circuit to 100 (nothing to cohere with).
+    - Color: 10 per incompatible pair, capped at 40.
+    - Formality: max(0, range - 0.5) * 10, capped at 30.
+    - Aesthetics: 30 if 2+ tagged items share no tags, else 0.
 
-    - Color clashes — up to -40, 10 per incompatible pair (count, not ratio
-      — larger outfits aren't allowed to dilute a clash).
-    - Formality range — up to -30, `max(0, (max - min) - 0.5) * 10`. The
-      0.5-level dead-zone absorbs small float drift (3.0 vs 3.1).
-    - Aesthetics — -30 when there are 2+ items with tags AND zero shared
-      across all of them, else 0. Threshold matches the single-item
-      validator's "≥1 shared = cohesive" rule.
-
-    No over-max-items penalty: the UI structurally caps the outfit at
-    MAX_OUTFIT_ITEMS so that branch was unreachable. The
-    "Outfit has N items" warning in `validate_outfit` is kept for direct
-    API callers and still downgrades the verdict via `get_verdict`'s
-    no-warnings gate even though it doesn't move the numeric score.
-
-    Returns:
-        int: score clamped to [0, 100].
+    No item-count penalty — UI caps total at MAX_OUTFIT_ITEMS. The
+    "too many items" warning in validate_outfit still downgrades the
+    verdict via get_verdict's no-warnings gate.
     """
     # Combine all items
     all_items = [base_item] + items
@@ -500,10 +488,8 @@ def validate_outfit(
     # 3. Check total items and per-category caps
     warnings = []
     if len(full_outfit) > MAX_OUTFIT_ITEMS:
-        # No score deduction (the UI caps total items at MAX_OUTFIT_ITEMS so
-        # this only fires for direct-API callers). The warning still affects
-        # the verdict via get_verdict's no-warnings gate, so it isn't
-        # entirely inert.
+        # No score impact (UI caps total); still downgrades the verdict
+        # via get_verdict's no-warnings gate.
         warnings.append(f"Outfit has {len(full_outfit)} items (max: {MAX_OUTFIT_ITEMS})")
 
     if missing_categories:
