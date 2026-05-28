@@ -76,12 +76,16 @@ def test_check_formality_compatibility(formality1: float, formality2: float, exp
     """Test formality compatibility with float values (validation fix)."""
     status, msg = compatibility.check_formality_compatibility(formality1, formality2)
     assert status == expected_status
-    
+
     if expected_status == "ok":
         assert msg is None
     else:
         assert msg is not None
-        assert str(formality1) in msg or str(formality2) in msg
+        # Warning text uses labelled levels (e.g. "Casual", "Smart Casual"),
+        # not the raw float values.
+        label1 = compatibility._formality_label(formality1)
+        label2 = compatibility._formality_label(formality2)
+        assert label1 in msg or label2 in msg
 
 
 def test_check_formality_compatibility_boundary_cases():
@@ -715,6 +719,45 @@ def test_cohesion_score_penalized_when_over_max_items():
     ]
     score = compatibility.calculate_cohesion_score(items, base_item)
     assert score < 100
+
+
+def test_validate_outfit_dedupes_pairwise_warnings():
+    """Three items at formality 1, 1, 5 — the 1-vs-5 mismatch arises from
+    two distinct pairs but shouldn't appear twice in warnings."""
+    base_item = _make_item("Tops", "T-Shirts", formality=1.0, aesthetics=["Minimalist"])
+    items = [
+        _make_item("Bottoms", "Jeans", formality=1.0, aesthetics=["Minimalist"]),
+        _make_item("Shoes", "Sneakers", formality=5.0, aesthetics=["Minimalist"]),
+    ]
+    response = compatibility.validate_outfit(items, base_item)
+    seen = set()
+    for w in response.warnings:
+        assert w not in seen, f"duplicate warning: {w!r}"
+        seen.add(w)
+
+
+def test_get_verdict_respects_warnings_arg():
+    """Even with a high score, an outfit carrying warnings shouldn't read
+    'Excellent'. The previously-unused warnings parameter is now respected."""
+    assert "Excellent" not in compatibility.get_verdict(
+        90, is_complete=True, warnings=["Color may clash"]
+    )
+    # No warnings, same score → "Excellent" still allowed.
+    assert "Excellent" in compatibility.get_verdict(90, is_complete=True, warnings=[])
+
+
+def test_formality_warning_text_uses_labels_not_floats():
+    """Warning copy must use the labelled formality level (e.g.
+    'Smart Casual') rather than leak the internal float ('2.0')."""
+    base_item = _make_item("Tops", "T-Shirts", formality=2.0)
+    new_item = _make_item("Bottoms", "Jeans", formality=5.0)
+    response = compatibility.validate_item(new_item, base_item, [])
+    formality_warnings = [w for w in response.warnings if "Formality" in w]
+    assert formality_warnings, "expected a formality warning for a 2.0 vs 5.0 gap"
+    for w in formality_warnings:
+        # No bare floats like "2.0" or "5.0" — labels only.
+        assert "2.0" not in w
+        assert "5.0" not in w
 
 
 def test_validate_outfit_emits_aesthetic_warning_when_no_shared_tags():

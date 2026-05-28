@@ -48,6 +48,7 @@ from app.utils.constants import (
     MAX_OUTFIT_ITEMS,
     MAX_ACCESSORIES,
     MAX_OUTERWEAR,
+    FORMALITY_LEVELS,
 )
 from app.services.color_harmony import check_color_compatibility, generate_recommended_colors
 
@@ -56,29 +57,31 @@ from app.services.color_harmony import check_color_compatibility, generate_recom
 # FORMALITY CHECKING
 # ==============================================================================
 
+def _formality_label(f: float) -> str:
+    """Map a float formality to its labelled level (clamped to 1-5)."""
+    return FORMALITY_LEVELS[max(1, min(5, round(f)))]
+
+
 def check_formality_compatibility(formality1: float, formality2: float) -> tuple[str, str | None]:
     """Check formality compatibility between two items.
-    
+
     Logic:
-    - Calculate absolute distance between formality levels
-    - Distance <= 1: return ("ok", None)
-    - Distance <= 2: return ("warning", "Formality gap is 2 levels")
-    - Distance >= 3: return ("mismatch", "Formality mismatch: X levels apart")
-    
-    Returns:
-        tuple: (status, warning_message)
+    - Distance <= 1: ok
+    - Distance <= 2: warning
+    - Distance >= 3: mismatch
 
-    FIXED: method signatures from int to float
+    Warning text uses FORMALITY_LEVELS labels (e.g. "Smart Casual") rather
+    than raw float values, so the internal 1-5 scale doesn't leak into UI copy.
     """
-
     distance = abs(formality1 - formality2)
-    
+    label1 = _formality_label(formality1)
+    label2 = _formality_label(formality2)
+
     if distance <= 1.0:
         return ("ok", None)
-    elif distance <= 2.0:
-        return ("warning", f"Formality gap is 2 levels ({formality1} vs {formality2})")
-    else:  # distance >= 3.0
-        return ("mismatch", f"Formality mismatch: {distance:.1f} levels apart ({formality1} vs {formality2})")
+    if distance <= 2.0:
+        return ("warning", f"Formality gap: {label1} vs {label2}")
+    return ("mismatch", f"Formality mismatch: {label1} vs {label2}")
 
 
 # ==============================================================================
@@ -438,25 +441,21 @@ def calculate_cohesion_score(items: list[ClothingItemBase], base_item: ClothingI
 
 def get_verdict(score: int, is_complete: bool, warnings: list[str]) -> str:
     """Generate a human-readable verdict for the outfit.
-    
-    Logic:
-    - If not complete: "Incomplete outfit - missing required items"
-    - Score >= 85: "Excellent cohesive look!"
-    - Score >= 70: "Good outfit with minor style considerations"
-    - Score >= 50: "Decent outfit, but some elements may clash"
-    - Score < 50: "Consider revising - multiple style conflicts"
+
+    Verdict tiers are gated by both the cohesion score AND the presence of
+    warnings. An "Excellent" verdict implies a clean look — outfits carrying
+    any warning are capped at "Good" regardless of score.
     """
     if not is_complete:
         return "Incomplete outfit - missing required items"
-    
-    if score >= 85:
+
+    if score >= 85 and not warnings:
         return "Excellent cohesive look!"
-    elif score >= 70:
+    if score >= 70:
         return "Good outfit with minor style considerations"
-    elif score >= 50:
+    if score >= 50:
         return "Decent outfit, but some elements may clash"
-    else:
-        return "Consider revising - multiple style conflicts"
+    return "Consider revising - multiple style conflicts"
 
 
 # ==============================================================================
@@ -539,9 +538,15 @@ def validate_outfit(
     if len(aesthetic_sets) >= 2 and not set.intersection(*aesthetic_sets):
         warnings.append("No shared aesthetic tags across the outfit")
 
+    # Dedupe — pair-wise checks can produce the same warning string from
+    # multiple distinct pairs (e.g. three items at formality 1,1,5 surfaces
+    # the same Casual-vs-Black-Tie mismatch twice). Preserve first-seen order.
+    seen: set[str] = set()
+    warnings = [w for w in warnings if not (w in seen or seen.add(w))]
+
     # 6. Build color strip
     color_strip = [item.color.hex for item in full_outfit]
-    
+
     # 7. Generate verdict
     verdict = get_verdict(cohesion_score, is_complete, warnings)
     
