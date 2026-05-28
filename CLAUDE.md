@@ -57,7 +57,7 @@ Copy `.env.example` files and fill in credentials:
 - Services are stateless functions/classes — no global state
 - Async Supabase client in `services/supabase.py`
 - Color harmony logic uses HSL model with angular hue distance calculations
-- Outfit scoring is penalty-based: starts at 100, deducts -30 (color clash), -40 (formality mismatch >2 levels), -30 (no shared aesthetics)
+- Outfit scoring is penalty-based: starts at 100. Caps: color -40 (10 per incompatible pair), formality -30 (0.5-level dead-zone, then `*10` capped), aesthetic -30 (0 shared tags across 2+ tagged items), pairing -10 (5 per shoe-bottom rule violation). No item-count penalty — UI structurally caps total at MAX_OUTFIT_ITEMS.
 
 ### Frontend (TypeScript/React)
 - Strict TypeScript (`tsconfig.json` has `strict: true`); 2-space indentation; no semicolons
@@ -116,9 +116,9 @@ See `golden-paths.md` for the three canonical user journeys: (1) Style an item I
 ## Domain Concepts
 
 - **Color Harmony**: Analogous (<=30deg), Complementary (165-195deg), Triadic (105-135deg), or Neutral. Hue distance = shortest arc on 360deg wheel.
-- **Formality Levels**: 1 (Casual) to 5 (Black Tie). Distance > 2 warns; > 3 is a mismatch.
+- **Formality Levels**: 1 (Casual) to 5 (Black Tie). Distance > 1 warns; > 2 is a mismatch.
 - **Aesthetics**: 8 tags (Minimalist, Streetwear, Classic, Bohemian, etc.) — items share at least one for cohesion.
-- **Outfit Limits**: MAX_OUTFIT_ITEMS = 6, MAX_ACCESSORIES = 3. Required categories: Tops, Bottoms, Shoes.
+- **Outfit Limits**: MAX_OUTFIT_ITEMS = 6 (5 UI slots + 1 base — structurally enforced). Required L1s: Tops, Bottoms, Shoes. MAX_ACCESSORIES/MAX_OUTERWEAR/duplicate-singleton warnings are defense-in-depth for direct-API access; the UI flow can't reach them.
 - **AI Try-On**: Two Gemini models — `gemini-2.5-flash-image` (fast) and `gemini-3-pro-image-preview` (quality).
 - **Storage Buckets**: `clothing-images` (item photos) and `user-photos` (full-body try-on photos).
 
@@ -139,3 +139,8 @@ Frontend has no automated test runner. Before PRs: run `npm run lint` and manual
 - **CSS cascade layers vs. selector specificity** (`src/styles/system.css`): Tailwind v4 utilities live in `@layer utilities`. Unlayered element rules (e.g., `button { border: 0 }` at the top level of a stylesheet) **win over `@layer utilities` regardless of selector specificity**. The reset block in `system.css` is intentionally wrapped in `@layer base` so utilities like `border-b-2` actually apply to `<button>` elements. If you ever add a tag-level rule to `system.css` outside `@layer base` (`body { ... }`, `input { ... }`, etc.), utility overrides on that element will silently fail. Diagnostic: if a utility works on an inner `<span>` but not on the parent `<button>` with the same class, this is the bug.
 - **Global masthead is route-aware via `usePathname()`** in `src/components/Headers.tsx`. It uses sentence-case labels but renders uppercase via `text-transform: uppercase`. Active route detection uses `pathname.startsWith()` so all sub-routes under `/style/*` mark `Style` as active.
 - **Style flow state is frozen between sessions only by Zustand persistence**. Reloading mid-flow keeps the state. Visiting `/style` directly with no cropped image but non-`upload` step triggers an auto-reset (see `src/app/style/page.tsx`).
+- **Score ↔ warnings must agree.** Every penalty in `calculate_cohesion_score` should surface a warning in `validate_outfit`, and every warning fired from the UI should affect the score. Drift between these two surfaces is a recurring bug class — non-100 scores with no visible reason (PR #50), or warnings the user is told to ignore (PR #52).
+- **Two outfit-add paths share one invariant.** `addOutfitItem` (upload flow) and `addClosetItemToOutfit` (suggestion-panel quick-add) in `store/styleStore.ts` must BOTH enforce one-item-per-L1 (replace, don't append) and refuse base-item-category collisions. They diverged historically — see PR #53.
+- **Try-on returns a base64 data URL; the Supabase upload is deferred to `create_outfit`** (PR #48). Prevents orphan files for try-ons the user never saves. A data URL in `TryOnResponse.generated_image_url` is expected — it becomes a public URL only when an outfit is saved.
+- **Try-on has an in-memory per-user rate limit** (10 calls / 60s) in `routers/tryon.py`. Single-worker only; for multi-worker deploys, swap for Redis or a Supabase counter table.
+- **Don't double-underline section headers.** A `<header>` with `border-b border-ink` AND a child `<span className="h-px bg-ink" />` filling a grid column produces two stacked lines (the "underscores everywhere" pattern). `border-b` is the convention — see PR #54.
