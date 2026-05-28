@@ -46,11 +46,12 @@ def _get_genai_client() -> genai.Client:
         _genai_client = genai.Client(api_key=settings.GEMINI_API_KEY)
     return _genai_client
 
-# Models
-MODEL_FAST = "gemini-2.5-flash-image"  # Fast, cost-effective
-MODEL_HIGH_QUALITY = "gemini-3-pro-image-preview"  # High quality (Nano Banana Pro)
-
-# Default model for try-on
+# Models — high quality is the only one wired through; the fast model
+# constant is kept as a reference for anyone wiring up a cost-savings toggle
+# in the future (would need to pipe a request-level flag through to the
+# service and the API surface).
+MODEL_HIGH_QUALITY = "gemini-3-pro-image-preview"  # Nano Banana Pro
+# MODEL_FAST = "gemini-2.5-flash-image"  # Fast/cheap alternative (not currently used)
 TRYON_MODEL = MODEL_HIGH_QUALITY
 
 # Hard ceiling on Gemini generation time. Image-gen typically takes 10-15s;
@@ -154,10 +155,6 @@ def build_tryon_prompt(items: list[ClothingItemBase], single_item: bool = False)
     if single_item and len(items) == 1:
         item = items[0]
         desc = f"{item.category.l2}"
-        # if item.brand:
-        #     desc += f" by {item.brand}"
-        # if item.color:
-        #     desc += f" in {item.color.name}"
         logger.debug(f"Building prompt for single item: {desc}")
 
         return f"""Generate a realistic image of the person in the first photo
@@ -173,10 +170,6 @@ def build_tryon_prompt(items: list[ClothingItemBase], single_item: bool = False)
     item_descriptions = []
     for i, item in enumerate(items, 1):
         desc = f"{i}. {item.category.l2} ({item.category.l1})"
-        # if item.brand:
-        #     desc += f" by {item.brand}"
-        # if item.color:
-        #     desc += f" in {item.color.name}"
         item_descriptions.append(desc)
     
     items_text = "\n".join(item_descriptions)
@@ -199,16 +192,14 @@ async def generate_tryon_single(
     user_image_url: str,
     item_image_url: str,
     item: ClothingItemBase,
-    high_quality: bool = False
 ) -> TryOnResponse:
     """Generate a try-on image with a single clothing item.
-    
+
     Args:
         user_image_url: URL of the user's photo
         item_image_url: URL of the clothing item image
         item: Clothing item metadata
-        high_quality: Use high-quality model (slower, more expensive)
-        
+
     Returns:
         TryOnResponse with generated image data
     """
@@ -223,7 +214,7 @@ async def generate_tryon_single(
         prompt = build_tryon_prompt([item], single_item=True)
         
         # Select model
-        model = MODEL_HIGH_QUALITY if high_quality else TRYON_MODEL
+        model = TRYON_MODEL
         
         # Generate image (with retry on transient failures)
         logger.info(f"Gemini try-on starting: model={model}, items=1")
@@ -293,15 +284,13 @@ async def generate_tryon_single(
 async def generate_tryon_outfit(
     user_image_url: str,
     item_images: list[tuple[str, ClothingItemBase]],
-    high_quality: bool = False
 ) -> TryOnResponse:
     """Generate a try-on image with multiple clothing items (full outfit).
-    
+
     Args:
         user_image_url: URL of the user's photo
         item_images: List of (image_url, item_metadata) tuples
-        high_quality: Use high-quality model (slower, more expensive)
-        
+
     Returns:
         TryOnResponse with generated image data
     """
@@ -326,7 +315,7 @@ async def generate_tryon_outfit(
         contents = [prompt, user_image] + clothing_images
         
         # Select model
-        model = MODEL_HIGH_QUALITY if high_quality else TRYON_MODEL
+        model = TRYON_MODEL
         
         # Generate image (with retry on transient failures)
         logger.info(
@@ -460,7 +449,6 @@ async def check_gemini_health() -> dict:
             "api_key_valid": True,
             "test_response": response.text,
             "tryon_model": TRYON_MODEL,
-            "high_quality_model": MODEL_HIGH_QUALITY,
         }
     except APIError as e:
         return {

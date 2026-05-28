@@ -446,7 +446,6 @@ async def try_on_single(
             user_image_url=request.user_photo_url,
             item_image_url=request.item_image_url,
             item=request.item,
-            high_quality=True,
         )
 
         if not result.success:
@@ -583,7 +582,6 @@ async def try_on_outfit(
         result = await generate_tryon_outfit(
             user_image_url=request.user_photo_url,
             item_images=request.item_images,
-            high_quality=True,
         )
 
         if not result.success:
