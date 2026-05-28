@@ -25,13 +25,12 @@ aggregates them into cohesion scores and verdicts.
       singletons) and overall cohesion.
 
 3.  **Scoring System (`calculate_cohesion_score`):**
-    Penalty-based, starts at 100. Caps (industry-aligned weights — color is
-    the heaviest, formality treated as occasion-fit not dominant axis):
+    Penalty-based, starts at 100. Caps:
       * Color clashes: up to -40 (scaled by count of incompatible pairs)
-      * Formality range: up to -30 (with a 0.5-level dead-zone for float drift)
+      * Formality range: up to -30 (with a 0.5-level dead-zone)
       * Aesthetics: -30 when zero shared tags, else 0
-    (No over-max-items penalty — the UI structurally caps total items at
-    MAX_OUTFIT_ITEMS, so the branch was unreachable.)
+      * Pairing rules: up to -10 (5 per shoe-bottom violation)
+    (No over-max-items penalty — UI structurally caps total items.)
 
 4.  **Recommendation Logic:**
     * Generates targeted suggestions for missing categories based on the base
@@ -380,6 +379,8 @@ def calculate_cohesion_score(items: list[ClothingItemBase], base_item: ClothingI
     - Color: 10 per incompatible pair, capped at 40.
     - Formality: max(0, range - 0.5) * 10, capped at 30.
     - Aesthetics: 30 if 2+ tagged items share no tags, else 0.
+    - Pairing: 5 per shoe-bottom rule violation, capped at 10
+      (e.g. Sandals + Suit, Oxfords + Joggers).
 
     No item-count penalty — UI caps total at MAX_OUTFIT_ITEMS. The
     "too many items" warning in validate_outfit still downgrades the
@@ -428,6 +429,17 @@ def calculate_cohesion_score(items: list[ClothingItemBase], base_item: ClothingI
         aesthetic_penalty = 0  # Single or zero items with tags — nothing to disagree about.
 
     score -= aesthetic_penalty
+
+    # Pairing penalty (up to -10). Industry treats pairing rules as a "note"
+    # rather than a visual disaster, so the weight is light — 5 per violation,
+    # capped at 10 since the UI has at most one shoe + one bottom pair anyway.
+    pairing_violations = 0
+    for i in range(len(all_items)):
+        for j in range(i + 1, len(all_items)):
+            status, _ = check_category_pairing(all_items[i], all_items[j])
+            if status == "warning":
+                pairing_violations += 1
+    score -= min(pairing_violations * 5, 10)
 
     # NB: there used to be an over-max-items penalty here, but the UI caps
     # each L1 category at one slot (5 outfit slots + 1 base = MAX_OUTFIT_ITEMS),
