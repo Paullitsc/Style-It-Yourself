@@ -12,7 +12,7 @@ from app.models.schemas import (
     ValidateOutfitResponse,
 )
 from app.services import compatibility
-from app.utils.constants import SHOE_BOTTOM_PAIRINGS, MAX_OUTFIT_ITEMS
+from app.utils.constants import SHOE_BOTTOM_PAIRINGS, MAX_OUTFIT_ITEMS, FORMALITY_LEVELS
 
 
 # ==============================================================================
@@ -76,12 +76,18 @@ def test_check_formality_compatibility(formality1: float, formality2: float, exp
     """Test formality compatibility with float values (validation fix)."""
     status, msg = compatibility.check_formality_compatibility(formality1, formality2)
     assert status == expected_status
-    
+
     if expected_status == "ok":
         assert msg is None
     else:
         assert msg is not None
-        assert str(formality1) in msg or str(formality2) in msg
+        # Warning text uses labelled levels (e.g. "Casual", "Smart Casual"),
+        # not the raw float values. Computed from FORMALITY_LEVELS directly
+        # rather than via compatibility._formality_label so the test isn't
+        # coupled to a private helper.
+        def _expected_label(f: float) -> str:
+            return FORMALITY_LEVELS[max(1, min(5, int(f + 0.5)))]
+        assert _expected_label(formality1) in msg or _expected_label(formality2) in msg
 
 
 def test_check_formality_compatibility_boundary_cases():
@@ -425,10 +431,25 @@ def test_calculate_cohesion_score_formality_gap():
     items = [
         _make_item("Bottoms", "Jeans", formality=5.0),  # Large gap
     ]
-    
+
     score = compatibility.calculate_cohesion_score(items, base_item)
-    # Should be lower due to formality penalty (range = 4, penalty = min(40, 40) = 40)
-    assert score <= 60  # 100 - 40 = 60 (plus any other penalties)
+    # With a 0.5 formality dead-zone: range=4 → (4-0.5)*10 = 35 penalty.
+    assert score <= 65
+
+
+def test_calculate_cohesion_score_formality_deadzone_no_penalty():
+    """Float formality gaps within ±0.5 should not move the score. 3.0 vs 3.1
+    is visually identical to the user — penalizing it for -1 point is noise."""
+    base_item = _make_item(
+        "Tops", "T-Shirts", formality=3.0, aesthetics=["Minimalist"]
+    )
+    items = [
+        _make_item(
+            "Bottoms", "Jeans", formality=3.4, aesthetics=["Minimalist"]
+        ),
+    ]
+    score = compatibility.calculate_cohesion_score(items, base_item)
+    assert score == 100
 
 
 def test_calculate_cohesion_score_no_common_aesthetics():
@@ -438,10 +459,27 @@ def test_calculate_cohesion_score_no_common_aesthetics():
         _make_item("Bottoms", "Jeans", formality=3.0, aesthetics=["Preppy"]),
         _make_item("Shoes", "Sneakers", formality=3.0, aesthetics=["Classic"]),
     ]
-    
+
     score = compatibility.calculate_cohesion_score(items, base_item)
     # Should have aesthetic penalty (-30)
     assert score <= 70
+
+
+def test_calculate_cohesion_score_aesthetic_threshold_matches_validator():
+    """Scoring and check_aesthetic_compatibility must agree: ≥1 shared tag is
+    cohesive and incurs no penalty. Previously the validator said 'cohesive'
+    while the scorer still deducted -10 for exactly 1 shared tag."""
+    base_item = _make_item(
+        "Tops", "T-Shirts", formality=3.0, aesthetics=["Minimalist", "Classic"]
+    )
+    items = [
+        _make_item(
+            "Bottoms", "Jeans", formality=3.0, aesthetics=["Minimalist", "Streetwear"]
+        ),  # only "Minimalist" shared
+    ]
+    score = compatibility.calculate_cohesion_score(items, base_item)
+    # 1 shared tag → no aesthetic penalty.
+    assert score == 100
 
 
 def test_calculate_cohesion_score_float_formality():
@@ -577,6 +615,24 @@ def test_validate_item_color_clash_warning_text_excludes_internal_label():
         assert "(none)" not in warning
 
 
+def test_validate_item_aesthetic_checks_current_outfit():
+    """Aesthetic check shouldn't be limited to base_item — if the current
+    outfit has drifted, a new item that mismatches an outfit piece must warn."""
+    base_item = _make_item(
+        "Tops", "T-Shirts", formality=3.0, aesthetics=["Minimalist"]
+    )
+    outfit_piece = _make_item(
+        "Bottoms", "Jeans", formality=3.0, aesthetics=["Streetwear"]
+    )
+    new_item = _make_item(
+        "Shoes", "Sneakers", formality=3.0, aesthetics=["Minimalist"]
+    )  # matches base but not outfit_piece
+    response = compatibility.validate_item(new_item, base_item, [outfit_piece])
+    assert response.aesthetic_status == "warning"
+    # The Jeans-specific mismatch should be visible in the warnings.
+    assert any("Jeans" in w for w in response.warnings)
+
+
 # ==============================================================================
 # FULL OUTFIT VALIDATION TESTS
 # ==============================================================================
@@ -612,6 +668,130 @@ def test_validate_outfit_incomplete():
     assert "Incomplete" in response.verdict
     assert len(response.warnings) > 0
     assert any("missing" in w.lower() for w in response.warnings)
+
+
+def test_validate_outfit_warns_when_too_many_accessories():
+    """MAX_ACCESSORIES=3 is in constants.py but was previously unenforced."""
+    base_item = _make_item("Tops", "T-Shirts", aesthetics=["Minimalist"])
+    items = [
+        _make_item("Bottoms", "Jeans", aesthetics=["Minimalist"]),
+        _make_item("Shoes", "Sneakers", aesthetics=["Minimalist"]),
+        _make_item("Accessories", "Watches", aesthetics=["Minimalist"]),
+        _make_item("Accessories", "Belts", aesthetics=["Minimalist"]),
+        _make_item("Accessories", "Hats", aesthetics=["Minimalist"]),
+        _make_item("Accessories", "Bags", aesthetics=["Minimalist"]),  # 4th — over cap
+    ]
+    response = compatibility.validate_outfit(items, base_item)
+    assert any("accessor" in w.lower() for w in response.warnings)
+
+
+def test_validate_outfit_warns_when_too_many_outerwear():
+    """MAX_OUTERWEAR=1 is in constants.py but was previously unenforced."""
+    base_item = _make_item("Tops", "T-Shirts", aesthetics=["Minimalist"])
+    items = [
+        _make_item("Bottoms", "Jeans", aesthetics=["Minimalist"]),
+        _make_item("Shoes", "Sneakers", aesthetics=["Minimalist"]),
+        _make_item("Outerwear", "Jackets", aesthetics=["Minimalist"]),
+        _make_item("Outerwear", "Coats", aesthetics=["Minimalist"]),
+    ]
+    response = compatibility.validate_outfit(items, base_item)
+    assert any("outerwear" in w.lower() for w in response.warnings)
+
+
+@pytest.mark.parametrize(
+    "duplicate_l1, l2_pair",
+    [
+        ("Tops", ("T-Shirts", "Casual Shirts")),
+        ("Bottoms", ("Jeans", "Chinos")),
+        ("Shoes", ("Sneakers", "Boots")),
+        ("Full Body", ("Dresses", "Suits")),
+    ],
+)
+def test_validate_outfit_warns_on_duplicate_singleton_category(
+    duplicate_l1: str, l2_pair: tuple[str, str]
+):
+    """All four singleton L1s (Tops/Bottoms/Shoes/Full Body) must warn on dups."""
+    # Base in a different category so the duplicate is in the outfit items.
+    base_item = _make_item(
+        "Accessories" if duplicate_l1 != "Accessories" else "Tops",
+        "Watches",
+        aesthetics=["Minimalist"],
+    )
+    items = [
+        _make_item(duplicate_l1, l2_pair[0], aesthetics=["Minimalist"]),
+        _make_item(duplicate_l1, l2_pair[1], aesthetics=["Minimalist"]),
+    ]
+    response = compatibility.validate_outfit(items, base_item)
+    assert any(
+        duplicate_l1.lower() in w.lower() for w in response.warnings
+    ), f"expected a 'Multiple {duplicate_l1}' warning, got {response.warnings!r}"
+
+
+def test_cohesion_score_penalized_when_over_max_items():
+    """Over-max-items previously surfaced a warning but didn't move the score.
+    The score should reflect that the outfit is over budget."""
+    base_item = _make_item("Tops", "T-Shirts", aesthetics=["Minimalist"])
+    # 8 extra items, way over MAX_OUTFIT_ITEMS=6 (incl. base = 9 total).
+    items = [
+        _make_item("Accessories", f"X{i}", aesthetics=["Minimalist"])
+        for i in range(8)
+    ]
+    score = compatibility.calculate_cohesion_score(items, base_item)
+    assert score < 100
+
+
+def test_validate_outfit_dedupes_pairwise_warnings():
+    """Three items at formality 1, 1, 5 — the 1-vs-5 mismatch arises from
+    two distinct pairs but shouldn't appear twice in warnings."""
+    base_item = _make_item("Tops", "T-Shirts", formality=1.0, aesthetics=["Minimalist"])
+    items = [
+        _make_item("Bottoms", "Jeans", formality=1.0, aesthetics=["Minimalist"]),
+        _make_item("Shoes", "Sneakers", formality=5.0, aesthetics=["Minimalist"]),
+    ]
+    response = compatibility.validate_outfit(items, base_item)
+    seen = set()
+    for w in response.warnings:
+        assert w not in seen, f"duplicate warning: {w!r}"
+        seen.add(w)
+
+
+def test_get_verdict_respects_warnings_arg():
+    """Even with a high score, an outfit carrying warnings shouldn't read
+    'Excellent'. The previously-unused warnings parameter is now respected."""
+    assert "Excellent" not in compatibility.get_verdict(
+        90, is_complete=True, warnings=["Color may clash"]
+    )
+    # No warnings, same score → "Excellent" still allowed.
+    assert "Excellent" in compatibility.get_verdict(90, is_complete=True, warnings=[])
+
+
+def test_formality_warning_text_uses_labels_not_floats():
+    """Warning copy must use the labelled formality level (e.g.
+    'Smart Casual') rather than leak the internal float ('2.0')."""
+    base_item = _make_item("Tops", "T-Shirts", formality=2.0)
+    new_item = _make_item("Bottoms", "Jeans", formality=5.0)
+    response = compatibility.validate_item(new_item, base_item, [])
+    formality_warnings = [w for w in response.warnings if "Formality" in w]
+    assert formality_warnings, "expected a formality warning for a 2.0 vs 5.0 gap"
+    for w in formality_warnings:
+        # No bare floats like "2.0" or "5.0" — labels only.
+        assert "2.0" not in w
+        assert "5.0" not in w
+
+
+def test_validate_outfit_emits_aesthetic_warning_when_no_shared_tags():
+    """validate_outfit previously checked color/formality/pairing pair-wise
+    but never surfaced aesthetic warnings. An outfit with zero shared tags
+    across items must warn."""
+    base_item = _make_item(
+        "Tops", "T-Shirts", formality=3.0, aesthetics=["Streetwear"]
+    )
+    items = [
+        _make_item("Bottoms", "Jeans", formality=3.0, aesthetics=["Preppy"]),
+        _make_item("Shoes", "Sneakers", formality=3.0, aesthetics=["Classic"]),
+    ]
+    response = compatibility.validate_outfit(items, base_item)
+    assert any("aesthetic" in w.lower() for w in response.warnings)
 
 
 def test_validate_outfit_too_many_items():

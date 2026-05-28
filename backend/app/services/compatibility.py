@@ -5,32 +5,35 @@ This module implements the core business logic for determining if clothing items
 work together. It evaluates compatibility across four distinct dimensions and
 aggregates them into cohesion scores and verdicts.
 
-
-
 **Key Responsibilities:**
 
 1.  **Multi-Dimensional Compatibility Checks:**
-    * **Formality:** Calculates numeric distance between items (1-5 scale).
-        * *Rule:* Gap > 1 level triggers a warning; Gap > 2 is a mismatch.
-    * **Aesthetics:** Checks for intersection of style tags (e.g., "boho", "streetwear").
-    * **Category Rules:** Enforces structural pairings, specifically identifying valid
-        Shoe-to-Bottom combinations.
+    * **Formality:** Numeric distance on the 1-5 scale. distance ≤ 1 = ok;
+      ≤ 2 = warning; > 2 = mismatch. Warning copy uses FORMALITY_LEVELS labels
+      rather than raw float values.
+    * **Aesthetics:** ≥1 shared tag = cohesive (single-item validator and outfit
+      scorer share this predicate).
+    * **Category Rules:** Shoe-to-Bottom pairings via SHOE_BOTTOM_PAIRINGS;
+      unknown shoe types stay silent rather than confidently warning.
     * **Color Harmony:** (Imported) Validates hue/saturation relationships.
 
 2.  **Validation Workflows:**
     * **Item Validation (`validate_item`):** Checks a single candidate item against
-        a base item and the current outfit draft.
+      a base item and the current outfit draft.
     * **Outfit Validation (`validate_outfit`):** Audits a complete look for
-        composition (missing required categories) and overall cohesion.
+      composition (missing required categories, per-category caps, duplicate
+      singletons) and overall cohesion.
 
 3.  **Scoring System (`calculate_cohesion_score`):**
-    * Uses a **penalty-based algorithm** starting at 100 points.
-    * Deducts points for color clashes (-30), formality gaps (-40), and lack of
-        shared aesthetic tags (-30).
+    Penalty-based, starts at 100. Caps:
+      * Color clashes: up to -30 (scaled by count of incompatible pairs)
+      * Formality range: up to -40 (with a 0.5-level dead-zone for float drift)
+      * Aesthetics: -30 when zero shared tags, else 0
+      * Over-max items: up to -20 (5 per extra item beyond MAX_OUTFIT_ITEMS)
 
 4.  **Recommendation Logic:**
-    * Generates targeted suggestions for missing categories based on the base item's
-        color palette and formality level.
+    * Generates targeted suggestions for missing categories based on the base
+      item's color palette and formality level.
 """
 
 from app.models.schemas import (
@@ -46,6 +49,9 @@ from app.utils.constants import (
     REQUIRED_CATEGORIES_STANDARD,
     REQUIRED_CATEGORIES_FULLBODY,
     MAX_OUTFIT_ITEMS,
+    MAX_ACCESSORIES,
+    MAX_OUTERWEAR,
+    FORMALITY_LEVELS,
 )
 from app.services.color_harmony import check_color_compatibility, generate_recommended_colors
 
@@ -54,29 +60,36 @@ from app.services.color_harmony import check_color_compatibility, generate_recom
 # FORMALITY CHECKING
 # ==============================================================================
 
+def _formality_label(f: float) -> str:
+    """Map a float formality to its labelled level (clamped to 1-5).
+
+    Uses half-up rounding (int(f + 0.5)) rather than Python's built-in
+    banker's rounding so 2.5 → 3 (not 2) and 3.5 → 4 (not 4-by-banker's),
+    keeping the mapping symmetric and user-predictable.
+    """
+    return FORMALITY_LEVELS[max(1, min(5, int(f + 0.5)))]
+
+
 def check_formality_compatibility(formality1: float, formality2: float) -> tuple[str, str | None]:
     """Check formality compatibility between two items.
-    
+
     Logic:
-    - Calculate absolute distance between formality levels
-    - Distance <= 1: return ("ok", None)
-    - Distance <= 2: return ("warning", "Formality gap is 2 levels")
-    - Distance >= 3: return ("mismatch", "Formality mismatch: X levels apart")
-    
-    Returns:
-        tuple: (status, warning_message)
+    - Distance <= 1: ok
+    - Distance <= 2: warning
+    - Distance >= 3: mismatch
 
-    FIXED: method signatures from int to float
+    Warning text uses FORMALITY_LEVELS labels (e.g. "Smart Casual") rather
+    than raw float values, so the internal 1-5 scale doesn't leak into UI copy.
     """
-
     distance = abs(formality1 - formality2)
-    
+    label1 = _formality_label(formality1)
+    label2 = _formality_label(formality2)
+
     if distance <= 1.0:
         return ("ok", None)
-    elif distance <= 2.0:
-        return ("warning", f"Formality gap is 2 levels ({formality1} vs {formality2})")
-    else:  # distance >= 3.0
-        return ("mismatch", f"Formality mismatch: {distance:.1f} levels apart ({formality1} vs {formality2})")
+    if distance <= 2.0:
+        return ("warning", f"Formality gap: {label1} vs {label2}")
+    return ("mismatch", f"Formality mismatch: {label1} vs {label2}")
 
 
 # ==============================================================================
@@ -250,12 +263,25 @@ def validate_item(
     
     warnings.extend(formality_warnings)
     
-    # 3. Aesthetic compatibility (only vs base_item)
-    aesthetic_status, aesthetic_msg = check_aesthetic_compatibility(
-        new_item.aesthetics, base_item.aesthetics
-    )
-    if aesthetic_msg:
-        warnings.append(aesthetic_msg)
+    # 3. Aesthetic compatibility — check vs base_item AND each current_outfit
+    # item so a drifted outfit isn't masked by a matching base.
+    aesthetic_status = "cohesive"
+    aesthetic_warnings = []
+
+    status, _ = check_aesthetic_compatibility(new_item.aesthetics, base_item.aesthetics)
+    if status == "warning":
+        aesthetic_status = "warning"
+        aesthetic_warnings.append("No shared aesthetic tags with base item")
+
+    for item in current_outfit:
+        status, _ = check_aesthetic_compatibility(new_item.aesthetics, item.aesthetics)
+        if status == "warning":
+            aesthetic_status = "warning"
+            aesthetic_warnings.append(
+                f"No shared aesthetic tags with {item.category.l2}"
+            )
+
+    warnings.extend(aesthetic_warnings)
     
     # 4. Category pairing checks
     pairing_status = "ok"
@@ -275,7 +301,12 @@ def validate_item(
             pairing_warnings.append(msg)
     
     warnings.extend(pairing_warnings)
-    
+
+    # Two outfit pieces sharing the same l2 (e.g. multiple "Watches" under
+    # MAX_ACCESSORIES=3) would produce identical warning strings. Dedup before
+    # returning so the user sees each issue once.
+    warnings = list(dict.fromkeys(warnings))
+
     return ValidateItemResponse(
         color_status=color_status,
         formality_status=formality_status,
@@ -390,56 +421,54 @@ def calculate_cohesion_score(items: list[ClothingItemBase], base_item: ClothingI
     color_penalty = min(incompatible_pairs * 10, 30)
     score -= color_penalty
     
-    # Formality penalty (up to -40 points)
-    # VALIDATION FIX: Explicitly handle float formality values
+    # Formality penalty (up to -40 points). A 0.5-level dead-zone absorbs
+    # small float drift (3.0 vs 3.1) that's visually identical to the user;
+    # everything above that scales linearly.
     formality_levels = [float(item.formality) for item in all_items]
     formality_range = max(formality_levels) - min(formality_levels)
-    formality_penalty = min(formality_range * 10, 40)
+    formality_penalty = min(max(0.0, formality_range - 0.5) * 10, 40)
     score -= formality_penalty
     
-    # Aesthetic penalty (up to -30 points)
+    # Aesthetic penalty (up to -30 points). Threshold matches
+    # check_aesthetic_compatibility: ≥1 shared tag is cohesive (no penalty);
+    # 0 shared tags is penalized. The previous "1 shared = -10" middle tier
+    # contradicted what the single-item validator was telling users.
     all_aesthetics = [set(item.aesthetics) for item in all_items if item.aesthetics]
-    
-    if all_aesthetics:
-        # Find common tags across ALL items
-        common_tags = set.intersection(*all_aesthetics) if all_aesthetics else set()
-        
-        if len(common_tags) == 0:
-            aesthetic_penalty = 30
-        elif len(common_tags) == 1:
-            aesthetic_penalty = 10
-        else:  # 2+ common tags
-            aesthetic_penalty = 0
+    if len(all_aesthetics) >= 2:
+        common_tags = set.intersection(*all_aesthetics)
+        aesthetic_penalty = 0 if common_tags else 30
     else:
-        aesthetic_penalty = 0  # No aesthetics = no penalty
-    
+        aesthetic_penalty = 0  # Single or zero items with tags — nothing to disagree about.
+
     score -= aesthetic_penalty
-    
+
+    # Over-max-items penalty: previously this only emitted a warning string
+    # in validate_outfit, but a 10-item outfit could still score 100. Five
+    # points per extra item, capped at 20.
+    if total_items > MAX_OUTFIT_ITEMS:
+        score -= min((total_items - MAX_OUTFIT_ITEMS) * 5, 20)
+
     # Ensure score is between 0-100
     return max(0, min(100, int(score)))
 
 
 def get_verdict(score: int, is_complete: bool, warnings: list[str]) -> str:
     """Generate a human-readable verdict for the outfit.
-    
-    Logic:
-    - If not complete: "Incomplete outfit - missing required items"
-    - Score >= 85: "Excellent cohesive look!"
-    - Score >= 70: "Good outfit with minor style considerations"
-    - Score >= 50: "Decent outfit, but some elements may clash"
-    - Score < 50: "Consider revising - multiple style conflicts"
+
+    Verdict tiers are gated by both the cohesion score AND the presence of
+    warnings. An "Excellent" verdict implies a clean look — outfits carrying
+    any warning are capped at "Good" regardless of score.
     """
     if not is_complete:
         return "Incomplete outfit - missing required items"
-    
-    if score >= 85:
+
+    if score >= 85 and not warnings:
         return "Excellent cohesive look!"
-    elif score >= 70:
+    if score >= 70:
         return "Good outfit with minor style considerations"
-    elif score >= 50:
+    if score >= 50:
         return "Decent outfit, but some elements may clash"
-    else:
-        return "Consider revising - multiple style conflicts"
+    return "Consider revising - multiple style conflicts"
 
 
 # ==============================================================================
@@ -469,13 +498,30 @@ def validate_outfit(
     # 2. Check composition
     is_complete, missing_categories = check_outfit_composition(full_outfit)
     
-    # 3. Check total items
+    # 3. Check total items and per-category caps
     warnings = []
     if len(full_outfit) > MAX_OUTFIT_ITEMS:
         warnings.append(f"Outfit has {len(full_outfit)} items (max: {MAX_OUTFIT_ITEMS})")
-    
+
     if missing_categories:
         warnings.append(f"Missing required categories: {', '.join(missing_categories)}")
+
+    # Per-category caps and singleton-category checks. MAX_ACCESSORIES and
+    # MAX_OUTERWEAR were unused constants before this; the singleton categories
+    # (Tops/Bottoms/Shoes/Full Body) shouldn't appear more than once.
+    items_by_l1 = get_categories_in_outfit(full_outfit)
+    if len(items_by_l1.get("Accessories", [])) > MAX_ACCESSORIES:
+        warnings.append(
+            f"Too many accessories ({len(items_by_l1['Accessories'])} — max: {MAX_ACCESSORIES})"
+        )
+    if len(items_by_l1.get("Outerwear", [])) > MAX_OUTERWEAR:
+        warnings.append(
+            f"Too many outerwear pieces ({len(items_by_l1['Outerwear'])} — max: {MAX_OUTERWEAR})"
+        )
+    for l1 in ("Tops", "Bottoms", "Shoes", "Full Body"):
+        count = len(items_by_l1.get(l1, []))
+        if count > 1:
+            warnings.append(f"Multiple {l1} in outfit ({count})")
     
     # 4. Calculate cohesion score
     cohesion_score = calculate_cohesion_score(items, base_item)
@@ -499,10 +545,23 @@ def validate_outfit(
             status, msg = check_category_pairing(item1, item2)
             if status == "warning":
                 warnings.append(msg)
-    
+
+    # Outfit-level aesthetic check (not pair-wise to avoid duplicate noise).
+    # Guard `>= 2`: a single tagged item can't disagree with itself, so there's
+    # nothing meaningful to warn about until two tagged items exist.
+    aesthetic_sets = [set(item.aesthetics) for item in full_outfit if item.aesthetics]
+    if len(aesthetic_sets) >= 2 and not set.intersection(*aesthetic_sets):
+        warnings.append("No shared aesthetic tags across the outfit")
+
+    # Dedupe — pair-wise checks can produce the same warning string from
+    # multiple distinct pairs (e.g. three items at formality 1,1,5 surfaces
+    # the same Casual-vs-Black-Tie mismatch twice). dict.fromkeys preserves
+    # first-seen order on Python 3.7+.
+    warnings = list(dict.fromkeys(warnings))
+
     # 6. Build color strip
     color_strip = [item.color.hex for item in full_outfit]
-    
+
     # 7. Generate verdict
     verdict = get_verdict(cohesion_score, is_complete, warnings)
     

@@ -25,6 +25,7 @@ export default function SummaryStep() {
   const [validation, setValidation] = useState<ValidateOutfitResponse | null>(
     null,
   )
+  const [validationError, setValidationError] = useState<string | null>(null)
   const [isValidating, setIsValidating] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [saveProgress, setSaveProgress] = useState<string>('')
@@ -52,17 +53,13 @@ export default function SummaryStep() {
         const result = await validateOutfit(allItems, baseItem)
         setValidation(result)
       } catch (error) {
-        setValidation({
-          is_complete: true,
-          cohesion_score: 0,
-          verdict: 'Validation unavailable.',
-          color_strip: allItems.map((item) => item.color.hex),
-          warnings: [
-            error instanceof Error
-              ? error.message
-              : 'Could not reach the validation service.',
-          ],
-        })
+        // Don't fake a score-of-0 response — distinguish "validation failed"
+        // from "outfit is bad". Leave validation null and surface the error.
+        setValidationError(
+          error instanceof Error
+            ? error.message
+            : 'Could not reach the validation service.',
+        )
       } finally {
         setIsValidating(false)
       }
@@ -196,27 +193,39 @@ export default function SummaryStep() {
             </div>
           </section>
 
-          {validation?.color_strip && validation.color_strip.length > 0 && (
-            <section>
-              <header className="grid grid-cols-[auto_1fr] gap-4 items-baseline pb-[14px] mb-5 border-b border-ink">
-                <span className="font-display text-[24px] leading-none tracking-[-0.015em]">
-                  Palette
-                </span>
-                <span className="h-px bg-ink" aria-hidden="true" />
-              </header>
-              <div className="flex h-12 border border-ink overflow-hidden">
-                {validation.color_strip.map((hex, i) => (
-                  <div
-                    key={`${hex}-${i}`}
-                    className="flex-1"
-                    style={{ backgroundColor: hex }}
-                    title={hex.toUpperCase()}
-                    aria-label={`Color ${i + 1}: ${hex.toUpperCase()}`}
-                  />
-                ))}
-              </div>
-            </section>
-          )}
+          {(() => {
+            // Use the validated color strip when available; otherwise fall
+            // back to item colors directly so the palette still renders even
+            // if validation failed. Both sources should produce the same
+            // sequence under normal operation — the fallback only matters
+            // when the validation API was unreachable.
+            const colorStrip =
+              validation?.color_strip && validation.color_strip.length > 0
+                ? validation.color_strip
+                : allItems.map((item) => item.color.hex)
+            if (colorStrip.length === 0) return null
+            return (
+              <section>
+                <header className="grid grid-cols-[auto_1fr] gap-4 items-baseline pb-[14px] mb-5 border-b border-ink">
+                  <span className="font-display text-[24px] leading-none tracking-[-0.015em]">
+                    Palette
+                  </span>
+                  <span className="h-px bg-ink" aria-hidden="true" />
+                </header>
+                <div className="flex h-12 border border-ink overflow-hidden">
+                  {colorStrip.map((hex, i) => (
+                    <div
+                      key={`${hex}-${i}`}
+                      className="flex-1"
+                      style={{ backgroundColor: hex }}
+                      title={hex.toUpperCase()}
+                      aria-label={`Color ${i + 1}: ${hex.toUpperCase()}`}
+                    />
+                  ))}
+                </div>
+              </section>
+            )
+          })()}
         </div>
 
         {/* Analysis + actions */}
@@ -232,6 +241,19 @@ export default function SummaryStep() {
             {isValidating ? (
               <div className="font-display italic text-[18px] text-ink-2">
                 Analyzing outfit…
+              </div>
+            ) : validationError ? (
+              <div className="flex flex-col gap-3">
+                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-accent">
+                  Validation unavailable
+                </p>
+                <p className="font-display italic text-[18px] leading-[1.35] text-ink-2 max-w-[42ch]">
+                  {validationError}
+                </p>
+                <p className="font-display italic text-[14px] text-ink-3 max-w-[42ch]">
+                  You can still save or try this outfit on — we just
+                  couldn&apos;t check it this time.
+                </p>
               </div>
             ) : validation ? (
               <div className="flex flex-col gap-6">
