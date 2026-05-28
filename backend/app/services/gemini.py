@@ -261,28 +261,32 @@ async def generate_tryon_single(
         return TryOnResponse(
             success=False,
             error="Try-on timed out. Please try again.",
+            error_kind="timeout",
         )
     except APIError as e:
         logger.error(f"Gemini APIError after retries: {e!r}")
         return TryOnResponse(
             success=False,
             error="The AI service is unavailable. Please try again shortly.",
+            error_kind="api_error",
         )
     except httpx.HTTPError as e:
         logger.warning(f"Image fetch failed: {e!r}")
         return TryOnResponse(
             success=False,
             error="Couldn't load one of the images. Please try again.",
+            error_kind="image_fetch",
         )
     except ValueError as e:
         # _extract_image_from_response raises ValueError with a user-facing
         # message (e.g. content moderation). Pass it through verbatim.
-        return TryOnResponse(success=False, error=str(e))
+        return TryOnResponse(success=False, error=str(e), error_kind="validation")
     except Exception as e:
         logger.error(f"Unexpected try-on error: {e!r}", exc_info=True)
         return TryOnResponse(
             success=False,
             error="Try-on failed unexpectedly. Please try again.",
+            error_kind="unexpected",
         )
 
 
@@ -362,28 +366,32 @@ async def generate_tryon_outfit(
         return TryOnResponse(
             success=False,
             error="Try-on timed out. Please try again.",
+            error_kind="timeout",
         )
     except APIError as e:
         logger.error(f"Gemini APIError after retries: {e!r}")
         return TryOnResponse(
             success=False,
             error="The AI service is unavailable. Please try again shortly.",
+            error_kind="api_error",
         )
     except httpx.HTTPError as e:
         logger.warning(f"Image fetch failed: {e!r}")
         return TryOnResponse(
             success=False,
             error="Couldn't load one of the images. Please try again.",
+            error_kind="image_fetch",
         )
     except ValueError as e:
         # _extract_image_from_response raises ValueError with a user-facing
         # message (e.g. content moderation). Pass it through verbatim.
-        return TryOnResponse(success=False, error=str(e))
+        return TryOnResponse(success=False, error=str(e), error_kind="validation")
     except Exception as e:
         logger.error(f"Unexpected try-on error: {e!r}", exc_info=True)
         return TryOnResponse(
             success=False,
             error="Try-on failed unexpectedly. Please try again.",
+            error_kind="unexpected",
         )
 
 

@@ -27,6 +27,18 @@ from app.services.supabase import (
 )
 
 
+# Map service-layer error categories (TryOnResponse.error_kind) onto the
+# HTTP status the endpoint should return. Default 502 mirrors the previous
+# behavior; specific kinds get more accurate codes.
+_ERROR_KIND_TO_STATUS = {
+    "timeout": status.HTTP_504_GATEWAY_TIMEOUT,
+    "api_error": status.HTTP_503_SERVICE_UNAVAILABLE,
+    "image_fetch": status.HTTP_400_BAD_REQUEST,
+    "validation": status.HTTP_400_BAD_REQUEST,
+    "unexpected": status.HTTP_500_INTERNAL_SERVER_ERROR,
+}
+
+
 # Upload validation: cap each image side at 4096 px. Larger images get
 # rejected by Gemini anyway (and cost more to process), and they're a
 # common decompression-bomb-adjacent pattern we'd rather block at the
@@ -438,10 +450,15 @@ async def try_on_single(
         )
 
         if not result.success:
-            logger.error(f"Gemini error for user {current_user.id}: {result.error}")
+            logger.error(
+                f"Gemini error for user {current_user.id}: "
+                f"kind={result.error_kind}, msg={result.error}"
+            )
             raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=result.error or "AI service failed to generate image."
+                status_code=_ERROR_KIND_TO_STATUS.get(
+                    result.error_kind, status.HTTP_502_BAD_GATEWAY
+                ),
+                detail=result.error or "AI service failed to generate image.",
             )
 
         # No storage upload here — return the data URL directly. The image
@@ -570,10 +587,15 @@ async def try_on_outfit(
         )
 
         if not result.success:
-            logger.error(f"Gemini error for user {current_user.id}: {result.error}")
+            logger.error(
+                f"Gemini error for user {current_user.id}: "
+                f"kind={result.error_kind}, msg={result.error}"
+            )
             raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=result.error or "AI service failed to generate image."
+                status_code=_ERROR_KIND_TO_STATUS.get(
+                    result.error_kind, status.HTTP_502_BAD_GATEWAY
+                ),
+                detail=result.error or "AI service failed to generate image.",
             )
 
         # No storage upload here — return the data URL directly (see /single

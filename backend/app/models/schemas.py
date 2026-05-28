@@ -231,6 +231,13 @@ class TryOnResponse(BaseModel):
     """Response body for POST /api/try-on"""
     success: bool = True
     error: Optional[str] = None
+    error_kind: Optional[Literal[
+        "timeout",         # Gemini exceeded the timeout (gateway timeout)
+        "api_error",       # Gemini service error / rate limit (service unavailable)
+        "image_fetch",     # Couldn't load user/item image from URL (bad input)
+        "validation",      # Content moderation or malformed Gemini response (bad input)
+        "unexpected",      # Anything else (internal server error)
+    ]] = Field(None, description="Machine-readable error category — drives HTTP status mapping")
     generated_image_url: Optional[str] = None  # Made optional for error cases
     processing_time: Optional[float] = Field(None, description="Time in seconds") # Made optional
 
