@@ -289,7 +289,12 @@ export default function SummaryStep() {
                           >
                             ※
                           </span>
-                          <span>{warning}</span>
+                          <span className="flex-1">{warning.message}</span>
+                          <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink-3 shrink-0">
+                            {warning.score_impact < 0
+                              ? `${warning.score_impact} pts`
+                              : 'style note'}
+                          </span>
                         </li>
                       ))}
                     </ul>

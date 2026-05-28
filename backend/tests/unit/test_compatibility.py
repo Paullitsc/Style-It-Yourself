@@ -723,7 +723,7 @@ def test_validate_outfit_incomplete():
     assert response.is_complete is False
     assert "Incomplete" in response.verdict
     assert len(response.warnings) > 0
-    assert any("missing" in w.lower() for w in response.warnings)
+    assert any("missing" in w.message.lower() for w in response.warnings)
 
 
 def test_validate_outfit_warns_when_too_many_accessories():
@@ -738,7 +738,7 @@ def test_validate_outfit_warns_when_too_many_accessories():
         _make_item("Accessories", "Bags", aesthetics=["Minimalist"]),  # 4th — over cap
     ]
     response = compatibility.validate_outfit(items, base_item)
-    assert any("accessor" in w.lower() for w in response.warnings)
+    assert any("accessor" in w.message.lower() for w in response.warnings)
 
 
 def test_validate_outfit_warns_when_too_many_outerwear():
@@ -751,7 +751,7 @@ def test_validate_outfit_warns_when_too_many_outerwear():
         _make_item("Outerwear", "Coats", aesthetics=["Minimalist"]),
     ]
     response = compatibility.validate_outfit(items, base_item)
-    assert any("outerwear" in w.lower() for w in response.warnings)
+    assert any("outerwear" in w.message.lower() for w in response.warnings)
 
 
 @pytest.mark.parametrize(
@@ -779,7 +779,7 @@ def test_validate_outfit_warns_on_duplicate_singleton_category(
     ]
     response = compatibility.validate_outfit(items, base_item)
     assert any(
-        duplicate_l1.lower() in w.lower() for w in response.warnings
+        duplicate_l1.lower() in w.message.lower() for w in response.warnings
     ), f"expected a 'Multiple {duplicate_l1}' warning, got {response.warnings!r}"
 
 
@@ -807,10 +807,11 @@ def test_validate_outfit_dedupes_pairwise_warnings():
         _make_item("Shoes", "Sneakers", formality=5.0, aesthetics=["Minimalist"]),
     ]
     response = compatibility.validate_outfit(items, base_item)
-    seen = set()
+    seen: set[tuple[str, str]] = set()
     for w in response.warnings:
-        assert w not in seen, f"duplicate warning: {w!r}"
-        seen.add(w)
+        key = (w.message, w.category)
+        assert key not in seen, f"duplicate warning: {w!r}"
+        seen.add(key)
 
 
 def test_get_verdict_respects_warnings_arg():
@@ -855,9 +856,34 @@ def test_validate_outfit_emits_warning_for_formality_gap_under_mismatch_threshol
     # Score should drop because formality range is 1.5 (above 0.5 dead-zone)
     assert response.cohesion_score < 100
     # And the user should now see a formality warning explaining it.
-    assert any("formality" in w.lower() for w in response.warnings), (
+    assert any("formality" in w.message.lower() for w in response.warnings), (
         f"expected a formality warning, got {response.warnings!r}"
     )
+
+
+def test_validate_outfit_warnings_carry_category_and_score_impact():
+    """Every warning is tagged with its dimension category and the
+    corresponding penalty contribution (or 0 for composition rules)."""
+    base_item = _make_item("Tops", "T-Shirts", formality=2.0, aesthetics=["Streetwear"])
+    items = [
+        # Different aesthetics + 3-level formality gap.
+        _make_item("Bottoms", "Jeans", formality=5.0, aesthetics=["Preppy"]),
+        _make_item("Shoes", "Sneakers", formality=2.0, aesthetics=["Classic"]),
+    ]
+    response = compatibility.validate_outfit(items, base_item)
+
+    categories = {w.category for w in response.warnings}
+    # Formality (3-level gap) and aesthetic (no shared tags) both fire.
+    assert "formality" in categories
+    assert "aesthetic" in categories
+
+    # score_impact aligns with the dimension's total penalty (negative or 0).
+    for w in response.warnings:
+        assert w.score_impact <= 0
+        if w.category == "aesthetic":
+            assert w.score_impact == -30  # no shared tags
+        if w.category == "composition":
+            assert w.score_impact == 0    # composition rules don't move the score
 
 
 def test_validate_outfit_emits_aesthetic_warning_when_no_shared_tags():
@@ -872,7 +898,7 @@ def test_validate_outfit_emits_aesthetic_warning_when_no_shared_tags():
         _make_item("Shoes", "Sneakers", formality=3.0, aesthetics=["Classic"]),
     ]
     response = compatibility.validate_outfit(items, base_item)
-    assert any("aesthetic" in w.lower() for w in response.warnings)
+    assert any("aesthetic" in w.message.lower() for w in response.warnings)
 
 
 def test_validate_outfit_too_many_items():
@@ -886,7 +912,7 @@ def test_validate_outfit_too_many_items():
     response = compatibility.validate_outfit(items, base_item)
 
     # Warning fires, score unaffected, verdict downgraded via no-warnings gate.
-    assert any(str(MAX_OUTFIT_ITEMS) in w for w in response.warnings)
+    assert any(str(MAX_OUTFIT_ITEMS) in w.message for w in response.warnings)
     assert response.cohesion_score == 100
     assert "Excellent" not in response.verdict
 
