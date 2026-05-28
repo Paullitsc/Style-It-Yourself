@@ -536,9 +536,13 @@ def validate_outfit(
             if not is_compatible:
                 warnings.append(f"{item1.category.l2} and {item2.category.l2} colors may clash")
             
-            # Formality check
+            # Formality check — surface both "warning" and "mismatch" tiers.
+            # The cohesion score deducts for any range above the 0.5 dead-zone,
+            # so a "warning"-tier pair (1 < distance ≤ 2) silently reduced the
+            # score with no visible reason. dedup at the end will collapse
+            # identical strings.
             status, msg = check_formality_compatibility(item1.formality, item2.formality)
-            if status == "mismatch":
+            if status in ("warning", "mismatch"):
                 warnings.append(msg)
             
             # Category pairing check
