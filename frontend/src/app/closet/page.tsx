@@ -508,7 +508,6 @@ function ItemsView({
               {pad2(filtered.length)}{' '}
               {filtered.length === 1 ? 'piece' : 'pieces'}
             </span>
-            <span className="h-px bg-ink" aria-hidden="true" />
           </header>
 
           <div className="grid grid-cols-4 gap-6 max-md:grid-cols-2 mb-10">
@@ -604,7 +603,6 @@ function OutfitsView({ outfits, onOutfitClick }: OutfitsViewProps) {
         <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
           {pad2(outfits.length)} {outfits.length === 1 ? 'look' : 'looks'}
         </span>
-        <span className="h-px bg-ink" aria-hidden="true" />
       </header>
 
       <div className="grid grid-cols-4 gap-6 max-md:grid-cols-2">

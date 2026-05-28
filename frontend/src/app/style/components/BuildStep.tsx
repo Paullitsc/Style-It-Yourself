@@ -237,7 +237,6 @@ export default function BuildStep() {
                 <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
                   Tops · Bottoms · Shoes
                 </span>
-                <span className="h-px bg-ink" aria-hidden="true" />
               </header>
 
               <div
@@ -289,7 +288,6 @@ export default function BuildStep() {
                 <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
                   Layers · accessories
                 </span>
-                <span className="h-px bg-rule-soft" aria-hidden="true" />
               </header>
 
               <div className="grid gap-6 grid-cols-3 lg:grid-cols-4 max-md:grid-cols-2">
