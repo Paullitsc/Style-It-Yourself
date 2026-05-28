@@ -15,7 +15,11 @@ from app.models.schemas import (
     TryOnOutfitRequest,
 )
 from app.services.gemini import generate_tryon_single, generate_tryon_outfit
-from app.services.supabase import upload_generated_image, get_supabase_client
+from app.services.supabase import (
+    upload_generated_image,
+    upload_image,
+    get_supabase_client,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -138,6 +142,82 @@ async def upload_user_photo(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to upload photo",
+        )
+
+
+@router.post(
+    "/upload-item-image",
+    summary="Upload an item image for try-on",
+    description=(
+        "Uploads a clothing item image (typically a cropped blob from the build "
+        "flow before the item is saved to the closet) to the clothing-images "
+        "bucket. Returns a public URL the try-on endpoints can fetch."
+    ),
+    responses={
+        **AUTH_RESPONSES,
+        200: {
+            "description": "Item image uploaded successfully.",
+            "content": {
+                "application/json": {
+                    "example": {"url": "https://cdn.example.com/clothing-images/user-123/item.jpg"}
+                }
+            },
+        },
+        400: {
+            "model": ErrorResponse,
+            "description": "Invalid file type or file size exceeds limit.",
+            "content": {"application/json": {"example": {"detail": "File must be an image"}}},
+        },
+        500: {
+            "model": ErrorResponse,
+            "description": "Unexpected upload failure.",
+            "content": {"application/json": {"example": {"detail": "Failed to upload image"}}},
+        },
+    },
+)
+async def upload_item_image(
+    image: UploadFile = File(..., description="Clothing item image for try-on"),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    """Upload a clothing item image to the clothing-images bucket.
+
+    Previously this path was hitting /upload-photo which writes to the
+    user-photos bucket, mixing item blobs into a bucket meant for full-body
+    photos. This endpoint puts item blobs where they belong.
+    """
+    try:
+        if not image.content_type or not image.content_type.startswith("image/"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="File must be an image",
+            )
+
+        image_data = await image.read()
+        if len(image_data) > 10 * 1024 * 1024:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Image must be less than 10MB",
+            )
+
+        file_name = image.filename or f"item-{uuid.uuid4()}.jpg"
+        public_url = await upload_image(
+            user_id=current_user.id,
+            file_data=image_data,
+            file_name=file_name,
+            bucket="clothing-images",
+            content_type=image.content_type or "image/jpeg",
+        )
+
+        logger.info(f"Uploaded item image for user {current_user.id}")
+        return {"url": public_url}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to upload item image: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to upload image",
         )
 
 

@@ -203,8 +203,8 @@ export async function uploadItemImage(
 ): Promise<string> {
   const formData = new FormData()
   formData.append('image', imageBlob, `item-${Date.now()}.jpg`)
-  
-  const response = await fetch(`${API_BASE_URL}/api/try-on/upload-photo`, {
+
+  const response = await fetch(`${API_BASE_URL}/api/try-on/upload-item-image`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
