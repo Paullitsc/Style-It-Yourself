@@ -779,6 +779,29 @@ def test_formality_warning_text_uses_labels_not_floats():
         assert "5.0" not in w
 
 
+def test_validate_outfit_emits_warning_for_formality_gap_under_mismatch_threshold():
+    """A 1<distance≤2 formality gap deducts from the cohesion score but
+    previously surfaced no warning — users saw a sub-100 score with no
+    visible reason. Now the "warning"-tier message (alongside the existing
+    "mismatch" tier) is surfaced."""
+    base_item = _make_item(
+        "Tops", "T-Shirts", formality=3.0, aesthetics=["Minimalist"]
+    )
+    items = [
+        # 3.0 vs 4.5 → distance 1.5 → "warning" tier, not "mismatch"
+        _make_item("Bottoms", "Jeans", formality=4.5, aesthetics=["Minimalist"]),
+        _make_item("Shoes", "Sneakers", formality=3.0, aesthetics=["Minimalist"]),
+    ]
+    response = compatibility.validate_outfit(items, base_item)
+
+    # Score should drop because formality range is 1.5 (above 0.5 dead-zone)
+    assert response.cohesion_score < 100
+    # And the user should now see a formality warning explaining it.
+    assert any("formality" in w.lower() for w in response.warnings), (
+        f"expected a formality warning, got {response.warnings!r}"
+    )
+
+
 def test_validate_outfit_emits_aesthetic_warning_when_no_shared_tags():
     """validate_outfit previously checked color/formality/pairing pair-wise
     but never surfaced aesthetic warnings. An outfit with zero shared tags
