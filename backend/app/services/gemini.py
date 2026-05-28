@@ -8,6 +8,7 @@ Models:
 - gemini-3-pro-image-preview: High-quality image generation (Nano Banana Pro)
 """
 
+import asyncio
 import base64
 import httpx
 import logging
@@ -51,6 +52,11 @@ MODEL_HIGH_QUALITY = "gemini-3-pro-image-preview"  # High quality (Nano Banana P
 
 # Default model for try-on
 TRYON_MODEL = MODEL_HIGH_QUALITY
+
+# Hard ceiling on Gemini generation time. Image-gen typically takes 10-15s;
+# 90s is generous but bounded so a hanging upstream call can't leave the
+# user (or our connection pool) waiting forever.
+GEMINI_TIMEOUT_SECONDS = 90.0
 
 
 async def fetch_image_as_pil(image_url: str) -> Image.Image:
@@ -154,12 +160,15 @@ async def generate_tryon_single(
         
         # Generate image
         logger.info(f"Gemini try-on starting: model={model}, items=1")
-        response = await _get_genai_client().aio.models.generate_content(
-            model=model,
-            contents=[prompt, user_image, item_image],
-            config=types.GenerateContentConfig(
-                response_modalities=["IMAGE"],
-            )
+        response = await asyncio.wait_for(
+            _get_genai_client().aio.models.generate_content(
+                model=model,
+                contents=[prompt, user_image, item_image],
+                config=types.GenerateContentConfig(
+                    response_modalities=["IMAGE"],
+                ),
+            ),
+            timeout=GEMINI_TIMEOUT_SECONDS,
         )
 
         processing_time = time.time() - start_time
@@ -177,6 +186,14 @@ async def generate_tryon_single(
             processing_time=processing_time,
         )
         
+    except asyncio.TimeoutError:
+        logger.warning(
+            f"Gemini try-on timed out after {GEMINI_TIMEOUT_SECONDS}s"
+        )
+        return TryOnResponse(
+            success=False,
+            error="Try-on timed out. Please try again.",
+        )
     except APIError as e:
         return TryOnResponse(
             success=False,
@@ -236,12 +253,15 @@ async def generate_tryon_outfit(
         logger.info(
             f"Gemini try-on starting: model={model}, items={len(items)}"
         )
-        response = await _get_genai_client().aio.models.generate_content(
-            model=model,
-            contents=contents,
-            config=types.GenerateContentConfig(
-                response_modalities=["IMAGE"],
-            )
+        response = await asyncio.wait_for(
+            _get_genai_client().aio.models.generate_content(
+                model=model,
+                contents=contents,
+                config=types.GenerateContentConfig(
+                    response_modalities=["IMAGE"],
+                ),
+            ),
+            timeout=GEMINI_TIMEOUT_SECONDS,
         )
 
         processing_time = time.time() - start_time
@@ -259,6 +279,14 @@ async def generate_tryon_outfit(
             processing_time=processing_time,
         )
         
+    except asyncio.TimeoutError:
+        logger.warning(
+            f"Gemini try-on timed out after {GEMINI_TIMEOUT_SECONDS}s"
+        )
+        return TryOnResponse(
+            success=False,
+            error="Try-on timed out. Please try again.",
+        )
     except APIError as e:
         return TryOnResponse(
             success=False,
