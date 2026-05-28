@@ -25,11 +25,13 @@ aggregates them into cohesion scores and verdicts.
       singletons) and overall cohesion.
 
 3.  **Scoring System (`calculate_cohesion_score`):**
-    Penalty-based, starts at 100. Caps:
-      * Color clashes: up to -30 (scaled by count of incompatible pairs)
-      * Formality range: up to -40 (with a 0.5-level dead-zone for float drift)
+    Penalty-based, starts at 100. Caps (industry-aligned weights — color is
+    the heaviest, formality treated as occasion-fit not dominant axis):
+      * Color clashes: up to -40 (scaled by count of incompatible pairs)
+      * Formality range: up to -30 (with a 0.5-level dead-zone for float drift)
       * Aesthetics: -30 when zero shared tags, else 0
-      * Over-max items: up to -20 (5 per extra item beyond MAX_OUTFIT_ITEMS)
+    (No over-max-items penalty — the UI structurally caps total items at
+    MAX_OUTFIT_ITEMS, so the branch was unreachable.)
 
 4.  **Recommendation Logic:**
     * Generates targeted suggestions for missing categories based on the base
@@ -373,30 +375,15 @@ def get_categories_in_outfit(items: list[ClothingItemBase]) -> dict[str, list[Cl
 # ==============================================================================
 
 def calculate_cohesion_score(items: list[ClothingItemBase], base_item: ClothingItemBase) -> int:
-    """Calculate outfit cohesion score (0-100).
-    
-    Logic:
-    - Start with 100 points
-    - Combine base_item with items for full outfit
-    
-    - Color penalty (up to -30 points):
-        - Compare all item pairs for color compatibility
-        - Count incompatible pairs
-        - Penalty = (incompatible_pairs / total_pairs) * 30
-    
-    - Formality penalty (up to -40 points):
-        - Find min and max formality in outfit
-        - Penalty = min(range * 10, 40)
-    
-    - Aesthetic penalty (up to -30 points):
-        - Collect all aesthetic tags from all items
-        - Find common tags across ALL items
-        - No common tags: -30 points
-        - Only 1 common tag: -10 points
-        - 2+ common tags: no penalty
-    
-    Returns:
-        int: score between 0-100
+    """Cohesion score (0-100). Penalty-based; single item ⇒ 100.
+
+    - Color: 10 per incompatible pair, capped at 40.
+    - Formality: max(0, range - 0.5) * 10, capped at 30.
+    - Aesthetics: 30 if 2+ tagged items share no tags, else 0.
+
+    No item-count penalty — UI caps total at MAX_OUTFIT_ITEMS. The
+    "too many items" warning in validate_outfit still downgrades the
+    verdict via get_verdict's no-warnings gate.
     """
     # Combine all items
     all_items = [base_item] + items
@@ -407,10 +394,8 @@ def calculate_cohesion_score(items: list[ClothingItemBase], base_item: ClothingI
     
     score = 100
     
-    # Color penalty (up to -30 points): scale by the count of incompatible
-    # pairs, not the ratio. A ratio dilutes the penalty as outfits grow —
-    # one clash among 6 items was -2; the same clash among 3 was -10. Larger
-    # outfits should be at least as sensitive to clashes, not less.
+    # Count incompatible pairs once; the cap and weighting are in the comment
+    # block below where the penalty is computed.
     incompatible_pairs = 0
     for i in range(len(all_items)):
         for j in range(i + 1, len(all_items)):
@@ -418,21 +403,23 @@ def calculate_cohesion_score(items: list[ClothingItemBase], base_item: ClothingI
             if not is_compatible:
                 incompatible_pairs += 1
 
-    color_penalty = min(incompatible_pairs * 10, 30)
+    # Color penalty (up to -40 points). Industry sources consistently rank
+    # color discipline (3-color rule, 60-30-10, harmony) as the single most
+    # observable cohesion signal in an outfit — heavier than formality range.
+    color_penalty = min(incompatible_pairs * 10, 40)
     score -= color_penalty
-    
-    # Formality penalty (up to -40 points). A 0.5-level dead-zone absorbs
-    # small float drift (3.0 vs 3.1) that's visually identical to the user;
-    # everything above that scales linearly.
+
+    # Formality penalty (up to -30 points). Treated as occasion-fit (the
+    # industry framing) rather than the dominant axis; a 0.5-level dead-zone
+    # absorbs small float drift, everything above scales linearly.
     formality_levels = [float(item.formality) for item in all_items]
     formality_range = max(formality_levels) - min(formality_levels)
-    formality_penalty = min(max(0.0, formality_range - 0.5) * 10, 40)
+    formality_penalty = min(max(0.0, formality_range - 0.5) * 10, 30)
     score -= formality_penalty
-    
+
     # Aesthetic penalty (up to -30 points). Threshold matches
     # check_aesthetic_compatibility: ≥1 shared tag is cohesive (no penalty);
-    # 0 shared tags is penalized. The previous "1 shared = -10" middle tier
-    # contradicted what the single-item validator was telling users.
+    # 0 shared tags is penalized.
     all_aesthetics = [set(item.aesthetics) for item in all_items if item.aesthetics]
     if len(all_aesthetics) >= 2:
         common_tags = set.intersection(*all_aesthetics)
@@ -442,11 +429,11 @@ def calculate_cohesion_score(items: list[ClothingItemBase], base_item: ClothingI
 
     score -= aesthetic_penalty
 
-    # Over-max-items penalty: previously this only emitted a warning string
-    # in validate_outfit, but a 10-item outfit could still score 100. Five
-    # points per extra item, capped at 20.
-    if total_items > MAX_OUTFIT_ITEMS:
-        score -= min((total_items - MAX_OUTFIT_ITEMS) * 5, 20)
+    # NB: there used to be an over-max-items penalty here, but the UI caps
+    # each L1 category at one slot (5 outfit slots + 1 base = MAX_OUTFIT_ITEMS),
+    # so it was structurally unreachable. The "Outfit has N items" warning in
+    # validate_outfit stays as defense-in-depth for direct API calls but no
+    # longer moves the score.
 
     # Ensure score is between 0-100
     return max(0, min(100, int(score)))
@@ -501,6 +488,8 @@ def validate_outfit(
     # 3. Check total items and per-category caps
     warnings = []
     if len(full_outfit) > MAX_OUTFIT_ITEMS:
+        # No score impact (UI caps total); still downgrades the verdict
+        # via get_verdict's no-warnings gate.
         warnings.append(f"Outfit has {len(full_outfit)} items (max: {MAX_OUTFIT_ITEMS})")
 
     if missing_categories:

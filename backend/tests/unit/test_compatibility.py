@@ -384,9 +384,36 @@ def test_calculate_cohesion_score_color_clash():
     ]
     
     score = compatibility.calculate_cohesion_score(items, base_item)
-    # 1 incompatible pair → penalty = min(1*10, 30) = 10 → score = 90.
+    # 1 incompatible pair → penalty = min(1*10, 40) = 10 → score = 90.
     assert score < 100
     assert score <= 90
+
+
+def test_calculate_cohesion_score_color_penalty_cap_is_40():
+    """Color is now the heaviest dimension (industry sources rank color
+    discipline above formality range). Four+ incompatible pairs hit the -40 cap."""
+    red = _make_color("red", h=0, s=100, l=50, hex_value="#FF0000")
+    yellow = _make_color("yellow", h=80, s=100, l=50, hex_value="#FFFF00")
+    base_item = ClothingItemBase(
+        color=red, category=Category(l1="Tops", l2="T-Shirts"),
+        formality=3.0, aesthetics=["Minimalist"],
+    )
+    # Five items all clashing with base AND with each other gives many bad pairs.
+    items = [
+        ClothingItemBase(
+            color=yellow, category=Category(l1=cat, l2=l2),
+            formality=3.0, aesthetics=["Minimalist"],
+        )
+        for cat, l2 in [
+            ("Bottoms", "Jeans"),
+            ("Shoes", "Sneakers"),
+            ("Accessories", "Watches"),
+            ("Outerwear", "Jackets"),
+        ]
+    ]
+    score = compatibility.calculate_cohesion_score(items, base_item)
+    # Contract: color penalty caps at -40, so score ≤ 60.
+    assert score <= 60
 
 
 def test_calculate_cohesion_score_color_penalty_not_diluted_by_outfit_size():
@@ -433,8 +460,9 @@ def test_calculate_cohesion_score_formality_gap():
     ]
 
     score = compatibility.calculate_cohesion_score(items, base_item)
-    # With a 0.5 formality dead-zone: range=4 → (4-0.5)*10 = 35 penalty.
-    assert score <= 65
+    # With a 0.5 formality dead-zone and a -30 cap: range=4 →
+    # min((4-0.5)*10, 30) = 30 penalty → score = 70.
+    assert score <= 70
 
 
 def test_calculate_cohesion_score_formality_deadzone_no_penalty():
@@ -727,17 +755,19 @@ def test_validate_outfit_warns_on_duplicate_singleton_category(
     ), f"expected a 'Multiple {duplicate_l1}' warning, got {response.warnings!r}"
 
 
-def test_cohesion_score_penalized_when_over_max_items():
-    """Over-max-items previously surfaced a warning but didn't move the score.
-    The score should reflect that the outfit is over budget."""
+def test_cohesion_score_ignores_item_count():
+    """The UI structurally caps the outfit at MAX_OUTFIT_ITEMS (5 slots + 1
+    base), so the previous over-max-items penalty was unreachable. It has
+    been removed; item count alone no longer moves the score. The
+    "Outfit has N items" warning in validate_outfit still fires as
+    defense-in-depth for direct API callers."""
     base_item = _make_item("Tops", "T-Shirts", aesthetics=["Minimalist"])
-    # 8 extra items, way over MAX_OUTFIT_ITEMS=6 (incl. base = 9 total).
     items = [
         _make_item("Accessories", f"X{i}", aesthetics=["Minimalist"])
-        for i in range(8)
+        for i in range(8)  # well over MAX_OUTFIT_ITEMS
     ]
     score = compatibility.calculate_cohesion_score(items, base_item)
-    assert score < 100
+    assert score == 100
 
 
 def test_validate_outfit_dedupes_pairwise_warnings():
@@ -818,17 +848,19 @@ def test_validate_outfit_emits_aesthetic_warning_when_no_shared_tags():
 
 
 def test_validate_outfit_too_many_items():
-    """Test validating an outfit with too many items."""
-    base_item = _make_item("Tops", "T-Shirts")
+    """Over-max warns but no longer deducts (UI caps total items)."""
+    base_item = _make_item("Tops", "T-Shirts", aesthetics=["Minimalist"])
     items = [
-        _make_item("Bottoms", "Jeans"),
-        _make_item("Shoes", "Sneakers"),
-    ] * (MAX_OUTFIT_ITEMS // 2 + 1)  # Create more than MAX_OUTFIT_ITEMS
-    
+        _make_item("Bottoms", "Jeans", aesthetics=["Minimalist"]),
+        _make_item("Shoes", "Sneakers", aesthetics=["Minimalist"]),
+    ] * (MAX_OUTFIT_ITEMS // 2 + 1)
+
     response = compatibility.validate_outfit(items, base_item)
-    
-    assert len(response.warnings) > 0
+
+    # Warning fires, score unaffected, verdict downgraded via no-warnings gate.
     assert any(str(MAX_OUTFIT_ITEMS) in w for w in response.warnings)
+    assert response.cohesion_score == 100
+    assert "Excellent" not in response.verdict
 
 
 def test_validate_outfit_color_strip():
