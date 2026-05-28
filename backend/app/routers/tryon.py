@@ -1,6 +1,5 @@
 """Try-on endpoints for AI-generated outfit visualization."""
 
-import base64
 import logging
 import uuid
 import httpx
@@ -16,7 +15,6 @@ from app.models.schemas import (
 )
 from app.services.gemini import generate_tryon_single, generate_tryon_outfit
 from app.services.supabase import (
-    upload_generated_image,
     upload_image,
     delete_user_photo,
     get_supabase_client,
@@ -331,12 +329,13 @@ async def try_on_single(
                 detail=result.error or "AI service failed to generate image."
             )
 
-        # 3. Save Image
-        stored_url = await _save_generated_image(current_user.id, result.generated_image_url)
-
+        # No storage upload here — return the data URL directly. The image
+        # only gets uploaded to Supabase when the user commits by saving an
+        # outfit (see create_outfit), so try-ons the user never saves don't
+        # leave orphan files in storage.
         return TryOnResponse(
             success=True,
-            generated_image_url=stored_url,
+            generated_image_url=result.generated_image_url,
             processing_time=result.processing_time,
         )
 
@@ -459,11 +458,11 @@ async def try_on_outfit(
                 detail=result.error or "AI service failed to generate image."
             )
 
-        stored_url = await _save_generated_image(current_user.id, result.generated_image_url)
-
+        # No storage upload here — return the data URL directly (see /single
+        # endpoint for rationale).
         return TryOnResponse(
             success=True,
-            generated_image_url=stored_url,
+            generated_image_url=result.generated_image_url,
             processing_time=result.processing_time,
         )
 
@@ -477,36 +476,3 @@ async def try_on_outfit(
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Failed to process generated image.")
     finally:
         await _cleanup_user_photo(current_user.id, request.user_photo_url)
-
-
-async def _save_generated_image(user_id: str, data_url: str) -> str:
-    """Extract image from data URL and upload to Supabase Storage."""
-    if not data_url or not data_url.startswith("data:"):
-        return data_url
-    
-    try:
-        # Parse base64 data URL
-        header, b64_data = data_url.split(",", 1)
-        image_bytes = base64.b64decode(b64_data)
-        
-        # Determine extension from header
-        ext = "png"
-        content_type = "image/png"
-        
-        if "image/jpeg" in header:
-            ext = "jpg"
-            content_type = "image/jpeg"
-        elif "image/webp" in header:
-            ext = "webp"
-            content_type = "image/webp"
-
-        # Upload
-        return await upload_generated_image(
-            user_id=user_id,
-            image_data=image_bytes,
-            outfit_id=str(uuid.uuid4()),
-            # Pass content_type if your upload function supports it, otherwise it defaults
-        )
-    except Exception as e:
-        # This will be caught by the outer try/except in the endpoint
-        raise ValueError(f"Invalid image data: {str(e)}")
