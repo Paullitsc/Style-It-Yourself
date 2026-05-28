@@ -10,6 +10,7 @@ Models:
 
 import base64
 import httpx
+import logging
 import time
 from io import BytesIO
 from PIL import Image
@@ -20,6 +21,9 @@ from google.genai.errors import APIError
 
 from app.config import settings
 from app.models.schemas import ClothingItemBase, TryOnResponse
+
+
+logger = logging.getLogger(__name__)
 
 
 # Initialize client - picks up GEMINI_API_KEY from environment
@@ -65,9 +69,9 @@ def build_tryon_prompt(items: list[ClothingItemBase], single_item: bool = False)
         #     desc += f" by {item.brand}"
         # if item.color:
         #     desc += f" in {item.color.name}"
-        print(f"Building prompt for single item: {desc}")
-            
-        return f"""Generate a realistic image of the person in the first photo 
+        logger.debug(f"Building prompt for single item: {desc}")
+
+        return f"""Generate a realistic image of the person in the first photo
                 wearing the {desc} shown in the second photo.
 
                 Keep the person's face, body proportions, and pose exactly the same.
@@ -133,6 +137,7 @@ async def generate_tryon_single(
         model = MODEL_HIGH_QUALITY if high_quality else TRYON_MODEL
         
         # Generate image
+        logger.info(f"Gemini try-on starting: model={model}, items=1")
         response = await client.aio.models.generate_content(
             model=model,
             contents=[prompt, user_image, item_image],
@@ -140,10 +145,12 @@ async def generate_tryon_single(
                 response_modalities=["IMAGE"],
             )
         )
-        
-        # Calculate time (useful for logging, even if not returned)
+
         processing_time = time.time() - start_time
-        print(f"Gemini generation took: {processing_time:.2f}s")
+        logger.info(
+            f"Gemini try-on complete: model={model}, items=1, "
+            f"took={processing_time:.2f}s"
+        )
         
         # Extract generated image
         generated_image_data = _extract_image_from_response(response)
@@ -210,6 +217,9 @@ async def generate_tryon_outfit(
         model = MODEL_HIGH_QUALITY if high_quality else TRYON_MODEL
         
         # Generate image
+        logger.info(
+            f"Gemini try-on starting: model={model}, items={len(items)}"
+        )
         response = await client.aio.models.generate_content(
             model=model,
             contents=contents,
@@ -217,9 +227,12 @@ async def generate_tryon_outfit(
                 response_modalities=["IMAGE"],
             )
         )
-        
+
         processing_time = time.time() - start_time
-        print(f"Gemini generation took: {processing_time:.2f}s")
+        logger.info(
+            f"Gemini try-on complete: model={model}, items={len(items)}, "
+            f"took={processing_time:.2f}s"
+        )
         
         # Extract generated image
         generated_image_data = _extract_image_from_response(response)
