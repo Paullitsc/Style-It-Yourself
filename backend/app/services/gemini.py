@@ -58,6 +58,73 @@ TRYON_MODEL = MODEL_HIGH_QUALITY
 # user (or our connection pool) waiting forever.
 GEMINI_TIMEOUT_SECONDS = 90.0
 
+# Retry once on transient failures (rate limit, 5xx, transient network).
+# A second attempt covers the common "blip" cases without doubling typical
+# cost for genuinely broken requests.
+GEMINI_MAX_RETRIES = 1
+GEMINI_RETRY_BACKOFF_SECONDS = 1.5
+
+
+def _is_transient_api_error(e: APIError) -> bool:
+    """Returns True for retryable Gemini API errors (429 rate limit, 5xx)."""
+    # Defensive: the SDK may expose the HTTP status as either attribute.
+    code = getattr(e, "code", None) or getattr(e, "status_code", None)
+    if isinstance(code, int):
+        return code == 429 or 500 <= code < 600
+    # Fallback: look for known retryable signals in the message.
+    msg = str(e).lower()
+    return any(
+        s in msg
+        for s in ("rate limit", "429", "500", "502", "503", "504", "internal error")
+    )
+
+
+async def _call_gemini_with_retry(call_factory, *, label: str):
+    """Call a Gemini coroutine factory with one retry on transient failures.
+
+    `call_factory` must be a zero-arg callable returning a fresh coroutine
+    (a lambda over the SDK call). This is important — coroutines can only be
+    awaited once, so a retry needs a new one.
+    """
+    last_error: Optional[BaseException] = None
+    for attempt in range(GEMINI_MAX_RETRIES + 1):
+        try:
+            return await asyncio.wait_for(
+                call_factory(), timeout=GEMINI_TIMEOUT_SECONDS
+            )
+        except asyncio.TimeoutError as e:
+            last_error = e
+            if attempt < GEMINI_MAX_RETRIES:
+                logger.warning(
+                    f"{label} timeout on attempt {attempt + 1}; retrying"
+                )
+                await asyncio.sleep(GEMINI_RETRY_BACKOFF_SECONDS)
+                continue
+            raise
+        except APIError as e:
+            last_error = e
+            if _is_transient_api_error(e) and attempt < GEMINI_MAX_RETRIES:
+                logger.warning(
+                    f"{label} transient APIError on attempt {attempt + 1}: "
+                    f"{e!r}; retrying"
+                )
+                await asyncio.sleep(GEMINI_RETRY_BACKOFF_SECONDS)
+                continue
+            raise
+        except httpx.HTTPError as e:
+            last_error = e
+            if attempt < GEMINI_MAX_RETRIES:
+                logger.warning(
+                    f"{label} HTTP error on attempt {attempt + 1}: "
+                    f"{e!r}; retrying"
+                )
+                await asyncio.sleep(GEMINI_RETRY_BACKOFF_SECONDS)
+                continue
+            raise
+    # Unreachable — the loop always either returns or re-raises.
+    assert last_error is not None
+    raise last_error
+
 
 async def fetch_image_as_pil(image_url: str) -> Image.Image:
     """Fetch an image from URL and return as PIL Image.
@@ -158,17 +225,17 @@ async def generate_tryon_single(
         # Select model
         model = MODEL_HIGH_QUALITY if high_quality else TRYON_MODEL
         
-        # Generate image
+        # Generate image (with retry on transient failures)
         logger.info(f"Gemini try-on starting: model={model}, items=1")
-        response = await asyncio.wait_for(
-            _get_genai_client().aio.models.generate_content(
+        response = await _call_gemini_with_retry(
+            lambda: _get_genai_client().aio.models.generate_content(
                 model=model,
                 contents=[prompt, user_image, item_image],
                 config=types.GenerateContentConfig(
                     response_modalities=["IMAGE"],
                 ),
             ),
-            timeout=GEMINI_TIMEOUT_SECONDS,
+            label="try-on/single",
         )
 
         processing_time = time.time() - start_time
@@ -188,26 +255,34 @@ async def generate_tryon_single(
         
     except asyncio.TimeoutError:
         logger.warning(
-            f"Gemini try-on timed out after {GEMINI_TIMEOUT_SECONDS}s"
+            f"Gemini try-on timed out after {GEMINI_TIMEOUT_SECONDS}s "
+            f"(plus retries)"
         )
         return TryOnResponse(
             success=False,
             error="Try-on timed out. Please try again.",
         )
     except APIError as e:
+        logger.error(f"Gemini APIError after retries: {e!r}")
         return TryOnResponse(
             success=False,
-            error=f"Gemini API error: {str(e)}"
+            error="The AI service is unavailable. Please try again shortly.",
         )
     except httpx.HTTPError as e:
+        logger.warning(f"Image fetch failed: {e!r}")
         return TryOnResponse(
             success=False,
-            error=f"Failed to fetch image: {str(e)}"
+            error="Couldn't load one of the images. Please try again.",
         )
+    except ValueError as e:
+        # _extract_image_from_response raises ValueError with a user-facing
+        # message (e.g. content moderation). Pass it through verbatim.
+        return TryOnResponse(success=False, error=str(e))
     except Exception as e:
+        logger.error(f"Unexpected try-on error: {e!r}", exc_info=True)
         return TryOnResponse(
             success=False,
-            error=f"Unexpected error: {str(e)}"
+            error="Try-on failed unexpectedly. Please try again.",
         )
 
 
@@ -249,19 +324,19 @@ async def generate_tryon_outfit(
         # Select model
         model = MODEL_HIGH_QUALITY if high_quality else TRYON_MODEL
         
-        # Generate image
+        # Generate image (with retry on transient failures)
         logger.info(
             f"Gemini try-on starting: model={model}, items={len(items)}"
         )
-        response = await asyncio.wait_for(
-            _get_genai_client().aio.models.generate_content(
+        response = await _call_gemini_with_retry(
+            lambda: _get_genai_client().aio.models.generate_content(
                 model=model,
                 contents=contents,
                 config=types.GenerateContentConfig(
                     response_modalities=["IMAGE"],
                 ),
             ),
-            timeout=GEMINI_TIMEOUT_SECONDS,
+            label="try-on/outfit",
         )
 
         processing_time = time.time() - start_time
@@ -281,50 +356,79 @@ async def generate_tryon_outfit(
         
     except asyncio.TimeoutError:
         logger.warning(
-            f"Gemini try-on timed out after {GEMINI_TIMEOUT_SECONDS}s"
+            f"Gemini try-on timed out after {GEMINI_TIMEOUT_SECONDS}s "
+            f"(plus retries)"
         )
         return TryOnResponse(
             success=False,
             error="Try-on timed out. Please try again.",
         )
     except APIError as e:
+        logger.error(f"Gemini APIError after retries: {e!r}")
         return TryOnResponse(
             success=False,
-            error=f"Gemini API error: {str(e)}"
+            error="The AI service is unavailable. Please try again shortly.",
         )
     except httpx.HTTPError as e:
+        logger.warning(f"Image fetch failed: {e!r}")
         return TryOnResponse(
             success=False,
-            error=f"Failed to fetch image: {str(e)}"
+            error="Couldn't load one of the images. Please try again.",
         )
+    except ValueError as e:
+        # _extract_image_from_response raises ValueError with a user-facing
+        # message (e.g. content moderation). Pass it through verbatim.
+        return TryOnResponse(success=False, error=str(e))
     except Exception as e:
+        logger.error(f"Unexpected try-on error: {e!r}", exc_info=True)
         return TryOnResponse(
             success=False,
-            error=f"Unexpected error: {str(e)}"
+            error="Try-on failed unexpectedly. Please try again.",
         )
 
 
 def _extract_image_from_response(response) -> str:
     """Extract the generated image from Gemini response.
-    
+
     Returns:
         Base64 data URL (data:image/png;base64,...)
+
+    Raises:
+        ValueError with a user-facing message. The most common non-image
+        outcome is a content-moderation refusal — Gemini returns text
+        explaining why instead of an image. We log the raw refusal for
+        debugging but translate it to actionable user copy.
     """
     if not response.candidates:
-        raise ValueError("No candidates returned")
+        raise ValueError(
+            "We couldn't generate an image. Please try again with a "
+            "different photo."
+        )
 
     for part in response.candidates[0].content.parts:
         if part.inline_data and part.inline_data.mime_type.startswith("image/"):
             b64_data = base64.standard_b64encode(part.inline_data.data).decode("utf-8")
             mime = part.inline_data.mime_type
             return f"data:{mime};base64,{b64_data}"
-    
-    # No image found - check if there's text (error message)
+
+    # No image — typically a content-moderation refusal. Log the raw text
+    # for debugging, but don't expose Google's policy copy to the user.
     for part in response.candidates[0].content.parts:
         if part.text:
-            raise ValueError(f"No image generated. Model response: {part.text}")
-    
-    raise ValueError("No image generated in response")
+            logger.warning(
+                f"Gemini returned text instead of image (likely policy "
+                f"refusal): {part.text[:300]!r}"
+            )
+            raise ValueError(
+                "Your photo couldn't be processed. Try a clear, "
+                "full-body photo of a single person against an "
+                "unobstructed background."
+            )
+
+    raise ValueError(
+        "We couldn't generate an image. Please try again with a "
+        "different photo."
+    )
 
 
 async def check_gemini_health() -> dict:
