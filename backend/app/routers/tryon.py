@@ -91,26 +91,43 @@ AUTH_RESPONSES = {
 
 
 async def validate_image_url(url: str) -> None:
-    """Validate that an image URL is accessible."""
-    # Skip validation for data URLs
+    """Validate that a URL points at a reachable image.
+
+    Checks:
+    - 2xx status (was previously "anything <400 plus 405")
+    - Content-Type starts with image/ when present
+
+    A 405 from the server is treated as "HEAD not supported" and lets the
+    request through; the GET inside fetch_image_as_pil will surface the
+    real failure if the URL is broken. Data URLs are exempt entirely.
+    """
     if url.startswith("data:"):
         return
-        
+
     try:
         async with httpx.AsyncClient() as client:
             response = await client.head(url, timeout=5.0)
-            if response.status_code >= 400:
-                # Some servers block HEAD, allow if 405 Method Not Allowed
-                if response.status_code == 405:
-                    return
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Image URL not accessible: {url}",
-                )
     except httpx.RequestError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Could not reach image URL: {url}",
+        )
+
+    if response.status_code == 405:
+        # Server blocks HEAD; rely on the downstream GET.
+        return
+
+    if not 200 <= response.status_code < 300:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Image URL returned status {response.status_code}",
+        )
+
+    content_type = response.headers.get("content-type", "").lower()
+    if content_type and not content_type.startswith("image/"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"URL is not an image (Content-Type: {content_type})",
         )
 
 
