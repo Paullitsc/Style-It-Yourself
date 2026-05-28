@@ -405,11 +405,12 @@ def calculate_cohesion_score(items: list[ClothingItemBase], base_item: ClothingI
     color_penalty = min(incompatible_pairs * 10, 30)
     score -= color_penalty
     
-    # Formality penalty (up to -40 points)
-    # VALIDATION FIX: Explicitly handle float formality values
+    # Formality penalty (up to -40 points). A 0.5-level dead-zone absorbs
+    # small float drift (3.0 vs 3.1) that's visually identical to the user;
+    # everything above that scales linearly.
     formality_levels = [float(item.formality) for item in all_items]
     formality_range = max(formality_levels) - min(formality_levels)
-    formality_penalty = min(formality_range * 10, 40)
+    formality_penalty = min(max(0.0, formality_range - 0.5) * 10, 40)
     score -= formality_penalty
     
     # Aesthetic penalty (up to -30 points). Threshold matches

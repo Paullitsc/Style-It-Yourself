@@ -425,10 +425,25 @@ def test_calculate_cohesion_score_formality_gap():
     items = [
         _make_item("Bottoms", "Jeans", formality=5.0),  # Large gap
     ]
-    
+
     score = compatibility.calculate_cohesion_score(items, base_item)
-    # Should be lower due to formality penalty (range = 4, penalty = min(40, 40) = 40)
-    assert score <= 60  # 100 - 40 = 60 (plus any other penalties)
+    # With a 0.5 formality dead-zone: range=4 → (4-0.5)*10 = 35 penalty.
+    assert score <= 65
+
+
+def test_calculate_cohesion_score_formality_deadzone_no_penalty():
+    """Float formality gaps within ±0.5 should not move the score. 3.0 vs 3.1
+    is visually identical to the user — penalizing it for -1 point is noise."""
+    base_item = _make_item(
+        "Tops", "T-Shirts", formality=3.0, aesthetics=["Minimalist"]
+    )
+    items = [
+        _make_item(
+            "Bottoms", "Jeans", formality=3.4, aesthetics=["Minimalist"]
+        ),
+    ]
+    score = compatibility.calculate_cohesion_score(items, base_item)
+    assert score == 100
 
 
 def test_calculate_cohesion_score_no_common_aesthetics():
