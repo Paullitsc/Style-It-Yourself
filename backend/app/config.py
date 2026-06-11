@@ -27,7 +27,13 @@ class Settings(BaseSettings):
     
     # CORS (comma-separated origins)
     CORS_ORIGINS: str = "http://localhost:3000"
-    
+
+    # Regex of additional allowed origins. Defaults to any Chrome extension so
+    # the MV3 extension (origin chrome-extension://<id>) can call the API
+    # without hard-coding its generated ID. Override in production to pin a
+    # specific extension ID, e.g. r"chrome-extension://abcdef...".
+    CORS_ORIGIN_REGEX: str = r"chrome-extension://.*"
+
     @property
     def cors_origins_list(self) -> list[str]:
         """Parse CORS_ORIGINS string into list."""

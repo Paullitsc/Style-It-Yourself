@@ -4,15 +4,17 @@ import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthProvider'
 import ProtectedRoute from '@/components/ProtectedRoute'
-import { getCloset, deleteClothingItem, deleteOutfit } from '@/lib/api'
+import { getCloset, deleteClothingItem, deleteOutfit, updateClothingItem } from '@/lib/api'
 import { cn } from '@/lib/cn'
 import type {
   ClosetResponse,
   ClothingItemResponse,
+  ClothingItemUpdate,
   OutfitSummary,
 } from '@/types'
 import { CardSkeleton } from '@/components/ui'
 import ItemDetailModal from './components/ItemDetailModal'
+import EditItemModal from './components/EditItemModal'
 import OutfitDetailModal from './components/OutfitDetailModal'
 import TryOnModal from '@/app/style/components/TryOnModal'
 
@@ -46,6 +48,7 @@ export default function ClosetPage() {
 
   const [selectedItem, setSelectedItem] =
     useState<ClothingItemResponse | null>(null)
+  const [editItem, setEditItem] = useState<ClothingItemResponse | null>(null)
   const [tryOnItem, setTryOnItem] = useState<ClothingItemResponse | null>(null)
   const [selectedOutfit, setSelectedOutfit] = useState<OutfitSummary | null>(
     null,
@@ -78,6 +81,19 @@ export default function ClosetPage() {
   const handleDeleteOutfit = async (outfitId: string) => {
     if (!session?.access_token) return
     await deleteOutfit(outfitId, session.access_token)
+    await fetchCloset()
+  }
+
+  const handleUpdateItem = async (
+    itemId: string,
+    updates: ClothingItemUpdate,
+  ) => {
+    if (!session?.access_token) return
+    const updated = await updateClothingItem(itemId, updates, session.access_token)
+    // Keep the open detail modal in sync with the saved changes.
+    setSelectedItem((current) =>
+      current && current.id === itemId ? updated : current,
+    )
     await fetchCloset()
   }
 
@@ -311,10 +327,19 @@ export default function ClosetPage() {
               item={selectedItem}
               onClose={() => setSelectedItem(null)}
               onDelete={handleDeleteItem}
+              onEdit={() => setEditItem(selectedItem)}
               onTryOn={() => {
                 setTryOnItem(selectedItem)
                 setSelectedItem(null)
               }}
+            />
+          )}
+
+          {editItem && (
+            <EditItemModal
+              item={editItem}
+              onClose={() => setEditItem(null)}
+              onSave={handleUpdateItem}
             />
           )}
 

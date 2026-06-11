@@ -17,6 +17,7 @@ import type {
   OutfitResponse,
   ClothingItemCreate,
   ClothingItemResponse,
+  ClothingItemUpdate,
 } from '@/types'
 
 // =============================================================================
@@ -385,6 +386,25 @@ export async function createClothingItem(
   }
   
   return response.json()
+}
+
+/**
+ * Update (partially) a clothing item. Only the provided fields are changed.
+ * Useful for correcting metadata the extension guessed.
+ */
+export async function updateClothingItem(
+  itemId: string,
+  updates: ClothingItemUpdate,
+  token: string
+): Promise<ClothingItemResponse> {
+  return fetchApiWithAuth<ClothingItemResponse>(
+    `/api/clothing-items/${itemId}`,
+    token,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    }
+  )
 }
 
 // =============================================================================

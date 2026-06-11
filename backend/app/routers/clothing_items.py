@@ -11,6 +11,7 @@ from app.models.schemas import (
     ClothingItemCreate,
     ClothingItemCreateRequest,
     ClothingItemResponse,
+    ClothingItemUpdate,
     ErrorResponse,
     User,
 )
@@ -234,6 +235,80 @@ async def get_clothing_items(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve clothing items.",
+        )
+
+
+@router.patch(
+    "/{item_id}",
+    response_model=ClothingItemResponse,
+    summary="Update a clothing item",
+    description=(
+        "Partially updates a clothing item owned by the authenticated user. "
+        "Only the provided fields are changed — useful for correcting metadata "
+        "the extension guessed (color, category, formality, aesthetics, etc.)."
+    ),
+    responses={
+        **AUTH_RESPONSES,
+        200: {"description": "Clothing item updated successfully."},
+        400: {
+            "model": ErrorResponse,
+            "description": "No updatable fields supplied or validation error.",
+            "content": {
+                "application/json": {"example": {"detail": "No fields to update."}}
+            },
+        },
+        404: {
+            "model": ErrorResponse,
+            "description": "Item does not exist or is not owned by user.",
+            "content": {"application/json": {"example": {"detail": "Clothing item not found."}}},
+        },
+        500: {
+            "model": ErrorResponse,
+            "description": "Unexpected update failure.",
+            "content": {
+                "application/json": {"example": {"detail": "Failed to update clothing item."}}
+            },
+        },
+    },
+)
+async def update_clothing_item(
+    item_id: str,
+    updates: ClothingItemUpdate,
+    current_user: User = Depends(get_current_user),
+) -> ClothingItemResponse:
+    """Patch an existing clothing item with only the supplied fields."""
+    # Only forward fields the caller actually set; nested Color/Category/Sizing
+    # are flattened to columns inside supabase.update_clothing_item.
+    update_dict = updates.model_dump(exclude_unset=True, exclude_none=True)
+
+    if not update_dict:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No fields to update.",
+        )
+
+    try:
+        updated = await supabase.update_clothing_item(
+            item_id=item_id,
+            user_id=current_user.id,
+            updates=update_dict,
+        )
+        if not updated:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Clothing item not found.",
+            )
+        return updated
+    except HTTPException:
+        raise
+    except ValueError as e:
+        logger.warning(f"Validation error updating item: {e}")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        logger.error(f"Failed to update clothing item: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update clothing item.",
         )
 
 

@@ -19,6 +19,7 @@ interface ItemDetailModalProps {
   onClose: () => void
   onDelete?: (itemId: string) => Promise<void>
   onTryOn?: () => void
+  onEdit?: () => void
 }
 
 export default function ItemDetailModal({
@@ -26,6 +27,7 @@ export default function ItemDetailModal({
   onClose,
   onDelete,
   onTryOn,
+  onEdit,
 }: ItemDetailModalProps) {
   const [isDeleting, setIsDeleting] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -85,6 +87,15 @@ export default function ItemDetailModal({
                   className="font-mono text-[11px] uppercase tracking-[0.12em] text-accent pb-[2px] border-b border-transparent hover:border-accent transition-colors"
                 >
                   Delete piece
+                </button>
+              )}
+              {onEdit && (
+                <button
+                  type="button"
+                  onClick={onEdit}
+                  className="font-mono text-[11px] uppercase tracking-[0.12em] pb-[2px] border-b border-transparent hover:border-ink transition-colors"
+                >
+                  Edit
                 </button>
               )}
               {onTryOn && (

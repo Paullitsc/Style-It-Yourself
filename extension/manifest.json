@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "Style It Yourself",
+  "version": "0.1.0",
+  "description": "Capture products from any store and add them to — or match them against — your Style It Yourself closet.",
+  "action": {
+    "default_title": "Style It Yourself",
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": ["activeTab", "scripting", "storage", "tabs"],
+  "host_permissions": ["http://localhost:8000/*"],
+  "externally_connectable": {
+    "matches": ["http://localhost:3000/*", "https://*.styleityourself.app/*"]
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["contentScript.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

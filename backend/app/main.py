@@ -10,7 +10,7 @@ from app.config import settings
 from app.services.supabase import close_supabase_clients
 
 # Import routers that exist
-from app.routers import validation, tryon, closet, recommendations, outfits, clothing_items
+from app.routers import validation, tryon, closet, recommendations, outfits, clothing_items, extension
 
 
 API_DESCRIPTION = """
@@ -51,6 +51,10 @@ TAGS_METADATA = [
         "name": "try-on",
         "description": "AI-powered try-on generation and photo upload endpoints.",
     },
+    {
+        "name": "extension",
+        "description": "Chrome extension capture endpoints: analyze, import, and match products.",
+    },
 ]
 
 
@@ -81,10 +85,12 @@ app = FastAPI(
     },
 )
 
-# CORS middleware
+# CORS middleware. `allow_origin_regex` additionally permits the Chrome
+# extension origin (chrome-extension://<id>) without hard-coding its ID.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,  # Use list property
+    allow_origin_regex=settings.CORS_ORIGIN_REGEX,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -98,6 +104,7 @@ app.include_router(clothing_items.router)
 
 app.include_router(recommendations.router)
 app.include_router(outfits.router)
+app.include_router(extension.router)
 
 
 @app.get(

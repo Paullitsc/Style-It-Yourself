@@ -228,6 +228,24 @@ export interface ClothingItemCreateRequest {
 
 
 // ==============================================================================
+// PATCH /api/clothing-items/{item_id} (Auth required)
+// Partial update — all fields optional; only provided fields are written.
+// ==============================================================================
+
+export interface ClothingItemUpdate {
+  color?: Color
+  category?: Category
+  formality?: number
+  aesthetics?: string[]
+  brand?: string | null
+  sizing?: Sizing
+  price?: number | null
+  source_url?: string | null
+  ownership?: 'owned' | 'wishlist'
+}
+
+
+// ==============================================================================
 // AUTH / USER
 // ==============================================================================
 

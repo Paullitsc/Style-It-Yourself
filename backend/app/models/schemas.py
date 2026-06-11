@@ -262,6 +262,116 @@ class ClothingItemCreateRequest(BaseModel):
 
 
 # ==============================================================================
+# PATCH /api/clothing-items/{item_id} (Auth required)
+# Partial update — used to correct items (e.g. extension mis-guesses)
+# ==============================================================================
+
+class ClothingItemUpdate(BaseModel):
+    """Partial update for a clothing item.
+
+    Every field is optional; only provided fields are written. Nested Color /
+    Category / Sizing objects are flattened to columns by
+    services.supabase.update_clothing_item.
+    """
+    color: Optional[Color] = None
+    category: Optional[Category] = None
+    formality: Optional[float] = Field(None, ge=1.0, le=5.0)
+    aesthetics: Optional[list[str]] = None
+    brand: Optional[str] = None
+    sizing: Optional[Sizing] = None
+    price: Optional[float] = Field(None, ge=0)
+    source_url: Optional[str] = None
+    ownership: Optional[str] = Field(None, pattern=r"^(owned|wishlist)$")
+
+
+# ==============================================================================
+# EXTENSION — /api/extension/*
+# Chrome extension capture-and-control surface. The extension never
+# reimplements styling logic; it normalizes scraped product context into the
+# existing closet data model and delegates to the same services as the app.
+# ==============================================================================
+
+class AnalyzeProductRequest(BaseModel):
+    """Request body for POST /api/extension/analyze-product.
+
+    The extension sends the scraped product context. `image_url` is fetched
+    server-side for color analysis so the extension stays lightweight and
+    avoids browser CORS/canvas issues.
+    """
+    page_url: str = Field(..., description="URL of the product page (becomes source_url)")
+    image_url: Optional[str] = Field(None, description="Remote product image URL")
+    title: Optional[str] = None
+    price: Optional[float] = Field(None, ge=0)
+    brand: Optional[str] = None
+
+
+class AnalyzeProductResponse(BaseModel):
+    """Suggested metadata for a scraped product. Every field is a *suggestion*
+    the user confirms before saving."""
+    color: Optional[Color] = Field(None, description="Suggested dominant color (None if image unreadable)")
+    category: Category = Field(..., description="Best-guess category")
+    formality: float = Field(..., ge=1.0, le=5.0)
+    aesthetics: list[str] = Field(default_factory=list)
+    brand: Optional[str] = None
+    price: Optional[float] = None
+    title: Optional[str] = None
+    image_url: Optional[str] = None
+    source_url: str
+    source_platform: Optional[str] = Field(None, description="e.g. zara, ssense, shopify, unknown")
+
+
+class ImportItemRequest(ClothingItemBase):
+    """Request body for POST /api/extension/import-item.
+
+    Mirrors ClothingItemCreate but `image_url` is a REMOTE url the backend
+    fetches and re-uploads to Supabase storage (rather than a local file).
+    """
+    image_url: str = Field(..., description="Remote image URL to fetch and store")
+    brand: Optional[str] = None
+    sizing: Optional[Sizing] = None
+    price: Optional[float] = Field(None, ge=0)
+    source_url: Optional[str] = None
+    ownership: str = Field(default="owned", pattern=r"^(owned|wishlist)$")
+    title: Optional[str] = Field(None, description="Scraped title (used only to name the stored file)")
+
+
+class MatchProductRequest(BaseModel):
+    """Request body for POST /api/extension/match-product.
+
+    Treats the current product as a candidate item and asks: what in my closet
+    works with it?
+    """
+    candidate: ClothingItemBase
+    image_url: Optional[str] = None
+    limit: int = Field(default=4, ge=1, le=10, description="Max matches per category")
+
+
+class ClosetMatchGroup(BaseModel):
+    """Closet matches for one recommended category."""
+    category_l1: str
+    items: list[ClothingItemResponse] = Field(default_factory=list)
+    other_items: list[ClothingItemResponse] = Field(
+        default_factory=list,
+        description="Same-category items that did not clear the match threshold.",
+    )
+
+
+class MatchProductResponse(BaseModel):
+    """Response body for POST /api/extension/match-product."""
+    candidate_category: str
+    matches_by_category: list[ClosetMatchGroup] = Field(default_factory=list)
+    suggested_pairings: list[str] = Field(
+        default_factory=list,
+        description="Human-readable pairing suggestions drawn from the closet.",
+    )
+    warnings: list[str] = Field(default_factory=list)
+    cohesion_score: int = Field(..., ge=0, le=100)
+    verdict: str
+    summary: str = Field(..., description="One-line cohesion-style summary.")
+    total_closet_items: int = 0
+
+
+# ==============================================================================
 # AUTH / USER
 # Used by auth middleware
 # ==============================================================================
