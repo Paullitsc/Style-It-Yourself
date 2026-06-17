@@ -3,9 +3,21 @@
  * Extracts dominant colors and converts to our Color type
  */
 
-import ColorThief from 'colorthief'
+import ColorThiefBrowser from 'colorthief'
 import { rgbToHex, rgbToHsl, getColorName } from './colorUtils'
 import type { HSL } from '@/types'
+
+// colorthief >=2.7.0 sets its package `types` to the Node build
+// (`color-thief-node.d.ts`), whose default export is a namespace of functions
+// and isn't constructable. At runtime the bundler resolves the browser build
+// (`main`/`module` -> `color-thief.mjs`), which exports a class. Re-cast the
+// import to that browser constructor so the call sites below stay typed.
+type RGB = [number, number, number]
+interface ColorThiefInstance {
+  getColor(img: HTMLImageElement, quality?: number): RGB
+  getPalette(img: HTMLImageElement, colorCount?: number, quality?: number): RGB[] | null
+}
+const ColorThief = ColorThiefBrowser as unknown as new () => ColorThiefInstance
 
 // =============================================================================
 // TYPES
