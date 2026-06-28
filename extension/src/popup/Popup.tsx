@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { CONNECT_PATH, WEB_APP_URL } from '../config'
 import { analyzeProduct, importItem, matchProduct } from '../lib/api'
 import { disconnect, isConnected, NotAuthenticatedError } from '../lib/auth'
-import { COLOR_PALETTE } from '../lib/color'
+import { ImageEyedropper } from './ImageEyedropper'
+import { buildColorFromHex, COLOR_PALETTE } from '../lib/color'
 import {
   AESTHETIC_TAGS,
   CATEGORY_L1,
@@ -26,6 +27,7 @@ interface FormState {
   price: string
   ownership: Ownership
   imageUrl: string | null
+  previewImage: string | null
   sourceUrl: string
   title: string | null
 }
@@ -42,6 +44,9 @@ export function Popup() {
   const [matchLoading, setMatchLoading] = useState(false)
   const [match, setMatch] = useState<MatchResponse | null>(null)
   const [actionError, setActionError] = useState('')
+  const [recoloring, setRecoloring] = useState(false)
+  const selectionSeq = useRef(0)
+  const analyzeAbort = useRef<AbortController | null>(null)
 
   const init = useCallback(async () => {
     setPhase('loading')
@@ -58,7 +63,9 @@ export function Popup() {
       setPhase('analyzing')
       const analysis = await analyzeProduct(raw)
       setForm({
-        color: analysis.color ?? COLOR_PALETTE[0],
+        // Re-name the detected color with the client namer (same as the
+        // eyedropper) so tans/khakis don't show the backend's coarse "orange".
+        color: analysis.color ? buildColorFromHex(analysis.color.hex) : COLOR_PALETTE[0],
         categoryL1: analysis.category.l1,
         categoryL2: analysis.category.l2,
         formality: clampLevel(analysis.formality),
@@ -67,6 +74,7 @@ export function Popup() {
         price: analysis.price != null ? String(analysis.price) : '',
         ownership: 'owned',
         imageUrl: analysis.image_url ?? raw.image,
+        previewImage: analysis.preview_image ?? null,
         sourceUrl: analysis.source_url,
         title: analysis.title ?? raw.title,
       })
@@ -104,6 +112,11 @@ export function Popup() {
     if (!form) return
     if (!form.imageUrl) {
       setActionError('No product image found to import.')
+      return
+    }
+    if (!/^https?:/i.test(form.imageUrl)) {
+      // Never send a relayed data: preview to import-item (http/https only).
+      setActionError('Cannot import this image.')
       return
     }
     setSaving(true)
@@ -153,6 +166,45 @@ export function Popup() {
     }
   }, [form])
 
+  const handleSelectImage = useCallback(
+    async (url: string) => {
+      if (!product || !form || url === form.imageUrl) return
+      const prevUrl = form.imageUrl
+      const mySeq = ++selectionSeq.current
+      analyzeAbort.current?.abort()
+      const controller = new AbortController()
+      analyzeAbort.current = controller
+
+      setForm((prev) => (prev ? { ...prev, imageUrl: url } : prev))
+      setRecoloring(true)
+      setActionError('')
+      try {
+        const analysis = await analyzeProduct(product, url, controller.signal)
+        if (mySeq !== selectionSeq.current) return // superseded
+        setForm((prev) =>
+          prev
+            ? {
+                ...prev,
+                color: analysis.color ?? prev.color,
+                previewImage: analysis.preview_image ?? null,
+              }
+            : prev,
+        )
+        setMatch(null) // re-run match against the new color
+      } catch (err) {
+        if ((err as Error)?.name === 'AbortError') return
+        if (mySeq === selectionSeq.current) {
+          // revert the optimistic image so image + color can't desync
+          setForm((prev) => (prev ? { ...prev, imageUrl: prevUrl } : prev))
+          setActionError('Could not load that image.')
+        }
+      } finally {
+        if (mySeq === selectionSeq.current) setRecoloring(false)
+      }
+    },
+    [product, form],
+  )
+
   // Auto-run matching the first time the user opens the Match tab.
   useEffect(() => {
     if (view === 'match' && form && !match && !matchLoading) {
@@ -191,6 +243,15 @@ export function Popup() {
         {phase === 'ready' && form && product && (
           <>
             <ProductPreview imageUrl={form.imageUrl} title={form.title} sourceUrl={form.sourceUrl} />
+
+            {product.images.length > 1 && (
+              <ImageStrip
+                images={product.images}
+                selected={form.imageUrl}
+                busy={recoloring}
+                onSelect={handleSelectImage}
+              />
+            )}
 
             <div className="tabs">
               <button
@@ -291,6 +352,41 @@ function ProductPreview({
   )
 }
 
+function ImageStrip({
+  images,
+  selected,
+  busy,
+  onSelect,
+}: {
+  images: string[]
+  selected: string | null
+  busy: boolean
+  onSelect: (url: string) => void
+}) {
+  return (
+    <div className="filmstrip" aria-busy={busy}>
+      {images.map((url) => (
+        <button
+          key={url}
+          type="button"
+          className={`filmstrip__item ${url === selected ? 'is-active' : ''}`}
+          aria-pressed={url === selected}
+          onClick={() => onSelect(url)}
+        >
+          <img
+            src={url}
+            alt=""
+            onError={(e) => {
+              const parent = e.currentTarget.parentElement
+              if (parent) parent.style.display = 'none'
+            }}
+          />
+        </button>
+      ))}
+    </div>
+  )
+}
+
 function SavedScreen({
   ownership,
   onAddAnother,
@@ -331,7 +427,6 @@ function AddForm({
     setForm((prev) => (prev ? { ...prev, ...patch } : prev))
 
   const l2Options = CATEGORY_TAXONOMY[form.categoryL1] ?? []
-  const palette = withDetectedColor(form.color)
 
   const toggleAesthetic = (tag: string) => {
     const has = form.aesthetics.includes(tag)
@@ -378,18 +473,26 @@ function AddForm({
       </Field>
 
       <Field label={`Color · ${form.color.name}`}>
-        <div className="swatches">
-          {palette.map((c) => (
-            <button
-              key={c.hex}
-              className={`swatch ${c.hex === form.color.hex ? 'active' : ''}`}
-              style={{ background: c.hex }}
-              title={c.name}
-              aria-label={c.name}
-              onClick={() => update({ color: c })}
+        {form.previewImage ? (
+          <>
+            <ImageEyedropper
+              previewSrc={form.previewImage}
+              currentHex={form.color.hex}
+              onPick={(c) => update({ color: c })}
             />
-          ))}
-        </div>
+            <div className="colorout">
+              <span
+                className="colorout__sw"
+                style={{ background: form.color.hex }}
+                aria-hidden="true"
+              />
+              <span className="colorout__name">{form.color.name}</span>
+              <span className="hex">{form.color.hex}</span>
+            </div>
+          </>
+        ) : (
+          <HexFallback color={form.color} onChange={(c) => update({ color: c })} />
+        )}
       </Field>
 
       <Field label="Formality">
@@ -577,7 +680,29 @@ function parsePrice(value: string): number | null {
   return Number.isFinite(n) && n >= 0 ? n : null
 }
 
-function withDetectedColor(detected: Color): Color[] {
-  if (COLOR_PALETTE.some((c) => c.hex === detected.hex)) return COLOR_PALETTE
-  return [detected, ...COLOR_PALETTE]
+function HexFallback({
+  color,
+  onChange,
+}: {
+  color: Color
+  onChange: (c: Color) => void
+}) {
+  const [text, setText] = useState(color.hex)
+  useEffect(() => setText(color.hex), [color.hex])
+  return (
+    <div className="colorout">
+      <span className="colorout__sw" style={{ background: color.hex }} aria-hidden="true" />
+      <input
+        className="text-input"
+        value={text}
+        placeholder="#000000"
+        maxLength={7}
+        onChange={(e) => {
+          const v = e.target.value.toUpperCase()
+          setText(v)
+          if (/^#[0-9A-F]{6}$/.test(v)) onChange(buildColorFromHex(v))
+        }}
+      />
+    </div>
+  )
 }

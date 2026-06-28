@@ -44,12 +44,17 @@ async function authedFetch<T>(path: string, init: RequestInit): Promise<T> {
   return (await response.json()) as T
 }
 
-export function analyzeProduct(raw: RawProduct): Promise<AnalyzeResponse> {
+export function analyzeProduct(
+  raw: RawProduct,
+  imageUrl?: string | null,
+  signal?: AbortSignal,
+): Promise<AnalyzeResponse> {
   return authedFetch<AnalyzeResponse>('/api/extension/analyze-product', {
     method: 'POST',
+    signal,
     body: JSON.stringify({
       page_url: raw.url,
-      image_url: raw.image,
+      image_url: imageUrl ?? raw.images[0] ?? raw.image,
       title: raw.title,
       price: raw.price,
       brand: raw.brand,

@@ -9,11 +9,12 @@ in-app uploads.
 
 from __future__ import annotations
 
+import base64
 import io
 import logging
 from urllib.parse import urlparse
 
-from PIL import Image
+from PIL import Image, ImageOps
 
 from app.models.schemas import Category, Color, HSL
 from app.services.color_harmony import get_color_name_from_hsl, is_neutral_color
@@ -112,6 +113,28 @@ def extract_dominant_color(image_bytes: bytes) -> Color | None:
         name=name,
         is_neutral=is_neutral_color(name),
     )
+
+
+def make_preview_data_url(image_bytes: bytes, max_dim: int = 512) -> str | None:
+    """Downscale already-fetched image bytes into a same-origin JPEG ``data:``
+    URL for client-side eyedropping in the extension popup.
+
+    A ``data:`` URL is same-origin to the popup, so a canvas drawn from it is
+    NOT tainted and ``getImageData`` works — unlike the remote image URL.
+    Best-effort: returns ``None`` on any decode/encode failure.
+    """
+    try:
+        with Image.open(io.BytesIO(image_bytes)) as img:
+            oriented = ImageOps.exif_transpose(img)
+            rgb = oriented.convert("RGB")
+            rgb.thumbnail((max_dim, max_dim))
+            buf = io.BytesIO()
+            rgb.save(buf, format="JPEG", quality=80)
+        encoded = base64.b64encode(buf.getvalue()).decode("ascii")
+        return f"data:image/jpeg;base64,{encoded}"
+    except Exception as exc:  # noqa: BLE001 — best-effort preview
+        logger.info(f"Preview generation failed: {exc!r}")
+        return None
 
 
 # =============================================================================

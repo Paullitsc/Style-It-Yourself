@@ -316,6 +316,13 @@ class AnalyzeProductResponse(BaseModel):
     price: Optional[float] = None
     title: Optional[str] = None
     image_url: Optional[str] = None
+    preview_image: Optional[str] = Field(
+        None,
+        description=(
+            "Downscaled same-origin data: URL of the product image for "
+            "client-side eyedropping; None if unavailable."
+        ),
+    )
     source_url: str
     source_platform: Optional[str] = Field(None, description="e.g. zara, ssense, shopify, unknown")
 

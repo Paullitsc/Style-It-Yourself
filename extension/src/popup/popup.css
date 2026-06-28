@@ -379,3 +379,79 @@ hr.rule {
     transform: rotate(360deg);
   }
 }
+
+/* ---- candidate image strip ---- */
+.filmstrip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+.filmstrip__item {
+  flex: 0 0 auto;
+  width: 48px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+.filmstrip__item img {
+  width: 48px;
+  height: 60px;
+  object-fit: cover;
+  border: 1px solid var(--ink);
+  background: var(--paper-2);
+  display: block;
+}
+.filmstrip__item.is-active img {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+
+/* ---- eyedropper ---- */
+.eyedropper {
+  position: relative;
+  width: 100%;
+  max-width: 328px;
+}
+.eyedropper__canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--ink);
+  background: var(--paper-2);
+  cursor: crosshair;
+}
+.eyedropper__marker {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  transform: translate(-50%, -50%);
+  border: 2px solid var(--paper);
+  pointer-events: none;
+}
+.colorout {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+.colorout__sw {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--ink);
+}
+.colorout__name {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-style: italic;
+  font-size: 15px;
+  color: var(--ink-2);
+}
+.hex {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 14px;
+  letter-spacing: 0.06em;
+  color: var(--ink);
+  border-bottom: 1px solid var(--ink);
+  padding-bottom: 2px;
+}

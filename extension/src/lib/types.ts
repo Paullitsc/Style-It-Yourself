@@ -28,6 +28,9 @@ export type Ownership = 'owned' | 'wishlist'
 /** Raw product context scraped from the current page. */
 export interface RawProduct {
   title: string | null
+  /** Ranked candidate image URLs (best-first); may be empty. */
+  images: string[]
+  /** Back-compat alias = images[0] ?? null. */
   image: string | null
   price: number | null
   brand: string | null
@@ -44,6 +47,7 @@ export interface AnalyzeResponse {
   price: number | null
   title: string | null
   image_url: string | null
+  preview_image: string | null
   source_url: string
   source_platform: string | null
 }
