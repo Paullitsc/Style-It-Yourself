@@ -37,6 +37,7 @@ from app.services.product_analysis import (
     guess_aesthetics,
     guess_category,
     guess_formality,
+    make_preview_data_url,
 )
 from app.services.remote_image import RemoteImageError, fetch_remote_image
 
@@ -96,12 +97,14 @@ async def analyze_product(
 ) -> AnalyzeProductResponse:
     """Suggest closet metadata for a scraped product."""
     color = None
+    preview = None
     if request.image_url:
         # Color analysis is best-effort: a fetch/decode failure should NOT block
         # the rest of the suggestions — the user can still pick a color manually.
         try:
             image_bytes, _ = await fetch_remote_image(request.image_url)
             color = extract_dominant_color(image_bytes)
+            preview = make_preview_data_url(image_bytes)
         except RemoteImageError as exc:
             logger.info(f"analyze-product: image unusable ({exc})")
         except Exception as exc:  # noqa: BLE001
@@ -120,6 +123,7 @@ async def analyze_product(
         price=request.price,
         title=request.title,
         image_url=request.image_url,
+        preview_image=preview,
         source_url=request.page_url,
         source_platform=detect_platform(request.page_url),
     )
