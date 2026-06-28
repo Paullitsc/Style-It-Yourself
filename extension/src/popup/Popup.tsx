@@ -63,7 +63,9 @@ export function Popup() {
       setPhase('analyzing')
       const analysis = await analyzeProduct(raw)
       setForm({
-        color: analysis.color ?? COLOR_PALETTE[0],
+        // Re-name the detected color with the client namer (same as the
+        // eyedropper) so tans/khakis don't show the backend's coarse "orange".
+        color: analysis.color ? buildColorFromHex(analysis.color.hex) : COLOR_PALETTE[0],
         categoryL1: analysis.category.l1,
         categoryL2: analysis.category.l2,
         formality: clampLevel(analysis.formality),
