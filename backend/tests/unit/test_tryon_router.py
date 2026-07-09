@@ -50,10 +50,14 @@ def _make_clothing_item() -> ClothingItemBase:
 # =============================================================================
 
 async def test_try_on_single_success(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Successfully generates and saves a single item try-on."""
+    """Successfully generates a single item try-on and returns the data URL as-is.
+
+    No storage upload happens here — the generated image only gets uploaded
+    to Supabase when the user saves an outfit (see create_outfit).
+    """
     user = _make_user()
     item = _make_clothing_item()
-    
+
     request = TryOnSingleRequest(
         user_photo_url="http://example.com/user.jpg",
         item_image_url="http://example.com/shirt.jpg",
@@ -63,9 +67,9 @@ async def test_try_on_single_success(monkeypatch: pytest.MonkeyPatch) -> None:
     # 1. Mock validate_image_url to do nothing (pass)
     async def fake_validate(url: str):
         return None
-    
+
     # 2. Mock Gemini service response
-    async def fake_generate_single(user_image_url, item_image_url, item, high_quality):
+    async def fake_generate_single(user_image_url, item_image_url, item):
         assert user_image_url == request.user_photo_url
         assert item_image_url == request.item_image_url
         return TryOnResponse(
@@ -74,22 +78,16 @@ async def test_try_on_single_success(monkeypatch: pytest.MonkeyPatch) -> None:
             processing_time=1.23
         )
 
-    # 3. Mock saving image
-    async def fake_save_image(user_id, data_url):
-        assert user_id == user.id
-        return "https://storage.example.com/result.png"
-
     # Apply patches
     monkeypatch.setattr(tryon_router, "validate_image_url", fake_validate)
     monkeypatch.setattr(tryon_router, "generate_tryon_single", fake_generate_single)
-    monkeypatch.setattr(tryon_router, "_save_generated_image", fake_save_image)
 
     # Execute
     response = await tryon_router.try_on_single(request, user)
 
     # Assert
     assert response.success is True
-    assert response.generated_image_url == "https://storage.example.com/result.png"
+    assert response.generated_image_url == "data:image/png;base64,fake_data"
     assert response.processing_time == 1.23
 
 
@@ -149,10 +147,13 @@ async def test_try_on_single_validation_error_maps_to_400(
 # =============================================================================
 
 async def test_try_on_outfit_success(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Successfully generates and saves an outfit try-on."""
+    """Successfully generates an outfit try-on and returns the data URL as-is.
+
+    No storage upload happens here — see test_try_on_single_success.
+    """
     user = _make_user()
     item_base = _make_clothing_item()
-    
+
     # Request with list of tuples [(url, item), ...]
     # Note: Pydantic handles the parsing, but here we pass the model structure
     request = TryOnOutfitRequest(
@@ -165,7 +166,7 @@ async def test_try_on_outfit_success(monkeypatch: pytest.MonkeyPatch) -> None:
 
     async def fake_validate(url: str): return None
 
-    async def fake_generate_outfit(user_image_url, item_images, high_quality):
+    async def fake_generate_outfit(user_image_url, item_images):
         assert len(item_images) == 2
         return TryOnResponse(
             success=True,
@@ -173,17 +174,13 @@ async def test_try_on_outfit_success(monkeypatch: pytest.MonkeyPatch) -> None:
             processing_time=2.5
         )
 
-    async def fake_save_image(user_id, data_url):
-        return "https://storage.example.com/outfit_result.png"
-
     monkeypatch.setattr(tryon_router, "validate_image_url", fake_validate)
     monkeypatch.setattr(tryon_router, "generate_tryon_outfit", fake_generate_outfit)
-    monkeypatch.setattr(tryon_router, "_save_generated_image", fake_save_image)
 
     response = await tryon_router.try_on_outfit(request, user)
 
     assert response.success is True
-    assert response.generated_image_url == "https://storage.example.com/outfit_result.png"
+    assert response.generated_image_url == "data:image/png;base64,fake_outfit"
 
 
 async def test_try_on_outfit_partial_url_failure(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -211,36 +208,3 @@ async def test_try_on_outfit_partial_url_failure(monkeypatch: pytest.MonkeyPatch
 
     assert excinfo.value.status_code == status.HTTP_400_BAD_REQUEST
     assert "Invalid URL" in excinfo.value.detail
-
-
-# =============================================================================
-# Internal helper: _save_generated_image
-# =============================================================================
-
-async def test_save_generated_image_handles_base64(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Test the private helper _save_generated_image logic via direct call if possible, 
-    or via a router call that triggers it."""
-    
-    # Since _save_generated_image is not an endpoint, we can test it 
-    # if it's imported, or indirectly via the endpoint tests above.
-    # However, Python allows importing/testing async internal functions too:
-    
-    async def fake_upload(user_id, image_data, outfit_id):
-        assert user_id == "user-123"
-        assert len(image_data) > 0 
-        return "https://supa.link/image.png"
-
-    monkeypatch.setattr(tryon_router, "upload_generated_image", fake_upload)
-
-    # Valid base64 png header
-    data_url = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+P+/HgAFhAJ/wlseKgAAAABJRU5ErkJggg=="
-    
-    result = await tryon_router._save_generated_image("user-123", data_url)
-    assert result == "https://supa.link/image.png"
-
-
-async def test_save_generated_image_skips_non_data_url(monkeypatch: pytest.MonkeyPatch) -> None:
-    """If a regular URL is passed (not base64), it returns it as is."""
-    url = "https://already-hosted.com/image.jpg"
-    result = await tryon_router._save_generated_image("user-123", url)
-    assert result == url

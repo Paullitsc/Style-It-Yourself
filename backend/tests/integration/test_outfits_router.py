@@ -90,7 +90,7 @@ def test_post_outfits_returns_201(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """POST /api/outfits returns 201 on success."""
-    async def fake_create(user_id, outfit):
+    async def fake_create(user_id, outfit, generated_image_url=None):
         return _make_outfit_response(name=outfit.name)
 
     monkeypatch.setattr("app.routers.outfits.supabase.create_outfit", fake_create)
@@ -129,7 +129,7 @@ def test_post_outfits_server_error_returns_500(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """POST /api/outfits returns 500 on unexpected error."""
-    async def fake_create(user_id, outfit):
+    async def fake_create(user_id, outfit, generated_image_url=None):
         raise RuntimeError("Database error")
 
     monkeypatch.setattr("app.routers.outfits.supabase.create_outfit", fake_create)

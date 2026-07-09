@@ -24,6 +24,7 @@ from google.genai.errors import APIError
 
 from app.config import settings
 from app.models.schemas import ClothingItemBase, TryOnResponse
+from app.services.remote_image import RemoteImageError, fetch_remote_image
 
 
 logger = logging.getLogger(__name__)
@@ -129,17 +130,18 @@ async def _call_gemini_with_retry(call_factory, *, label: str):
 
 async def fetch_image_as_pil(image_url: str) -> Image.Image:
     """Fetch an image from URL and return as PIL Image.
-    
+
+    Uses the SSRF-safe fetcher (blocks private/loopback/metadata addresses,
+    re-validates redirects, caps size) since image_url is user-supplied.
+
     Args:
         image_url: URL of the image to fetch
-        
+
     Returns:
         PIL Image object
     """
-    async with httpx.AsyncClient() as http_client:
-        response = await http_client.get(image_url, timeout=30.0)
-        response.raise_for_status()
-        return Image.open(BytesIO(response.content))
+    image_bytes, _content_type = await fetch_remote_image(image_url)
+    return Image.open(BytesIO(image_bytes))
 
 
 def build_tryon_prompt(items: list[ClothingItemBase], single_item: bool = False) -> str:
@@ -268,6 +270,16 @@ async def generate_tryon_single(
             error="Couldn't load one of the images. Please try again.",
             error_kind="image_fetch",
         )
+    except RemoteImageError as e:
+        # Subclasses ValueError — must be caught before the generic
+        # ValueError branch below, which is reserved for content-moderation
+        # refusals from _extract_image_from_response.
+        logger.warning(f"Image fetch blocked or failed: {e!r}")
+        return TryOnResponse(
+            success=False,
+            error="Couldn't load one of the images. Please try again.",
+            error_kind="image_fetch",
+        )
     except ValueError as e:
         # _extract_image_from_response raises ValueError with a user-facing
         # message (e.g. content moderation). Pass it through verbatim.
@@ -366,6 +378,16 @@ async def generate_tryon_outfit(
         )
     except httpx.HTTPError as e:
         logger.warning(f"Image fetch failed: {e!r}")
+        return TryOnResponse(
+            success=False,
+            error="Couldn't load one of the images. Please try again.",
+            error_kind="image_fetch",
+        )
+    except RemoteImageError as e:
+        # Subclasses ValueError — must be caught before the generic
+        # ValueError branch below, which is reserved for content-moderation
+        # refusals from _extract_image_from_response.
+        logger.warning(f"Image fetch blocked or failed: {e!r}")
         return TryOnResponse(
             success=False,
             error="Couldn't load one of the images. Please try again.",

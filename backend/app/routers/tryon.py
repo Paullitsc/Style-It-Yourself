@@ -7,7 +7,6 @@ from collections import defaultdict, deque
 from io import BytesIO
 from time import monotonic
 
-import httpx
 from fastapi import APIRouter, Body, Depends, File, HTTPException, UploadFile, status
 from PIL import Image, UnidentifiedImageError
 
@@ -20,6 +19,8 @@ from app.models.schemas import (
     TryOnOutfitRequest,
 )
 from app.services.gemini import generate_tryon_single, generate_tryon_outfit
+from app.services.remote_image import RemoteImageError
+from app.services.remote_image import validate_image_url as _validate_remote_image_url
 from app.services.supabase import (
     upload_image,
     delete_user_photo,
@@ -155,44 +156,24 @@ AUTH_RESPONSES = {
 
 
 async def validate_image_url(url: str) -> None:
-    """Validate that a URL points at a reachable image.
+    """Reject URLs that are unsafe to fetch server-side before spending
+    Gemini quota on them.
 
-    Checks:
-    - 2xx status (was previously "anything <400 plus 405")
-    - Content-Type starts with image/ when present
-
-    A 405 from the server is treated as "HEAD not supported" and lets the
-    request through; the GET inside fetch_image_as_pil will surface the
-    real failure if the URL is broken. Data URLs are exempt entirely.
+    This used to issue its own `httpx.head()` against the user-supplied URL,
+    which is itself an SSRF vector (a HEAD request to an internal address or
+    the cloud metadata endpoint still reaches it). It now delegates to the
+    same host/scheme allowlist the extension's remote-image fetcher uses
+    (blocks private/loopback/link-local/reserved addresses, non-http(s)
+    schemes). The actual bytes are fetched later via `fetch_remote_image`
+    inside `gemini.fetch_image_as_pil`, which re-validates every redirect hop
+    and enforces size/content-type limits — this is just the cheap
+    pre-flight so an unsafe URL fails fast, before the rate-limited Gemini
+    call.
     """
-    if url.startswith("data:"):
-        return
-
     try:
-        async with httpx.AsyncClient() as client:
-            response = await client.head(url, timeout=5.0)
-    except httpx.RequestError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Could not reach image URL: {url}",
-        )
-
-    if response.status_code == 405:
-        # Server blocks HEAD; rely on the downstream GET.
-        return
-
-    if not 200 <= response.status_code < 300:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Image URL returned status {response.status_code}",
-        )
-
-    content_type = response.headers.get("content-type", "").lower()
-    if content_type and not content_type.startswith("image/"):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"URL is not an image (Content-Type: {content_type})",
-        )
+        _validate_remote_image_url(url)
+    except RemoteImageError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
 
 
 @router.post(

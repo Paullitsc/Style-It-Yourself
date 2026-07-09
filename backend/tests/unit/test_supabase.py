@@ -81,8 +81,8 @@ def mock_supabase():
     storage_mock.upload = AsyncMock()
     storage_mock.remove = AsyncMock()
     
-    # Storage methods that are sync (in supabase-py get_public_url is sync)
-    storage_mock.get_public_url = MagicMock()
+    # get_public_url is awaited by app.services.supabase.upload_image
+    storage_mock.get_public_url = AsyncMock()
 
     return client_inst
 

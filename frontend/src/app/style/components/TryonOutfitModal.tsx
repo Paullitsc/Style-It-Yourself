@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { tryOnOutfit, uploadUserPhoto, uploadItemImage } from '@/lib/api'
 import { useStyleStore } from '@/store/styleStore'
 import type { ClothingItemCreate, TryOnOutfitRequest } from '@/types'
@@ -34,16 +34,20 @@ export default function TryOnOutfitModal({
   const [processingTime, setProcessingTime] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [elapsed, setElapsed] = useState(0)
+  const generationStartRef = useRef(0)
 
   useEffect(() => {
     if (step !== 'generating') return
-    setElapsed(0)
-    const interval = setInterval(() => setElapsed((e) => e + 1), 1000)
+    const interval = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - generationStartRef.current) / 1000))
+    }, 1000)
     return () => clearInterval(interval)
   }, [step])
 
   const handleGenerate = async () => {
     if (!userPhotoFile) return
+    generationStartRef.current = Date.now()
+    setElapsed(0)
     setStep('generating')
     setError(null)
 

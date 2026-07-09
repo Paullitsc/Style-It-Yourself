@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useStyleStore } from '@/store/styleStore'
 import CropModal from './shared/CropModal'
 import ImageUploadZone from './shared/ImageUploadZone'
@@ -17,12 +17,21 @@ export default function UploadStep() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [showCropModal, setShowCropModal] = useState(false)
 
-  useEffect(() => {
+  // Mirrors pendingUpload/croppedImage (set externally, e.g. by the
+  // extension import flow) into local UI state — done during render rather
+  // than in an effect to avoid an extra render pass. Tracking both previous
+  // values reproduces the old effect's multi-dependency semantics: fire
+  // whenever either one changes.
+  const [prevPendingUpload, setPrevPendingUpload] = useState(pendingUpload)
+  const [prevCroppedImage, setPrevCroppedImage] = useState(croppedImage)
+  if (pendingUpload !== prevPendingUpload || croppedImage !== prevCroppedImage) {
+    setPrevPendingUpload(pendingUpload)
+    setPrevCroppedImage(croppedImage)
     if (pendingUpload && !croppedImage) {
       setSelectedFile(pendingUpload.file)
       setShowCropModal(true)
     }
-  }, [pendingUpload, croppedImage])
+  }
 
   const handleFileSelect = (file: File) => {
     setSelectedFile(file)

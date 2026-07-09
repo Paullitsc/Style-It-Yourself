@@ -1,10 +1,10 @@
 """Application configuration."""
-import os
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from pydantic_settings import BaseSettings
-from dotenv import load_dotenv
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
+
     # App
     app_name: str = "SIY API"
     debug: bool = False
@@ -66,15 +66,6 @@ class Settings(BaseSettings):
         if self.docs_enabled and self.ENABLE_REDOC:
             return "/redoc"
         return None
-    
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
 
-load_dotenv()
-supUrl = os.getenv("SUPABASE_URL")
-supKey = os.getenv("SUPABASE_KEY")
-supServiceKey = os.getenv("SUPABASE_SERVICE_KEY")
-supJwtSecret = os.getenv("SUPABASE_JWT_SECRET")
 
-settings = Settings(SUPABASE_URL=supUrl, SUPABASE_KEY=supKey, SUPABASE_SERVICE_KEY=supServiceKey, SUPABASE_JWT_SECRET=supJwtSecret)
+settings = Settings()

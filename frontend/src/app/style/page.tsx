@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useStyleStore } from '@/store/styleStore'
 import StepIndicator from './components/StepIndicator'
 import UploadStep from './components/UploadStep'
@@ -10,21 +10,18 @@ import BuildStep from './components/BuildStep'
 import SummaryStep from './components/SummaryStep'
 
 export default function StylePage() {
-  const { currentStep } = useStyleStore()
-  const [isReady, setIsReady] = useState(false)
-
-  // Reset stale state on first render (post-upload step with no image)
-  useEffect(() => {
+  // Reset stale state before the first render (post-upload step with no
+  // image). Runs inside the lazy useState initializer so it happens
+  // synchronously during render, before the store subscription below —
+  // one render, no flash of stale content.
+  useState(() => {
     const state = useStyleStore.getState()
     if (!state.croppedImage && state.currentStep !== 'upload') {
       state.reset()
     }
-    setIsReady(true)
-  }, [])
+  })
 
-  if (!isReady) {
-    return <div className="flex-1 bg-paper" />
-  }
+  const { currentStep } = useStyleStore()
 
   const showIndicator =
     currentStep === 'upload' ||

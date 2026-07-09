@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { buildColorFromHex, hslToHex } from '@/lib/colorUtils'
 import type { Color } from '@/types'
 import { cn } from '@/lib/cn'
@@ -27,9 +27,14 @@ export default function ColorSelector({
   const [hexInput, setHexInput] = useState(adjustedColor?.hex || '')
   const [copied, setCopied] = useState(false)
 
-  useEffect(() => {
+  // Mirrors adjustedColor into the editable hex field during render (instead
+  // of an effect) — hexInput must stay independently editable as the user
+  // types, so it can't be a plain derived value.
+  const [prevAdjustedColor, setPrevAdjustedColor] = useState(adjustedColor)
+  if (adjustedColor !== prevAdjustedColor) {
+    setPrevAdjustedColor(adjustedColor)
     if (adjustedColor) setHexInput(adjustedColor.hex)
-  }, [adjustedColor])
+  }
 
   const handleBrightnessChange = (lightness: number) => {
     if (!adjustedColor) return
