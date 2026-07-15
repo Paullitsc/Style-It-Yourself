@@ -19,3 +19,13 @@ export const CONNECT_PATH = '/extension/connect'
 
 /** chrome.storage.local key for the persisted Supabase session. */
 export const SESSION_KEY = 'siy_session'
+
+/** chrome.storage.local key for the pinned shopping-intent event. */
+export const PINNED_EVENT_KEY = 'siy_pinned_event'
+
+/**
+ * A pin is a same-shopping-trip signal, not a durable preference — without
+ * an expiry, a Saturday wedding pin would silently keep down-ranking
+ * matches the following Wednesday. 24h covers one shopping session.
+ */
+export const PINNED_EVENT_TTL_MS = 24 * 60 * 60 * 1000

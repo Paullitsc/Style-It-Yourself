@@ -67,6 +67,82 @@ SHOE_BOTTOM_PAIRINGS: dict[str, list[str]] = {
     "Heels": ["Dresses", "Dress Pants", "Skirts", "Suits"],
 }
 
+# Event contexts (golden-paths.md path 2 — "Style for an event").
+#
+# Each event pins a formality band (min, max on the 1-5 scale) and a curated
+# palette of pre-labeled anchor colors. `avoid` colors are hard-flagged rather
+# than just scored low (e.g. white/cream at a wedding upstages the couple).
+#
+# Deliberately NOT modeling a saturation cap here: raw HSL saturation is a
+# poor proxy for perceived vividness at low lightness (navy is s=61 in
+# NEUTRAL_COLOR_DATA but reads as muted) — the curated palette anchors already
+# encode "low-key" vs. "bold" per event without that false positive.
+EVENT_CONTEXTS: dict[str, dict] = {
+    "job-interview": {
+        "label": "Job Interview",
+        "formality": (3.0, 4.0),  # Business Casual -> Formal
+        "palette": [
+            {"hex": "#0B1C2D", "name": "navy"},
+            {"hex": "#808080", "name": "gray"},
+            {"hex": "#FFFFFF", "name": "white"},
+            {"hex": "#000000", "name": "black"},
+        ],
+        "avoid": [],
+        "notes": "Clean lines, neutral palette, minimal accessories.",
+    },
+    "wedding-guest": {
+        "label": "Wedding Guest",
+        "formality": (3.0, 5.0),  # Business Casual -> Black Tie
+        "palette": [
+            {"hex": "#0B1C2D", "name": "navy"},
+            {"hex": "#6E2142", "name": "burgundy"},
+            {"hex": "#9CAF88", "name": "sage"},
+            {"hex": "#7A99AC", "name": "dusty blue"},
+        ],
+        "avoid": [
+            {"hex": "#FFFFFF", "name": "white"},
+            {"hex": "#FFFDD0", "name": "cream"},
+        ],
+        "notes": "Dress up; leave white and cream to the couple.",
+    },
+    "first-date": {
+        "label": "First Date",
+        "formality": (2.0, 3.0),  # Smart Casual -> Business Casual
+        "palette": [
+            {"hex": "#000000", "name": "black"},
+            {"hex": "#6E2142", "name": "burgundy"},
+            {"hex": "#1F2A44", "name": "indigo"},
+            {"hex": "#808080", "name": "gray"},
+        ],
+        "avoid": [],
+        "notes": "Put-together but relaxed — one statement color is plenty.",
+    },
+    "night-out": {
+        "label": "Night Out",
+        "formality": (2.0, 4.0),  # Smart Casual -> Formal
+        "palette": [
+            {"hex": "#000000", "name": "black"},
+            {"hex": "#4B1D8C", "name": "deep purple"},
+            {"hex": "#7A1F3D", "name": "wine"},
+            {"hex": "#C0C0C0", "name": "silver"},
+        ],
+        "avoid": [],
+        "notes": "Bolder colors and richer fabrics read well after dark.",
+    },
+    "casual-weekend": {
+        "label": "Casual Weekend",
+        "formality": (1.0, 2.0),  # Casual -> Smart Casual
+        "palette": [
+            {"hex": "#3B5998", "name": "denim blue"},
+            {"hex": "#FFFFFF", "name": "white"},
+            {"hex": "#C3B091", "name": "khaki"},
+            {"hex": "#808080", "name": "gray"},
+        ],
+        "avoid": [],
+        "notes": "Comfortable, easy layers.",
+    },
+}
+
 # Outfit composition rules
 REQUIRED_CATEGORIES_STANDARD: list[str] = ["Tops", "Bottoms", "Shoes"]
 REQUIRED_CATEGORIES_FULLBODY: list[str] = ["Full Body", "Shoes"]

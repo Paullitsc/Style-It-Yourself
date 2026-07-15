@@ -351,6 +351,14 @@ class MatchProductRequest(BaseModel):
     candidate: ClothingItemBase
     image_url: Optional[str] = None
     limit: int = Field(default=4, ge=1, le=10, description="Max matches per category")
+    event_context: Optional[str] = Field(
+        None,
+        description=(
+            "Pinned event id (e.g. 'wedding-guest') from the extension's event "
+            "picker. Unknown or stale ids are ignored rather than rejected, "
+            "since the id list is duplicated client-side."
+        ),
+    )
 
 
 class ClosetMatchGroup(BaseModel):
@@ -361,6 +369,20 @@ class ClosetMatchGroup(BaseModel):
         default_factory=list,
         description="Same-category items that did not clear the match threshold.",
     )
+
+
+class EventFitResult(BaseModel):
+    """How well the candidate itself fits a pinned event's formality band and
+    palette. A separate axis from cohesion_score: cohesion measures "do these
+    items work together", event fit measures "does this match your Saturday"
+    (see services/event_context.py). Only present when a recognized event was
+    pinned.
+    """
+    event_id: str
+    label: str
+    status: str = Field(..., pattern=r"^(ok|warning|mismatch)$")
+    score: int = Field(..., ge=0, le=100)
+    reasons: list[str] = Field(default_factory=list)
 
 
 class MatchProductResponse(BaseModel):
@@ -376,6 +398,9 @@ class MatchProductResponse(BaseModel):
     verdict: str
     summary: str = Field(..., description="One-line cohesion-style summary.")
     total_closet_items: int = 0
+    event_fit: Optional[EventFitResult] = Field(
+        None, description="Candidate-vs-event fit; set only when event_context resolved."
+    )
 
 
 # ==============================================================================

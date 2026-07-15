@@ -9,10 +9,12 @@ import {
   AESTHETIC_TAGS,
   CATEGORY_L1,
   CATEGORY_TAXONOMY,
+  EVENT_CONTEXTS,
   MAX_AESTHETICS,
 } from '../lib/constants'
 import { getActiveTabProduct } from '../lib/messaging'
-import type { Color, MatchResponse, Ownership, RawProduct } from '../lib/types'
+import { clearPinnedEvent, getPinnedEvent, setPinnedEvent } from '../lib/storage'
+import type { Color, MatchResponse, Ownership, PinnedEvent, RawProduct } from '../lib/types'
 
 type Phase = 'loading' | 'signedOut' | 'reading' | 'analyzing' | 'ready' | 'error'
 type View = 'add' | 'match'
@@ -38,6 +40,7 @@ export function Popup() {
   const [product, setProduct] = useState<RawProduct | null>(null)
   const [form, setForm] = useState<FormState | null>(null)
   const [view, setView] = useState<View>('add')
+  const [pinnedEvent, setPinnedEventState] = useState<PinnedEvent | null>(null)
 
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -56,6 +59,7 @@ export function Popup() {
         setPhase('signedOut')
         return
       }
+      setPinnedEventState(await getPinnedEvent())
       setPhase('reading')
       const raw = await getActiveTabProduct()
       setProduct(raw)
@@ -156,6 +160,7 @@ export function Popup() {
           aesthetics: form.aesthetics,
         },
         form.imageUrl,
+        pinnedEvent?.eventId,
       )
       setMatch(result)
     } catch (err) {
@@ -164,7 +169,19 @@ export function Popup() {
     } finally {
       setMatchLoading(false)
     }
-  }, [form])
+  }, [form, pinnedEvent])
+
+  const handlePinEvent = async (eventId: string) => {
+    await setPinnedEvent(eventId)
+    setPinnedEventState({ eventId, pinnedAt: Date.now() })
+    setMatch(null) // re-run match scored against the new event
+  }
+
+  const handleUnpinEvent = async () => {
+    await clearPinnedEvent()
+    setPinnedEventState(null)
+    setMatch(null)
+  }
 
   const handleSelectImage = useCallback(
     async (url: string) => {
@@ -253,6 +270,8 @@ export function Popup() {
               />
             )}
 
+            <PinBar pinned={pinnedEvent} onPin={handlePinEvent} onUnpin={handleUnpinEvent} />
+
             <div className="tabs">
               <button
                 className={`tab ${view === 'add' ? 'active' : ''}`}
@@ -319,6 +338,73 @@ function ConnectScreen({ onConnect }: { onConnect: () => void }) {
         Connect Style It Yourself →
       </button>
     </>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Event pin bar
+// ---------------------------------------------------------------------------
+
+function PinBar({
+  pinned,
+  onPin,
+  onUnpin,
+}: {
+  pinned: PinnedEvent | null
+  onPin: (eventId: string) => void
+  onUnpin: () => void
+}) {
+  const [picking, setPicking] = useState(false)
+
+  if (pinned) {
+    const event = EVENT_CONTEXTS.find((e) => e.id === pinned.eventId)
+    return (
+      <div className="pinbar">
+        <div className="pinbar__label">
+          <span className="eyebrow">Shopping for</span>
+          <span className="pinbar__event">{event?.label ?? pinned.eventId}</span>
+        </div>
+        <div className="pinbar__right">
+          {event && (
+            <div className="pinbar__swatches" aria-hidden="true">
+              {event.swatches.slice(0, 3).map((hex) => (
+                <span key={hex} className="pinbar__dot" style={{ background: hex }} />
+              ))}
+            </div>
+          )}
+          <button className="pinbar__unpin" onClick={onUnpin} aria-label="Unpin event">
+            ×
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (!picking) {
+    return (
+      <button className="pinbar pinbar--empty" onClick={() => setPicking(true)}>
+        <span className="eyebrow">Shopping for…</span>
+      </button>
+    )
+  }
+
+  return (
+    <div className="pinbar pinbar--picker">
+      <div className="chips">
+        {EVENT_CONTEXTS.map((event) => (
+          <button
+            key={event.id}
+            className="chip"
+            onClick={() => {
+              onPin(event.id)
+              setPicking(false)
+            }}
+          >
+            {event.label}
+          </button>
+        ))}
+      </div>
+    </div>
   )
 }
 
@@ -596,21 +682,58 @@ function MatchView({
     )
   if (!data) return null
 
+  const { missing, other } = partitionWarnings(data.warnings)
+
   return (
     <>
       <div className="spread">
         <p className="summary">{data.summary}</p>
       </div>
-      <div className="score">
-        Cohesion {data.cohesion_score}/100 · {data.verdict}
+
+      <div className="score-card">
+        <div className="score-line">
+          Cohesion {data.cohesion_score}/100 · {data.verdict}
+        </div>
+
+        {data.event_fit && (
+          <>
+            <div className={`score-row score-row--${data.event_fit.status}`}>
+              <span className="eyebrow">{data.event_fit.label} fit</span>
+              <span className="score-row__value">
+                {statusLabel(data.event_fit.status)} · {data.event_fit.score}%
+              </span>
+            </div>
+            {data.event_fit.reasons.length > 0 && (
+              <ul className="warnings">
+                {data.event_fit.reasons.map((r) => (
+                  <li key={r}>{r}</li>
+                ))}
+              </ul>
+            )}
+          </>
+        )}
       </div>
 
-      {data.warnings.length > 0 && (
-        <ul className="warnings">
-          {data.warnings.map((w) => (
-            <li key={w}>{w}</li>
-          ))}
-        </ul>
+      {missing.length > 0 && (
+        <div className="warning-block warning-block--missing">
+          <span className="eyebrow">Missing required items</span>
+          <ul className="warnings">
+            {missing.map((w) => (
+              <li key={w}>{w}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {other.length > 0 && (
+        <div className="warning-block">
+          <span className="eyebrow">Notes</span>
+          <ul className="warnings">
+            {other.map((w) => (
+              <li key={w}>{w}</li>
+            ))}
+          </ul>
+        </div>
       )}
 
       {data.matches_by_category.map((group) => {
@@ -668,6 +791,28 @@ function Centered({ children }: { children: ReactNode }) {
 // ---------------------------------------------------------------------------
 // helpers
 // ---------------------------------------------------------------------------
+
+/** Splits the flat warnings list into "you're missing a required item" vs.
+ * everything else (color/formality/pairing/event-band notes), so the two
+ * kinds can render in visually separate, labeled blocks. Matches the exact
+ * message shapes produced by compatibility.validate_outfit and
+ * extension_match.build_match — not a general-purpose classifier. */
+function partitionWarnings(warnings: string[]): { missing: string[]; other: string[] } {
+  const missing: string[] = []
+  const other: string[] = []
+  for (const w of warnings) {
+    if (/^Missing required categories:/.test(w) || /none pair cleanly/.test(w)) {
+      missing.push(w)
+    } else {
+      other.push(w)
+    }
+  }
+  return { missing, other }
+}
+
+function statusLabel(status: 'ok' | 'warning' | 'mismatch'): string {
+  return status === 'ok' ? 'ok' : status === 'warning' ? 'caution' : 'mismatch'
+}
 
 function clampLevel(formality: number): number {
   return Math.max(1, Math.min(5, Math.round(formality)))

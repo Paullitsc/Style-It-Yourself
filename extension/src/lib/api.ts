@@ -79,10 +79,16 @@ export interface MatchCandidate {
 export function matchProduct(
   candidate: MatchCandidate,
   imageUrl: string | null,
+  eventId?: string | null,
   limit = 4,
 ): Promise<MatchResponse> {
   return authedFetch<MatchResponse>('/api/extension/match-product', {
     method: 'POST',
-    body: JSON.stringify({ candidate, image_url: imageUrl, limit }),
+    body: JSON.stringify({
+      candidate,
+      image_url: imageUrl,
+      event_context: eventId ?? null,
+      limit,
+    }),
   })
 }

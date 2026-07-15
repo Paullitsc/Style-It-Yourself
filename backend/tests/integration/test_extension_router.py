@@ -232,3 +232,55 @@ class TestMatchProduct:
             },
         )
         assert response.status_code == 503
+
+
+class TestMatchProductWithEventContext:
+    def test_pinned_event_included_in_response(self, client: TestClient, monkeypatch):
+        async def fake_closet(user_id, limit=500):
+            return [_clothing_item("b1", "Bottoms", "Dress Pants")]
+
+        monkeypatch.setattr(
+            "app.routers.extension.supabase.get_user_clothing_items", fake_closet
+        )
+
+        response = client.post(
+            "/api/extension/match-product",
+            json={
+                "candidate": {
+                    "color": _navy_color(),
+                    "category": {"l1": "Tops", "l2": "Dress Shirts"},
+                    "formality": 3.5,
+                    "aesthetics": ["Classic"],
+                },
+                "event_context": "job-interview",
+            },
+        )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["event_fit"] is not None
+        assert body["event_fit"]["event_id"] == "job-interview"
+
+    def test_unknown_event_context_degrades_gracefully(self, client: TestClient, monkeypatch):
+        async def fake_closet(user_id, limit=500):
+            return []
+
+        monkeypatch.setattr(
+            "app.routers.extension.supabase.get_user_clothing_items", fake_closet
+        )
+
+        response = client.post(
+            "/api/extension/match-product",
+            json={
+                "candidate": {
+                    "color": _navy_color(),
+                    "category": {"l1": "Tops", "l2": "T-Shirts"},
+                    "formality": 2.0,
+                    "aesthetics": [],
+                },
+                "event_context": "burning-man",
+            },
+        )
+        # Unknown id degrades to a generic match rather than a 4xx — the id
+        # list is manually mirrored into the extension's constants.ts.
+        assert response.status_code == 200
+        assert response.json()["event_fit"] is None

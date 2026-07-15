@@ -30,6 +30,7 @@ from app.models.schemas import (
     User,
 )
 from app.services import supabase
+from app.services.event_context import get_event
 from app.services.extension_match import build_match
 from app.services.product_analysis import (
     detect_platform,
@@ -263,4 +264,5 @@ async def match_product(
             detail="Failed to match product.",
         )
 
-    return build_match(request.candidate, closet_items, limit=request.limit)
+    event = get_event(request.event_context)
+    return build_match(request.candidate, closet_items, limit=request.limit, event=event)

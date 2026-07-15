@@ -83,6 +83,16 @@ export interface ClosetMatchGroup {
   other_items: ClothingItemResponse[]
 }
 
+/** Candidate-vs-event fit; present on MatchResponse only when a pinned
+ * event id was recognized server-side. Separate axis from cohesion_score. */
+export interface EventFitResult {
+  event_id: string
+  label: string
+  status: 'ok' | 'warning' | 'mismatch'
+  score: number
+  reasons: string[]
+}
+
 /** POST /api/extension/match-product response. */
 export interface MatchResponse {
   candidate_category: string
@@ -93,6 +103,14 @@ export interface MatchResponse {
   verdict: string
   summary: string
   total_closet_items: number
+  event_fit: EventFitResult | null
+}
+
+/** A pinned shopping-intent event, stored in chrome.storage.local. Session
+ * state, not account state — see storage.ts's TTL-gated read. */
+export interface PinnedEvent {
+  eventId: string
+  pinnedAt: number // unix ms
 }
 
 /** Persisted Supabase session (subset we need). */

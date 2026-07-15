@@ -284,18 +284,130 @@ hr.rule {
   outline: none;
 }
 
+/* ---- event pin bar ---- */
+.pinbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px dashed var(--rule);
+  background: none;
+  appearance: none;
+  cursor: default;
+  font-family: inherit;
+  color: inherit;
+  text-align: left;
+}
+.pinbar--empty {
+  cursor: pointer;
+}
+.pinbar--empty:hover {
+  border-color: var(--ink);
+}
+.pinbar--picker {
+  padding: 10px;
+}
+.pinbar__label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.pinbar__event {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-style: italic;
+  font-size: 15px;
+  color: var(--ink);
+}
+.pinbar__right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pinbar__swatches {
+  display: flex;
+  gap: 3px;
+}
+.pinbar__dot {
+  width: 10px;
+  height: 10px;
+  border: 1px solid var(--ink);
+}
+.pinbar__unpin {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--ink-3);
+  font-size: 15px;
+  line-height: 1;
+  padding: 0 2px;
+}
+.pinbar__unpin:hover {
+  color: var(--accent);
+}
+
 /* ---- match results ---- */
 .summary {
   font-family: 'Instrument Serif', Georgia, serif;
   font-size: 17px;
   line-height: 1.2;
 }
-.score {
+
+/* Score compartment: cohesion + (optional) event fit live in one bordered
+ * card so the two verdicts read as a pair, not as loose lines in the flow. */
+.score-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--ink);
+}
+.score-line {
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
+  line-height: 1.5;
   color: var(--ink-3);
+}
+.score-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--rule);
+}
+.score-row__value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.score-row--warning .score-row__value,
+.score-row--mismatch .score-row__value {
+  color: var(--accent);
+}
+.score-card .warnings {
+  margin-top: -2px;
+}
+
+/* Warning compartments: visually separated from the score card above (extra
+ * top border + padding on top of the .body flex gap) and grouped by kind —
+ * "missing required items" gets its own labeled block rather than being
+ * mixed in with color/formality/pairing notes. */
+.warning-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--rule);
+}
+.warning-block--missing .eyebrow {
+  color: var(--accent);
 }
 .match-group {
   display: flex;

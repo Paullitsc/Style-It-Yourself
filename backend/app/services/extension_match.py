@@ -23,6 +23,11 @@ from app.services.compatibility import (
     generate_category_recommendations,
     validate_outfit,
 )
+from app.services.event_context import (
+    EventContext,
+    constrain_recommendations,
+    score_event_fit,
+)
 from app.services.matching import rank_items_in_category
 from app.utils.constants import (
     MAX_OUTFIT_ITEMS,
@@ -50,8 +55,17 @@ def build_match(
     candidate: ClothingItemBase,
     closet_items: list[ClothingItemResponse],
     limit: int = 4,
+    event: EventContext | None = None,
 ) -> MatchProductResponse:
-    """Build the match-product response for a candidate against a closet."""
+    """Build the match-product response for a candidate against a closet.
+
+    When `event` is set (a pinned shopping intent — see services/event_context.py),
+    category recommendations are constrained to the event's formality band and
+    palette before ranking, and the response carries an `event_fit` verdict for
+    the candidate itself. Cohesion scoring is untouched: cohesion answers "do
+    these items work together", event fit answers "does this match your
+    Saturday" — kept as separate, independently explainable axes.
+    """
     total_closet = len(closet_items)
 
     # The candidate's own category is already "filled" by the product itself.
@@ -59,6 +73,10 @@ def build_match(
         base_item=candidate,
         filled_categories=[candidate.category.l1],
     )
+
+    event_warnings: list[str] = []
+    if event is not None:
+        recommendations, event_warnings = constrain_recommendations(recommendations, event)
 
     groups: list[ClosetMatchGroup] = []
     best_pick_by_cat: dict[str, ClothingItemResponse] = {}
@@ -94,9 +112,10 @@ def build_match(
     # the validator without conversion.
     outfit_result = validate_outfit(items=best_items, base_item=candidate)
 
-    # Warnings: outfit-level issues, plus a friendlier note when the user owns a
-    # required category but nothing in it pairs cleanly.
-    warnings = list(outfit_result.warnings)
+    # Warnings: outfit-level issues, event-band constraining notes, plus a
+    # friendlier note when the user owns a required category but nothing in
+    # it pairs cleanly.
+    warnings = list(outfit_result.warnings) + event_warnings
     for cat in _required_complementary_categories(candidate):
         owns_category = any(it.category.l1 == cat for it in closet_items)
         matched = cat in best_pick_by_cat
@@ -109,15 +128,16 @@ def build_match(
     suggested_pairings = [_label(item) for item in best_items]
 
     total_matches = sum(len(g.items) for g in groups)
+    event_suffix = f" for {event.label}" if event is not None else ""
     if total_closet == 0:
-        summary = "Your closet is empty. Add pieces to find matches."
+        summary = f"Your closet is empty. Add pieces{event_suffix or ' to find matches'}."
     elif total_matches == 0:
-        summary = "No strong matches yet — neutral pieces tend to bridge this best."
+        summary = f"No strong matches yet{event_suffix} — neutral pieces tend to bridge this best."
     else:
         piece_word = "piece" if total_matches == 1 else "pieces"
         summary = (
             f"{total_matches} closet {piece_word} pair well with this "
-            f"{candidate.category.l2.lower()}."
+            f"{candidate.category.l2.lower()}{event_suffix}."
         )
 
     if best_items:
@@ -126,6 +146,12 @@ def build_match(
     else:
         cohesion_score = 0
         verdict = "Add closet pieces to build a look around this."
+
+    event_fit = (
+        score_event_fit(candidate.color, candidate.formality, event)
+        if event is not None
+        else None
+    )
 
     return MatchProductResponse(
         candidate_category=candidate.category.l1,
@@ -136,4 +162,5 @@ def build_match(
         verdict=verdict,
         summary=summary,
         total_closet_items=total_closet,
+        event_fit=event_fit,
     )

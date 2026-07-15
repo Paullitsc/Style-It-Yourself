@@ -4,6 +4,7 @@ from datetime import datetime
 import pytest
 
 from app.models.schemas import Category, ClothingItemBase, ClothingItemResponse, Color, HSL
+from app.services.event_context import get_event
 from app.services.extension_match import build_match
 
 
@@ -73,3 +74,35 @@ class TestBuildMatch:
         assert result.cohesion_score == 0
         assert "empty" in result.summary.lower()
         assert result.matches_by_category == []
+
+
+class TestBuildMatchWithEvent:
+    def test_event_fit_absent_without_pin(self, navy_top, closet):
+        result = build_match(navy_top, closet)
+        assert result.event_fit is None
+
+    def test_event_fit_present_when_pinned(self, navy_top, closet):
+        event = get_event("job-interview")
+        result = build_match(navy_top, closet, event=event)
+        assert result.event_fit is not None
+        assert result.event_fit.event_id == "job-interview"
+        assert result.event_fit.label == "Job Interview"
+
+    def test_summary_reframes_for_event(self, navy_top, closet):
+        event = get_event("job-interview")
+        result = build_match(navy_top, closet, event=event)
+        assert "Job Interview" in result.summary
+
+    def test_nonoverlapping_band_falls_back_and_warns(self, closet):
+        # A very casual candidate (formality 1.0) has a natural Bottoms range
+        # of (1.0, 2.0) — no overlap with Wedding Guest's (3.0, 5.0) band.
+        # The pinned event should win over the candidate's own range.
+        candidate = ClothingItemBase(
+            color=Color(hex="#0B1C2D", hsl=HSL(h=210, s=61, l=11), name="navy", is_neutral=True),
+            category=Category(l1="Tops", l2="T-Shirts"),
+            formality=1.0,
+            aesthetics=["Minimalist"],
+        )
+        event = get_event("wedding-guest")
+        result = build_match(candidate, closet, event=event)
+        assert any("Wedding Guest formality" in w for w in result.warnings)
