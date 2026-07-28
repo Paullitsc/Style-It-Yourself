@@ -14,7 +14,14 @@ import {
 } from '../lib/constants'
 import { getActiveTabProduct } from '../lib/messaging'
 import { clearPinnedEvent, getPinnedEvent, setPinnedEvent } from '../lib/storage'
-import type { Color, MatchResponse, Ownership, PinnedEvent, RawProduct } from '../lib/types'
+import type {
+  ClothingItemResponse,
+  Color,
+  MatchResponse,
+  Ownership,
+  PinnedEvent,
+  RawProduct,
+} from '../lib/types'
 
 type Phase = 'loading' | 'signedOut' | 'reading' | 'analyzing' | 'ready' | 'error'
 type View = 'add' | 'match'
@@ -311,6 +318,8 @@ export function Popup() {
                 data={match}
                 error={actionError}
                 onRetry={handleMatch}
+                candidateImage={form.imageUrl}
+                candidateLabel={`${form.color.name} ${form.categoryL2}`}
               />
             )}
           </>
@@ -664,11 +673,15 @@ function MatchView({
   data,
   error,
   onRetry,
+  candidateImage,
+  candidateLabel,
 }: {
   loading: boolean
   data: MatchResponse | null
   error: string
   onRetry: () => void
+  candidateImage: string | null
+  candidateLabel: string
 }) {
   if (loading) return <Centered>Scanning your closet…</Centered>
   if (error)
@@ -683,12 +696,22 @@ function MatchView({
   if (!data) return null
 
   const { missing, other } = partitionWarnings(data.warnings)
+  const picks = resolvePicks(data)
+  const pickedIds = new Set(picks.map((item) => item.id))
 
   return (
     <>
       <div className="spread">
         <p className="summary">{data.summary}</p>
       </div>
+
+      <LookStrip
+        picks={picks}
+        labels={data.suggested_pairings}
+        candidateImage={candidateImage}
+        candidateLabel={candidateLabel}
+        closetIsEmpty={data.total_closet_items === 0}
+      />
 
       <div className="score-card">
         <div className="score-line">
@@ -747,7 +770,11 @@ function MatchView({
             </span>
             <div className="match-row">
               {items.map((item) => (
-                <div className="match-card" key={item.id}>
+                <div
+                  className={`match-card ${pickedIds.has(item.id) ? 'is-picked' : ''}`}
+                  key={item.id}
+                  title={pickedIds.has(item.id) ? 'In the look' : undefined}
+                >
                   <img src={item.image_url} alt={`${item.color.name} ${item.category.l2}`} />
                   <div className="cap">
                     {item.color.name} {item.category.l2}
@@ -758,11 +785,60 @@ function MatchView({
           </div>
         )
       })}
-
-      {data.total_closet_items === 0 && (
-        <p className="muted center">Add pieces to your closet to see matches.</p>
-      )}
     </>
+  )
+}
+
+/** The outfit the backend actually scored: the candidate product followed by
+ * its top closet pick per category. Renders even with no picks so the block
+ * never silently disappears — the note explains why it's empty. */
+function LookStrip({
+  picks,
+  labels,
+  candidateImage,
+  candidateLabel,
+  closetIsEmpty,
+}: {
+  picks: ClothingItemResponse[]
+  labels: string[]
+  candidateImage: string | null
+  candidateLabel: string
+  closetIsEmpty: boolean
+}) {
+  return (
+    <div className="look">
+      <span className="eyebrow">The look</span>
+      <div className="match-row">
+        <div className="match-card match-card--candidate" key="candidate">
+          {candidateImage ? (
+            <img src={candidateImage} alt={candidateLabel} />
+          ) : (
+            <div className="thumb-empty" />
+          )}
+          <div className="cap">this piece</div>
+        </div>
+        {picks.map((item) => (
+          <div className="match-card" key={item.id}>
+            <img src={item.image_url} alt={`${item.color.name} ${item.category.l2}`} />
+            <div className="cap">
+              {item.color.name} {item.category.l2}
+            </div>
+          </div>
+        ))}
+      </div>
+      {picks.length === 0 && (
+        <p className="look__note">
+          {/* Labels without resolvable picks means a backend that predates
+              suggested_pairing_ids — show the look as text rather than
+              claiming nothing matched. */}
+          {labels.length > 0
+            ? `Pairs with ${labels.join(' · ')}.`
+            : closetIsEmpty
+              ? 'Your closet is empty — nothing to build a look with yet.'
+              : "No piece cleared the bar yet — see 'other options' below."}
+        </p>
+      )}
+    </div>
   )
 }
 
@@ -808,6 +884,21 @@ function partitionWarnings(warnings: string[]): { missing: string[]; other: stri
     }
   }
   return { missing, other }
+}
+
+/** Resolves `suggested_pairing_ids` back to the items they name. The backend
+ * sends ids rather than repeating the item bodies, and every picked id is also
+ * present in `matches_by_category` — so this is a lookup, not a re-derivation
+ * of which pieces the backend chose. Tolerates an older backend that predates
+ * the ids field (no strip, rather than a crash). */
+function resolvePicks(data: MatchResponse): ClothingItemResponse[] {
+  const ids = data.suggested_pairing_ids ?? []
+  if (ids.length === 0) return []
+  const byId = new Map<string, ClothingItemResponse>()
+  for (const group of data.matches_by_category) {
+    for (const item of [...group.items, ...group.other_items]) byId.set(item.id, item)
+  }
+  return ids.map((id) => byId.get(id)).filter((item): item is ClothingItemResponse => !!item)
 }
 
 function statusLabel(status: 'ok' | 'warning' | 'mismatch'): string {

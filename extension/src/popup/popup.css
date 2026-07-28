@@ -409,6 +409,21 @@ hr.rule {
 .warning-block--missing .eyebrow {
   color: var(--accent);
 }
+/* The assembled look: candidate + the closet picks the cohesion score was
+ * computed on. Shares .match-row / .match-card with the category carousels;
+ * the candidate and the picked pieces read heavier (2px rule, full-ink cap)
+ * than an ordinary match card. No accent here — accent stays reserved for
+ * warnings and destructive actions. */
+.look {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.look__note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink-3);
+}
 .match-group {
   display: flex;
   flex-direction: column;
@@ -432,6 +447,12 @@ hr.rule {
   background: var(--paper-2);
   display: block;
 }
+.match-card .thumb-empty {
+  width: 56px;
+  height: 70px;
+  border: 1px solid var(--ink);
+  background: var(--paper-2);
+}
 .match-card .cap {
   font-family: 'JetBrains Mono', monospace;
   font-size: 8px;
@@ -440,6 +461,17 @@ hr.rule {
   color: var(--ink-3);
   margin-top: 3px;
   line-height: 1.2;
+}
+/* Keep these after the base .match-card rules — same specificity, so source
+ * order decides which border width and cap color win. */
+.match-card--candidate img,
+.match-card--candidate .thumb-empty,
+.match-card.is-picked img {
+  border-width: 2px;
+}
+.match-card--candidate .cap,
+.match-card.is-picked .cap {
+  color: var(--ink);
 }
 .warnings {
   list-style: none;

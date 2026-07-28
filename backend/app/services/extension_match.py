@@ -126,6 +126,9 @@ def build_match(
     warnings = list(dict.fromkeys(warnings))
 
     suggested_pairings = [_label(item) for item in best_items]
+    # Ids let the extension resolve each pairing back to the item (and its
+    # image) inside matches_by_category, without re-deriving the pick logic.
+    suggested_pairing_ids = [item.id for item in best_items]
 
     total_matches = sum(len(g.items) for g in groups)
     event_suffix = f" for {event.label}" if event is not None else ""
@@ -157,6 +160,7 @@ def build_match(
         candidate_category=candidate.category.l1,
         matches_by_category=groups,
         suggested_pairings=suggested_pairings,
+        suggested_pairing_ids=suggested_pairing_ids,
         warnings=warnings,
         cohesion_score=cohesion_score,
         verdict=verdict,

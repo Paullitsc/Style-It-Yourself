@@ -393,6 +393,14 @@ class MatchProductResponse(BaseModel):
         default_factory=list,
         description="Human-readable pairing suggestions drawn from the closet.",
     )
+    suggested_pairing_ids: list[str] = Field(
+        default_factory=list,
+        description=(
+            "IDs of the items in `suggested_pairings`, same order. Each id also "
+            "appears in matches_by_category; these are the items the cohesion "
+            "score was computed on."
+        ),
+    )
     warnings: list[str] = Field(default_factory=list)
     cohesion_score: int = Field(..., ge=0, le=100)
     verdict: str

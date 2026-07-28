@@ -98,6 +98,10 @@ export interface MatchResponse {
   candidate_category: string
   matches_by_category: ClosetMatchGroup[]
   suggested_pairings: string[]
+  /** Ids of the items in `suggested_pairings`, same order. Every id also
+   * appears in `matches_by_category`, so the popup resolves thumbnails from
+   * there rather than re-deriving which pieces the backend picked. */
+  suggested_pairing_ids: string[]
   warnings: string[]
   cohesion_score: number
   verdict: string

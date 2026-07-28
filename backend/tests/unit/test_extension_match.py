@@ -6,6 +6,7 @@ import pytest
 from app.models.schemas import Category, ClothingItemBase, ClothingItemResponse, Color, HSL
 from app.services.event_context import get_event
 from app.services.extension_match import build_match
+from app.utils.constants import MAX_OUTFIT_ITEMS
 
 
 def _item(item_id, l1, l2, hex_, hsl, name, formality, neutral=False) -> ClothingItemResponse:
@@ -41,6 +42,20 @@ def closet() -> list[ClothingItemResponse]:
     ]
 
 
+@pytest.fixture
+def wide_closet(closet) -> list[ClothingItemResponse]:
+    """A closet with several neutral options in every complementary category —
+    enough candidates that the outfit cap, not scarcity, is the binding limit."""
+    return closet + [
+        _item("b2", "Bottoms", "Trousers", "#3A3A3A", (0, 0, 23), "graphite", 3.0, neutral=True),
+        _item("s2", "Shoes", "Loafers", "#1A1A1A", (0, 0, 10), "black", 3.0, neutral=True),
+        _item("o1", "Outerwear", "Coats", "#4A4A4A", (0, 0, 29), "gray", 3.0, neutral=True),
+        _item("o2", "Outerwear", "Jackets", "#2B2B2B", (0, 0, 17), "charcoal", 2.0, neutral=True),
+        _item("f1", "Full Body", "Jumpsuits", "#222222", (0, 0, 13), "black", 3.0, neutral=True),
+        _item("a2", "Accessories", "Scarves", "#EFEFEF", (0, 0, 94), "ivory", 2.0, neutral=True),
+    ]
+
+
 class TestBuildMatch:
     def test_response_shape(self, navy_top, closet):
         result = build_match(navy_top, closet, limit=4)
@@ -48,6 +63,8 @@ class TestBuildMatch:
         assert result.candidate_category == "Tops"
         assert isinstance(result.matches_by_category, list)
         assert isinstance(result.suggested_pairings, list)
+        assert isinstance(result.suggested_pairing_ids, list)
+        assert len(result.suggested_pairing_ids) == len(result.suggested_pairings)
         assert isinstance(result.warnings, list)
         assert 0 <= result.cohesion_score <= 100
         assert isinstance(result.summary, str) and result.summary
@@ -68,12 +85,37 @@ class TestBuildMatch:
         result = build_match(navy_top, closet)
         assert any("Chinos" in pairing for pairing in result.suggested_pairings)
 
+    def test_pairing_ids_resolve_to_returned_items(self, navy_top, closet):
+        """The extension resolves each pairing id inside matches_by_category to
+        render its thumbnail — so every id must be a top pick of some group."""
+        result = build_match(navy_top, closet)
+        top_picks = {g.items[0].id for g in result.matches_by_category if g.items}
+        assert result.suggested_pairing_ids
+        assert set(result.suggested_pairing_ids) <= top_picks
+
+    def test_pairing_ids_follow_outfit_priority(self, navy_top, closet):
+        result = build_match(navy_top, closet)
+        categories = [
+            g.category_l1
+            for pid in result.suggested_pairing_ids
+            for g in result.matches_by_category
+            if g.items and g.items[0].id == pid
+        ]
+        assert categories == ["Bottoms", "Shoes", "Accessories"]
+
+    def test_pairing_ids_respect_outfit_cap(self, navy_top, wide_closet):
+        # The candidate itself occupies one of the MAX_OUTFIT_ITEMS slots.
+        result = build_match(navy_top, wide_closet)
+        assert len(result.suggested_pairing_ids) <= MAX_OUTFIT_ITEMS - 1
+        assert len(set(result.suggested_pairing_ids)) == len(result.suggested_pairing_ids)
+
     def test_empty_closet(self, navy_top):
         result = build_match(navy_top, [])
         assert result.total_closet_items == 0
         assert result.cohesion_score == 0
         assert "empty" in result.summary.lower()
         assert result.matches_by_category == []
+        assert result.suggested_pairing_ids == []
 
 
 class TestBuildMatchWithEvent:
