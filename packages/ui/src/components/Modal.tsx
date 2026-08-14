@@ -69,9 +69,15 @@ export function Modal({
     >
       <DialogContent
         showCloseButton={showCloseButton}
-        // Sections carry their own padding and hairline rules, so the panel
-        // itself must not add shadcn's default p-6/gap-4.
-        className={cn('gap-0 p-0', sizeClasses[size], panelClassName, className)}
+        // Sections carry their own padding and hairline rules, so the panel must
+        // not add shadcn's default p-6/gap-4. It also has to be a flex column
+        // with a height cap so the body (not the page) scrolls on tall content.
+        className={cn(
+          'flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0',
+          sizeClasses[size],
+          panelClassName,
+          className
+        )}
         onEscapeKeyDown={(event) => {
           if (!closeOnEsc) event.preventDefault()
         }}
@@ -85,28 +91,37 @@ export function Modal({
           }
         }}
       >
-        {/* Radix requires an accessible name; render one even when the caller
-            supplies no visible title. */}
-        {title ? (
-          <div className="flex items-center justify-between border-b border-ink px-[var(--space-6)] py-[var(--space-4)]">
-            <DialogTitle className="font-display text-[24px] text-ink">
-              {title}
-            </DialogTitle>
+        {/* Reserve the header row whenever a title OR the close button needs to
+            live there — otherwise Radix's absolutely-positioned close button
+            overlaps the body content. */}
+        {title || showCloseButton ? (
+          <div className="flex shrink-0 items-center justify-between border-b border-ink px-[var(--space-6)] py-[var(--space-4)]">
+            <div>
+              {title ? (
+                <DialogTitle className="font-display text-[24px] text-ink">
+                  {title}
+                </DialogTitle>
+              ) : (
+                <DialogTitle className="sr-only">Dialog</DialogTitle>
+              )}
+              {description ? (
+                <DialogDescription className="mt-[var(--space-1)] font-mono text-[10px] uppercase tracking-[0.06em] text-ink-3">
+                  {description}
+                </DialogDescription>
+              ) : null}
+            </div>
           </div>
         ) : (
+          // Radix always requires an accessible name, even with no header.
           <DialogTitle className="sr-only">Dialog</DialogTitle>
         )}
 
-        {description ? (
-          <DialogDescription className="px-[var(--space-6)] pt-[var(--space-4)] font-display text-[18px] leading-relaxed text-ink-2">
-            {description}
-          </DialogDescription>
-        ) : null}
-
-        {children}
+        <div className="overflow-y-auto p-[var(--space-6)] scrollbar-hide">
+          {children}
+        </div>
 
         {footer && (
-          <div className="border-t border-ink px-[var(--space-6)] py-[var(--space-4)]">
+          <div className="shrink-0 border-t border-ink px-[var(--space-6)] py-[var(--space-4)]">
             {footer}
           </div>
         )}
@@ -191,7 +206,7 @@ export function ConfirmationModal({
         </div>
       }
     >
-      <div className="flex items-start gap-[var(--space-3)] px-[var(--space-6)] py-[var(--space-5)]">
+      <div className="flex items-start gap-[var(--space-3)]">
         {tone === 'danger' && (
           <HugeiconsIcon
             icon={Alert01Icon}
