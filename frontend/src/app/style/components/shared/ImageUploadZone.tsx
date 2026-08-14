@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { FileUploadInput } from '@/components/ui'
+import { FileUploadInput } from '@siy/ui'
 
 interface ImageUploadZoneProps {
   onFileSelect: (file: File) => void

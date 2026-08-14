@@ -10,13 +10,17 @@ services:
 
   frontend:
     build:
-      context: ./frontend
+      # Repo root: the frontend depends on packages/ui, which sits outside
+      # frontend/ and so must be inside the build context.
+      context: .
+      dockerfile: frontend/Dockerfile
       target: dev
     ports:
       - "3000:3000"
     env_file: ./frontend/.env.local
     volumes:
-      - ./frontend/src:/app/src
+      - ./frontend/src:/app/frontend/src
+      - ./packages/ui/src:/app/packages/ui/src
     command: npm run dev
     depends_on:
       - backend

@@ -1,7 +1,6 @@
 // src/app/layout.tsx
 import type { Metadata } from "next";
 import { Instrument_Serif, JetBrains_Mono, Mona_Sans } from "next/font/google";
-import "@/styles/system.css";
 import "./global.css";
 import Header from "@/components/Headers";
 import { AuthProvider } from "@/components/AuthProvider";

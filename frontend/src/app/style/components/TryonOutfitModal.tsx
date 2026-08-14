@@ -6,8 +6,7 @@ import { useStyleStore } from '@/store/styleStore'
 import type { ClothingItemCreate, TryOnOutfitRequest } from '@/types'
 import ImageUploadZone from './shared/ImageUploadZone'
 import TryOnResult from './shared/TryOnResult'
-import { Modal } from '@/components/ui'
-import { cn } from '@/lib/cn'
+import { Modal, cn } from '@siy/ui'
 
 interface TryOnOutfitModalProps {
   items: Array<{

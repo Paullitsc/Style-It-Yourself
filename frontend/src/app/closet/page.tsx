@@ -5,14 +5,13 @@ import Link from 'next/link'
 import { useAuth } from '@/components/AuthProvider'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { getCloset, deleteClothingItem, deleteOutfit, updateClothingItem } from '@/lib/api'
-import { cn } from '@/lib/cn'
+import { cn, CardSkeleton } from '@siy/ui'
 import type {
   ClosetResponse,
   ClothingItemResponse,
   ClothingItemUpdate,
   OutfitSummary,
 } from '@/types'
-import { CardSkeleton } from '@/components/ui'
 import ItemDetailModal from './components/ItemDetailModal'
 import EditItemModal from './components/EditItemModal'
 import OutfitDetailModal from './components/OutfitDetailModal'

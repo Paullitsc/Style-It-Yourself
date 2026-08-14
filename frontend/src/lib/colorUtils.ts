@@ -9,7 +9,7 @@ import type { HSL, Color } from '@/types'
 // NEUTRAL COLOR DATA (from backend constants)
 // =============================================================================
 
-export const NEUTRAL_COLOR_DATA: Record<string, { hex: string; hsl: HSL }> = {
+const NEUTRAL_COLOR_DATA: Record<string, { hex: string; hsl: HSL }> = {
   black:  { hex: "#000000", hsl: { h: 0, s: 0, l: 0 } },
   white:  { hex: "#FFFFFF", hsl: { h: 0, s: 0, l: 100 } },
   gray:   { hex: "#808080", hsl: { h: 0, s: 0, l: 50 } },
@@ -56,7 +56,7 @@ export function rgbToHex(r: number, g: number, b: number): string {
 /**
  * Convert Hex to RGB
  */
-export function hexToRgb(hex: string): { r: number; g: number; b: number } {
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
   if (!result) {
     return { r: 0, g: 0, b: 0 }
@@ -109,7 +109,7 @@ export function rgbToHsl(r: number, g: number, b: number): HSL {
 /**
  * Convert HSL to RGB
  */
-export function hslToRgb(h: number, s: number, l: number): { r: number; g: number; b: number } {
+function hslToRgb(h: number, s: number, l: number): { r: number; g: number; b: number } {
   h /= 360
   s /= 100
   l /= 100
@@ -180,7 +180,7 @@ function colorDistance(hsl1: HSL, hsl2: HSL): number {
 /**
  * Check if a color is close to a neutral
  */
-export function findClosestNeutral(hsl: HSL): { name: string; distance: number } | null {
+function findClosestNeutral(hsl: HSL): { name: string; distance: number } | null {
   let closest: { name: string; distance: number } | null = null
   
   for (const [name, data] of Object.entries(NEUTRAL_COLOR_DATA)) {
@@ -196,18 +196,6 @@ export function findClosestNeutral(hsl: HSL): { name: string; distance: number }
   }
   
   return closest
-}
-
-/**
- * Check if a color is neutral based on saturation and lightness
- */
-export function isNeutralColor(hsl: HSL): boolean {
-  // Very low saturation = neutral (gray scale)
-  if (hsl.s < 15) return true
-  
-  // Check if it matches a known neutral
-  const closestNeutral = findClosestNeutral(hsl)
-  return closestNeutral !== null && closestNeutral.distance < 30
 }
 
 // =============================================================================
@@ -272,16 +260,6 @@ export function getColorName(hsl: HSL): { name: string; isNeutral: boolean } {
 // =============================================================================
 
 /**
- * Adjust brightness (lightness) of a color
- * @param hex - Original hex color
- * @param lightness - New lightness value (0-100)
- */
-export function adjustBrightness(hex: string, lightness: number): string {
-  const hsl = hexToHsl(hex)
-  return hslToHex(hsl.h, hsl.s, Math.max(0, Math.min(100, lightness)))
-}
-
-/**
  * Build a complete Color object from hex
  */
 export function buildColorFromHex(hex: string): Color {
@@ -299,35 +277,3 @@ export function buildColorFromHex(hex: string): Color {
 // =============================================================================
 // AGGREGATE HUE
 // =============================================================================
-
-/**
- * Compute the dominant hue across a set of items.
- * Returns the most-frequent fashion color name (via getColorName) and a sample hex
- * from the first item that contributed to it. Falls back to a neutral gray when
- * the input is empty.
- */
-export function dominantHueName(
-  items: Array<{ color: Color }>
-): { name: string; hex: string } {
-  if (items.length === 0) return { name: 'Neutral', hex: '#808080' }
-
-  const counts = new Map<string, number>()
-  const samples = new Map<string, string>()
-
-  for (const item of items) {
-    const { name } = getColorName(item.color.hsl)
-    counts.set(name, (counts.get(name) ?? 0) + 1)
-    if (!samples.has(name)) samples.set(name, item.color.hex)
-  }
-
-  let topName = 'Neutral'
-  let topCount = 0
-  for (const [name, count] of counts) {
-    if (count > topCount) {
-      topName = name
-      topCount = count
-    }
-  }
-
-  return { name: topName, hex: samples.get(topName) ?? '#808080' }
-}

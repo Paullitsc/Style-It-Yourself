@@ -1,12 +1,13 @@
 import type { HTMLAttributes } from 'react'
-import { cn } from '@/lib/cn'
+import { cn } from '../lib/cn'
+import { Skeleton as SkeletonPrimitive } from '../primitives/skeleton'
 
-export type SkeletonProps = HTMLAttributes<HTMLDivElement>
+type SkeletonProps = HTMLAttributes<HTMLDivElement>
 
-export function Skeleton({ className, style, ...props }: SkeletonProps) {
+function Skeleton({ className, style, ...props }: SkeletonProps) {
   return (
-    <div
-      className={cn('animate-pulse bg-paper-2', className)}
+    <SkeletonPrimitive
+      className={cn(className)}
       style={{
         backgroundImage:
           'repeating-linear-gradient(135deg, var(--color-paper-2) 0 22px, var(--color-paper-3) 22px 24px)',
@@ -41,22 +42,3 @@ export function CardSkeleton({ count = 1 }: CardSkeletonProps) {
     </>
   )
 }
-
-interface TextSkeletonProps {
-  lines?: number
-}
-
-export function TextSkeleton({ lines = 3 }: TextSkeletonProps) {
-  return (
-    <div className="space-y-[var(--space-2)]" aria-hidden="true">
-      {Array.from({ length: lines }).map((_, index) => (
-        <Skeleton
-          key={index}
-          className={cn('h-3', index === lines - 1 ? 'w-2/3' : 'w-full')}
-        />
-      ))}
-    </div>
-  )
-}
-
-export default Skeleton

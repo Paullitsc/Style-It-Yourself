@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from './AuthProvider'
 import AuthModal from './AuthModal'
-import { cn } from '@/lib/cn'
+import { cn } from '@siy/ui'
 
 const baseLink =
   'font-mono text-[11px] uppercase tracking-[0.12em] pb-[2px] transition-colors'

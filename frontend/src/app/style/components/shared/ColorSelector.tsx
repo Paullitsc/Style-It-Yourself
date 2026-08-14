@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { buildColorFromHex, hslToHex } from '@/lib/colorUtils'
 import type { Color } from '@/types'
-import { cn } from '@/lib/cn'
+import { cn } from '@siy/ui'
 
 interface ColorSelectorProps {
   detectedColors: Color[]

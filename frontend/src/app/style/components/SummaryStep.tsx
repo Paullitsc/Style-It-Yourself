@@ -8,7 +8,7 @@ import { validateOutfit, saveOutfitWithItems } from '@/lib/api'
 import type { ValidateOutfitResponse } from '@/types'
 import AuthModal from '@/components/AuthModal'
 import TryOnOutfitModal from './TryonOutfitModal'
-import { cn } from '@/lib/cn'
+import { cn } from '@siy/ui'
 
 export default function SummaryStep() {
   const router = useRouter()

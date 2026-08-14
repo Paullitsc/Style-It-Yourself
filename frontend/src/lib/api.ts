@@ -270,7 +270,7 @@ export async function getMatchingItems(
 /**
  * Save a new outfit (requires item IDs - items must be saved first)
  */
-export async function createOutfit(
+async function createOutfit(
   name: string,
   itemIds: string[],
   token: string,
@@ -357,7 +357,7 @@ export async function getOutfit(
 /**
  * Add a clothing item to closet
  */
-export async function createClothingItem(
+async function createClothingItem(
   item: ClothingItemCreate,
   imageFile: File,
   token: string

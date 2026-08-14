@@ -5,8 +5,7 @@ import { tryOnSingle, uploadUserPhoto, uploadItemImage } from '@/lib/api'
 import type { ClothingItemBase } from '@/types'
 import ImageUploadZone from './shared/ImageUploadZone'
 import TryOnResult from './shared/TryOnResult'
-import { Modal } from '@/components/ui'
-import { cn } from '@/lib/cn'
+import { Modal, cn } from '@siy/ui'
 
 interface TryOnModalProps {
   item: ClothingItemBase

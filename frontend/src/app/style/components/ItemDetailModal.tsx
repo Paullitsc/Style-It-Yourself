@@ -3,8 +3,7 @@
 import type { ReactNode } from 'react'
 import type { ClothingItemCreate } from '@/types'
 import { FORMALITY_LEVELS } from '@/types'
-import { Modal } from '@/components/ui'
-import { cn } from '@/lib/cn'
+import { Modal, cn } from '@siy/ui'
 
 interface ItemDetailModalProps {
   item: ClothingItemCreate

@@ -1,14 +1,27 @@
-# Stage 1: Install dependencies
+# Build context is the MONOREPO ROOT (see docker-compose.yml), not frontend/.
+# The frontend imports @siy/ui from packages/ui, which lives outside frontend/
+# and therefore cannot be reached from a frontend-scoped context.
+
+# Stage 1: Install dependencies (workspace-aware)
 FROM node:20-alpine AS deps
 WORKDIR /app
-COPY package.json package-lock.json* ./
+# Copy the root manifest, lockfile, and EVERY workspace manifest before any
+# source, so `npm ci` can resolve the workspace graph and create the
+# node_modules/@siy/ui -> ../../packages/ui symlink. Keeping source out of this
+# layer preserves dependency-install caching.
+COPY package.json package-lock.json ./
+COPY frontend/package.json ./frontend/
+COPY packages/ui/package.json ./packages/ui/
 RUN npm ci
 
 # Stage 2: Dev (all source + deps, no build step)
 FROM node:20-alpine AS dev
 WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
+# Bring the whole installed tree: npm keeps platform-specific packages in
+# frontend/node_modules rather than hoisting them to the root.
+COPY --from=deps /app ./
 COPY . .
+WORKDIR /app/frontend
 
 # Stage 3: Build the application
 FROM dev AS builder
@@ -32,9 +45,12 @@ ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+# `outputFileTracingRoot` is the repo root (next.config.ts), so the standalone
+# bundle mirrors the monorepo layout: server.js sits at frontend/server.js and
+# the traced workspace packages come along with it.
+COPY --from=builder --chown=nextjs:nodejs /app/frontend/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/frontend/.next/static ./frontend/.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/frontend/public ./frontend/public
 
 USER nextjs
 
@@ -43,4 +59,4 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["node", "server.js"]
+CMD ["node", "frontend/server.js"]

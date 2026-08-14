@@ -1,7 +1,7 @@
 'use client'
 
 import { FORMALITY_LEVELS } from '@/types'
-import { cn } from '@/lib/cn'
+import { cn } from '@siy/ui'
 
 interface FormalitySliderProps {
   value: number

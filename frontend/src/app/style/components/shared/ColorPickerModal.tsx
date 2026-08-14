@@ -2,8 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { hexToHsl, hslToHex } from '@/lib/colorUtils'
-import { Modal } from '@/components/ui'
-import { cn } from '@/lib/cn'
+import { Modal, cn } from '@siy/ui'
 
 interface ColorPickerModalProps {
   initialColor: string

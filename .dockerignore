@@ -1,0 +1,17 @@
+# The frontend build context is now the repo root, so this must exclude
+# everything heavy or secret at every level.
+**/node_modules
+**/.next
+**/.venv
+**/venv
+**/__pycache__
+**/*.pyc
+.git
+.claude
+**/.env
+**/.env.*
+!**/.env.example
+**/npm-debug.log*
+**/coverage
+**/.DS_Store
+extension/dist

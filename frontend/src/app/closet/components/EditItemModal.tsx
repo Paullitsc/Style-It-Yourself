@@ -2,8 +2,7 @@
 
 import { useState } from 'react'
 import type { ClothingItemResponse, ClothingItemUpdate, Color } from '@/types'
-import { Modal } from '@/components/ui'
-import { cn } from '@/lib/cn'
+import { Modal, cn } from '@siy/ui'
 import { buildColorFromHex } from '@/lib/colorUtils'
 import CategorySelector, {
   ChipButton,

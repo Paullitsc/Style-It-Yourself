@@ -12,7 +12,7 @@ import TryOnModal from './TryOnModal'
 import ItemDetailModal from './ItemDetailModal'
 import SuggestionPanel from './shared/SuggestionPanel'
 import AddItemPanel from './AddItemPanel'
-import { cn } from '@/lib/cn'
+import { cn } from '@siy/ui'
 import type {
   ClothingItemCreate,
   ClothingItemResponse,

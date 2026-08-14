@@ -15,7 +15,7 @@ import type { CategoryRecommendation, RecommendedColor, Color } from '@/types'
 import { extractDominantColors, getDominantColor } from '@/lib/colorExtractor'
 import { buildColorFromHex } from '@/lib/colorUtils'
 import { validateItem } from '@/lib/api'
-import { cn } from '@/lib/cn'
+import { cn } from '@siy/ui'
 
 import CropModal from './shared/CropModal'
 import ColorPickerModal from './shared/ColorPickerModal'

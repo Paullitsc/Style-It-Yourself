@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthProvider'
 import { getMatchingItems } from '@/lib/api'
-import { cn } from '@/lib/cn'
+import { cn } from '@siy/ui'
 import type {
   CategoryRecommendation,
   RecommendedColor,

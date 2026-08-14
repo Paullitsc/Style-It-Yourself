@@ -14,7 +14,9 @@ services:
 
   frontend:
     build:
-      context: ./frontend
+      # Repo root: the frontend depends on packages/ui, outside frontend/.
+      context: .
+      dockerfile: frontend/Dockerfile
       args:
         NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
         NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}

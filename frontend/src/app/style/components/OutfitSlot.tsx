@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react'
 import type { ClothingItemCreate } from '@/types'
 import { REQUIRED_CATEGORIES } from '@/store/styleStore'
-import { cn } from '@/lib/cn'
+import { cn } from '@siy/ui'
 
 interface OutfitSlotProps {
   categoryL1: string

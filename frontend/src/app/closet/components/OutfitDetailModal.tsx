@@ -9,8 +9,7 @@ import type {
   ClothingItemResponse,
 } from '@/types'
 import { getOutfit, validateOutfit } from '@/lib/api'
-import { ConfirmationModal, Modal } from '@/components/ui'
-import { cn } from '@/lib/cn'
+import { ConfirmationModal, Modal, cn } from '@siy/ui'
 import ItemDetailModal from './ItemDetailModal'
 
 interface OutfitDetailModalProps {

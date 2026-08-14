@@ -19,27 +19,27 @@ import type {
 
 export type StyleStep = 'upload' | 'metadata' | 'colors' | 'build' | 'summary'
 
-export type AddItemStep = 'upload' | 'metadata' | 'colors' | 'validate' | null
+type AddItemStep = 'upload' | 'metadata' | 'colors' | 'validate' | null
 
 // Required categories for a complete outfit
 export const REQUIRED_CATEGORIES = ['Tops', 'Bottoms', 'Shoes']
 export const OPTIONAL_CATEGORIES = ['Outerwear', 'Accessories']
-export const ALL_OUTFIT_CATEGORIES = [...REQUIRED_CATEGORIES, ...OPTIONAL_CATEGORIES]
+const ALL_OUTFIT_CATEGORIES = [...REQUIRED_CATEGORIES, ...OPTIONAL_CATEGORIES]
 
-export interface CroppedImage {
+interface CroppedImage {
   originalFile: File
   croppedBlob: Blob
   croppedUrl: string  // Object URL for preview
 }
 
-export interface DetectedColor {
+interface DetectedColor {
   hex: string
   name: string
   hsl: { h: number; s: number; l: number }
   isNeutral: boolean
 }
 
-export interface PendingUpload {
+interface PendingUpload {
   file: File
   previewUrl: string
 }
@@ -51,7 +51,7 @@ export interface TryOnResult {
 }
 
 // State for the item currently being added in the build step
-export interface AddingItemState {
+interface AddingItemState {
   croppedImage: CroppedImage | null
   category: Category | null
   formality: number
