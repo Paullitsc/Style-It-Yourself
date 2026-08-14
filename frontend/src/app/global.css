@@ -8,6 +8,22 @@
 /* Tailwind v4 only auto-scans this project; @siy/ui lives outside it. */
 @source "../../../packages/ui/src";
 
+/* Bind the design system's font tokens to the actual webfonts.
+   This block MUST stay after the @siy/ui import. Tailwind emits @theme values
+   at the `@import "tailwindcss"` position above, so system.css — imported after
+   it — would otherwise win with its standalone literals ("Söhne" for sans,
+   which is not licensed or loaded here) and body copy would silently render in
+   Helvetica. The variables come from next/font in layout.tsx, applied as a
+   className on <body>; var() resolves at the point of use, so descendants of
+   <body> pick them up correctly.
+   Verify after touching this: computed font-family on <body> should report
+   Mona Sans, not Helvetica. */
+:root {
+  --font-sans: var(--font-mona-sans), "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-display: var(--font-instrument-serif), "Times New Roman", Georgia, serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, "SF Mono", Menlo, monospace;
+}
+
 :root {
   /* Spacing tokens */
   --space-1: 0.25rem;
