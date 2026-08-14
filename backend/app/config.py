@@ -20,7 +20,6 @@ class Settings(BaseSettings):
     SUPABASE_URL: str
     SUPABASE_KEY: str
     SUPABASE_SERVICE_KEY: str
-    SUPABASE_JWT_SECRET: str
     
     # Gemini
     GEMINI_API_KEY: str
@@ -75,6 +74,5 @@ load_dotenv()
 supUrl = os.getenv("SUPABASE_URL")
 supKey = os.getenv("SUPABASE_KEY")
 supServiceKey = os.getenv("SUPABASE_SERVICE_KEY")
-supJwtSecret = os.getenv("SUPABASE_JWT_SECRET")
 
-settings = Settings(SUPABASE_URL=supUrl, SUPABASE_KEY=supKey, SUPABASE_SERVICE_KEY=supServiceKey, SUPABASE_JWT_SECRET=supJwtSecret)
+settings = Settings(SUPABASE_URL=supUrl, SUPABASE_KEY=supKey, SUPABASE_SERVICE_KEY=supServiceKey)
