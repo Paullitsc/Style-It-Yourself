@@ -194,7 +194,7 @@ export default function BuildStep() {
               Build
             </p>
             <h1 className="m-0 font-display font-normal text-[clamp(28px,3.5vw,40px)] leading-[0.95] tracking-[-0.015em]">
-              Assemble the <em className="italic text-ink-3">outfit.</em>
+              Assemble the outfit.
             </h1>
           </div>
 
@@ -334,7 +334,7 @@ export default function BuildStep() {
               <p className="font-display italic text-[16px] leading-snug text-ink-2 flex-1 min-w-[180px]">
                 {outfitComplete ? (
                   <>
-                    Outfit <em className="italic text-ink-3">complete.</em>{' '}
+                    Outfit complete.{' '}
                     Review it for the cohesion score.
                   </>
                 ) : (

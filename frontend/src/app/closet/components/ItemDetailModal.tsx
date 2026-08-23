@@ -140,12 +140,9 @@ export default function ItemDetailModal({
 
             {/* Display name */}
             <h2 className="font-display font-normal text-[clamp(40px,4.5vw,64px)] leading-[0.95] tracking-[-0.02em] m-0 mb-2">
-              {item.color?.name && (
-                <em className="italic text-ink-3">{item.color.name}</em>
-              )}
+              {item.color?.name}
               {item.color?.name ? <br /> : null}
-              {item.category.l2.toLowerCase()}
-              <span className="italic text-ink-3">.</span>
+              {item.category.l2.toLowerCase()}.
             </h2>
 
             <hr className="border-t border-ink mt-6 mb-6" />
@@ -161,9 +158,7 @@ export default function ItemDetailModal({
                   />
                   <span className="font-display text-[20px] leading-none">
                     {item.color.name}
-                    {item.color.is_neutral && (
-                      <em className="italic text-ink-3"> · neutral</em>
-                    )}
+                    {item.color.is_neutral && ' · neutral'}
                   </span>
                   <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink-3">
                     {item.color.hex.toUpperCase()}
@@ -201,7 +196,7 @@ export default function ItemDetailModal({
                         {i > 0 && (
                           <span className="text-ink-3"> · </span>
                         )}
-                        <em className="italic">{tag}</em>
+                        {tag}
                       </span>
                     ))}
                   </span>

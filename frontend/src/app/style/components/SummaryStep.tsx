@@ -144,7 +144,7 @@ export default function SummaryStep() {
           Review
         </p>
         <h1 className="m-0 font-display font-normal text-[clamp(48px,7vw,108px)] leading-[0.95] tracking-[-0.025em]">
-          Your <em className="italic text-ink-3">outfit,</em>
+          Your outfit,
           <br />
           assembled.
         </h1>
@@ -373,7 +373,7 @@ export default function SummaryStep() {
                 <span>
                   Save to closet
                   {!user && (
-                    <span className="ml-2 text-ink-3 normal-case font-normal italic">
+                    <span className="ml-2 text-ink-3 normal-case font-normal">
                       (login required)
                     </span>
                   )}
@@ -394,7 +394,7 @@ export default function SummaryStep() {
                 <span>
                   Try on outfit
                   {!user && (
-                    <span className="ml-2 text-ink-3 normal-case font-normal italic">
+                    <span className="ml-2 text-ink-3 normal-case font-normal">
                       (login required)
                     </span>
                   )}

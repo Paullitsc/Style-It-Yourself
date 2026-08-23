@@ -63,7 +63,7 @@ export default function UploadStep() {
         </p>
         <h2 className="m-0 font-display font-normal text-[clamp(48px,6vw,88px)] leading-[0.95] tracking-[-0.02em]">
           Begin with{' '}
-          <em className="italic text-ink-3">one</em>
+          one
           <br />
           piece.
         </h2>

@@ -151,8 +151,8 @@ export default function OutfitDetailModal({
                 </div>
 
                 <h2 className="font-display font-normal text-[clamp(40px,4.5vw,64px)] leading-[0.95] tracking-[-0.02em] m-0">
-                  <em className="italic">{outfit.name}</em>
-                  <span className="italic text-ink-3">.</span>
+                  {outfit.name}
+                  .
                 </h2>
 
                 <hr className="border-t border-ink mt-6 mb-6" />

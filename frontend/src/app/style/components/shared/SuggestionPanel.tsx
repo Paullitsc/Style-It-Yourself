@@ -147,7 +147,7 @@ export default function SuggestionPanel({
           Suggestions
         </p>
         <h3 className="font-display text-[24px] leading-none tracking-[-0.015em]">
-          For your <em className="italic text-ink-3">{lowerCat}.</em>
+          For your {lowerCat}.
         </h3>
       </div>
 

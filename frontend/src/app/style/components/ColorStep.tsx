@@ -415,7 +415,7 @@ export default function ColorStep() {
         </p>
         <h2 className="m-0 font-display font-normal text-[clamp(48px,6vw,88px)] leading-[0.95] tracking-[-0.02em]">
           Confirm the{' '}
-          <em className="italic text-ink-3">color.</em>
+          color.
         </h2>
         <p className="mt-5 mx-auto max-w-[40ch] font-display italic text-[18px] leading-[1.4] text-ink-2">
           Drag the lens onto the most accurate part of the piece, or pick from

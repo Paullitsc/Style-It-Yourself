@@ -973,7 +973,7 @@ export default function AddItemPanel({
                 Validation unavailable
               </p>
               <h3 className="font-display text-[32px] leading-tight tracking-[-0.015em]">
-                We couldn&apos;t check this <em className="italic text-ink-3">piece</em>.
+                We couldn&apos;t check this piece.
               </h3>
               <p className="font-display italic text-[16px] text-ink-2 mt-2 max-w-[34ch]">
                 {validationError}
@@ -1015,7 +1015,7 @@ export default function AddItemPanel({
               <h3 className="font-display text-[32px] leading-tight tracking-[-0.015em]">
                 {itemValidation.warnings.length === 0 ? (
                   <>
-                    <em className="italic text-ink-3">Perfect</em> match.
+                    Perfect match.
                   </>
                 ) : (
                   <>Worth a look.</>
@@ -1023,7 +1023,7 @@ export default function AddItemPanel({
               </h3>
               <p className="font-display italic text-[16px] text-ink-2 mt-2 max-w-[34ch]">
                 How this pairs with your{' '}
-                <em className="italic">{baseItem?.category.l2}</em>.
+                {baseItem?.category.l2}.
               </p>
             </div>
 

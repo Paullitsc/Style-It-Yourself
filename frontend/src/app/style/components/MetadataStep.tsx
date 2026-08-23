@@ -49,7 +49,7 @@ export default function MetadataStep() {
           Step 02
         </p>
         <h2 className="m-0 font-display font-normal text-[clamp(48px,6vw,88px)] leading-[0.95] tracking-[-0.02em]">
-          Tell us <em className="italic text-ink-3">about</em>
+          Tell us about
           <br />
           this piece.
         </h2>

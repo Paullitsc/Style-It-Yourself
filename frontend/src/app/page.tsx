@@ -15,7 +15,7 @@ export default function Home() {
           <h1 className="font-display font-normal uppercase text-[clamp(96px,16vw,240px)] leading-[0.85] tracking-[-0.025em] m-0">
             Style it,
             <br />
-            <em className="italic text-ink-3">yourself.</em>
+            yourself.
           </h1>
 
           {/* LEDE */}

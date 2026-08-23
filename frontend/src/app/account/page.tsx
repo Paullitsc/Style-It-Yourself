@@ -40,7 +40,7 @@ export default function AccountPage() {
               Account
             </p>
             <h1 className="m-0 font-display font-normal uppercase text-[clamp(72px,9vw,128px)] leading-[0.92] tracking-[-0.025em]">
-              Your <em className="italic text-ink-3">account,</em>
+              Your account,
               <br />
               in brief.
             </h1>

@@ -189,7 +189,7 @@ export default function ColorSelector({
 
           {adjustedColor.is_neutral && (
             <div className="mt-3 font-mono text-[10px] uppercase tracking-[0.08em] text-ink-3">
-              <em className="italic">Neutral.</em>
+              Neutral.
             </div>
           )}
         </div>

@@ -188,7 +188,7 @@ export default function TryOnModal({
             Generating
           </p>
           <h4 className="font-display text-[36px] leading-tight tracking-[-0.015em]">
-            <em className="italic text-ink-3">Fitting</em> the piece
+            Fitting the piece
             <br />
             onto your photo.
           </h4>

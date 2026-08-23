@@ -86,7 +86,7 @@ function ConnectFlow() {
           Browser extension
         </span>
         <h1 className="mt-3 font-display text-[clamp(34px,5vw,52px)] leading-[0.98] tracking-[-0.02em]">
-          Connect the <em className="italic text-ink-3">extension</em>.
+          Connect the extension.
         </h1>
 
         <hr className="my-7 border-t border-ink" />
@@ -121,7 +121,7 @@ function StatusBody({
       return (
         <div className="space-y-4">
           <p className="font-display text-[22px] leading-snug">
-            You’re <em className="italic text-ink-3">connected</em>.
+            You’re connected.
           </p>
           <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-ink-3">
             You can close this tab and reopen the extension. It will now add and
@@ -151,7 +151,7 @@ function StatusBody({
       return (
         <Note>
           Open this page from the extension’s{' '}
-          <em className="italic">Connect Style It Yourself</em> button so it can
+          Connect Style It Yourself button so it can
           identify itself.
         </Note>
       )

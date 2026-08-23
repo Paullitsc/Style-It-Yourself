@@ -103,12 +103,9 @@ export default function ItemDetailModal({
           </div>
 
           <h2 className="font-display font-normal text-[clamp(40px,4.5vw,56px)] leading-[0.95] tracking-[-0.02em] m-0">
-            {item.color?.name && (
-              <em className="italic text-ink-3">{item.color.name}</em>
-            )}
+            {item.color?.name}
             {item.color?.name ? <br /> : null}
-            {item.category.l2.toLowerCase()}
-            <span className="italic text-ink-3">.</span>
+            {item.category.l2.toLowerCase()}.
           </h2>
 
           <hr className="border-t border-ink mt-6 mb-6" />
@@ -142,7 +139,7 @@ export default function ItemDetailModal({
                   {item.aesthetics.map((tag, i) => (
                     <span key={tag}>
                       {i > 0 && <span className="text-ink-3"> · </span>}
-                      <em className="italic">{tag}</em>
+                      {tag}
                     </span>
                   ))}
                 </span>
