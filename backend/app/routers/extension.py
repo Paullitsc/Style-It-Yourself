@@ -1,4 +1,4 @@
-"""Extension router — capture-and-control endpoints for the Chrome extension.
+"""Extension router: capture-and-control endpoints for the Chrome extension.
 
 The extension captures product context from the current web page and delegates
 all styling/storage logic to the backend. These endpoints reuse the same
@@ -7,9 +7,9 @@ Supabase storage) so an extension-imported item is indistinguishable from an
 in-app upload.
 
 Endpoints:
-- ``POST /api/extension/analyze-product`` — suggest metadata for a scraped product.
-- ``POST /api/extension/import-item``     — fetch remote image, store it, create item.
-- ``POST /api/extension/match-product``   — find closet pieces that pair with a product.
+- ``POST /api/extension/analyze-product``: suggest metadata for a scraped product.
+- ``POST /api/extension/import-item``:     fetch remote image, store it, create item.
+- ``POST /api/extension/match-product``:   find closet pieces that pair with a product.
 """
 
 import logging
@@ -100,7 +100,7 @@ async def analyze_product(
     preview = None
     if request.image_url:
         # Color analysis is best-effort: a fetch/decode failure should NOT block
-        # the rest of the suggestions — the user can still pick a color manually.
+        # the rest of the suggestions; the user can still pick a color manually.
         try:
             image_bytes, _ = await fetch_remote_image(request.image_url)
             color = extract_dominant_color(image_bytes)

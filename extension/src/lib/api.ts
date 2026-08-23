@@ -24,7 +24,7 @@ async function authedFetch<T>(path: string, init: RequestInit): Promise<T> {
 
   if (response.status === 401) {
     await disconnect()
-    throw new NotAuthenticatedError('Session expired — please reconnect.')
+    throw new NotAuthenticatedError('Session expired. Please reconnect.')
   }
 
   if (!response.ok) {

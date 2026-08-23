@@ -247,7 +247,7 @@ async def get_matching_items(
             if item.category.l1 == request.category_l1
         )
         
-        # Filter and rank — split into strict matches and "other in category"
+        # Filter and rank: split into strict matches and "other in category"
         # so the UI can offer an escape hatch when nothing clears the threshold.
         matching_items, other_items = rank_items_in_category(
             items=all_items,

@@ -505,7 +505,7 @@ export default function AddItemPanel({
       setItemValidation(validation)
       setCurrentStep('validate')
     } catch (error) {
-      // Don't fake a successful validation response — surface the failure
+      // Don't fake a successful validation response: surface the failure
       // explicitly so the user can distinguish "compatible" from "we couldn't
       // check".
       console.error('Validation failed', error)
@@ -602,7 +602,7 @@ export default function AddItemPanel({
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-5 py-6">
-        {/* STEP 1 — UPLOAD */}
+        {/* STEP 1: UPLOAD */}
         {currentStep === 'upload' && (
           <div className="flex flex-col gap-6">
             {addingItem.croppedImage ? (
@@ -651,7 +651,7 @@ export default function AddItemPanel({
           </div>
         )}
 
-        {/* STEP 2 — METADATA */}
+        {/* STEP 2: METADATA */}
         {currentStep === 'metadata' && addingItem.croppedImage && (
           <div className="flex flex-col gap-7">
             <div className="flex justify-center">
@@ -825,7 +825,7 @@ export default function AddItemPanel({
           </div>
         )}
 
-        {/* STEP 3 — COLOR */}
+        {/* STEP 3: COLOR */}
         {currentStep === 'colors' && addingItem.croppedImage && (
           <div className="flex flex-col gap-7">
             {/* Image with magnifier and color frame */}
@@ -965,7 +965,7 @@ export default function AddItemPanel({
           </div>
         )}
 
-        {/* STEP 4 — VALIDATE */}
+        {/* STEP 4: VALIDATE */}
         {currentStep === 'validate' && validationError && (
           <div className="flex flex-col gap-6">
             <div>

@@ -186,7 +186,7 @@ export default function TryOnOutfitModal({
             onto your photo.
           </h4>
           <p className="mt-4 mx-auto max-w-[40ch] font-display italic text-[16px] text-ink-2">
-            Hold tight — this is the slow part of the magic.
+            Hold tight. This is the slow part of the magic.
           </p>
           <p className="mt-6 font-mono text-[11px] uppercase tracking-[0.14em] text-ink">
             Elapsed {String(elapsed).padStart(2, '0')}s

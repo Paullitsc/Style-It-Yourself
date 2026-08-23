@@ -695,7 +695,7 @@ export const useStyleStore = create<StyleState>((set, get) => ({
     // Preserve the existing item ID to avoid creating duplicates
     const existingId = item.id
 
-    // The base item already covers its own category slot — refuse to add a
+    // The base item already covers its own category slot, so refuse to add a
     // second item there. (Without this guard, base + a closet quick-add of
     // the same L1 would produce e.g. two Outerwear items, surfacing the
     // "Too many outerwear pieces" warning from validate_outfit.)

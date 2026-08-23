@@ -10,8 +10,8 @@
 
 /* Bind the design system's font tokens to the actual webfonts.
    This block MUST stay after the @siy/ui import. Tailwind emits @theme values
-   at the `@import "tailwindcss"` position above, so system.css — imported after
-   it — would otherwise win with its standalone literals ("Söhne" for sans,
+   at the `@import "tailwindcss"` position above, so system.css, imported after
+   it, would otherwise win with its standalone literals ("Söhne" for sans,
    which is not licensed or loaded here) and body copy would silently render in
    Helvetica. The variables come from next/font in layout.tsx, applied as a
    className on <body>; var() resolves at the point of use, so descendants of
@@ -45,7 +45,7 @@
   --size-icon-lg: 1.25rem;
 
   /* ============================================================
-     shadcn/ui semantic layer — REMAPPED, not redefined.
+     shadcn/ui semantic layer: REMAPPED, not redefined.
      Every value points at an editorial token from system.css so
      there is exactly one source of truth for colour.
 

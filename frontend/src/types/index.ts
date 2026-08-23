@@ -229,7 +229,7 @@ export interface ClothingItemCreateRequest {
 
 // ==============================================================================
 // PATCH /api/clothing-items/{item_id} (Auth required)
-// Partial update — all fields optional; only provided fields are written.
+// Partial update: all fields optional; only provided fields are written.
 // ==============================================================================
 
 export interface ClothingItemUpdate {

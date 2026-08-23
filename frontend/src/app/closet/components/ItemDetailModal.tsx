@@ -183,7 +183,7 @@ export default function ItemDetailModal({
                     ))}
                   </span>
                   <span className="font-display text-[20px] leading-none">
-                    {FORMALITY_LABELS[formality] ?? '—'}
+                    {FORMALITY_LABELS[formality] ?? '–'}
                   </span>
                 </span>
               </MetaRow>

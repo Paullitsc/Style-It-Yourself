@@ -1,7 +1,7 @@
 """Heuristic analysis of a scraped product into closet metadata.
 
 Powers ``POST /api/extension/analyze-product``. Everything here produces
-*suggestions* the user confirms before saving — the goal is a sensible
+*suggestions* the user confirms before saving; the goal is a sensible
 pre-fill, not perfect classification. Reuses the app's existing color naming
 (``color_harmony``) so extension-imported colors classify identically to
 in-app uploads.
@@ -57,8 +57,8 @@ def _garment_score(count: int, hsl: HSL) -> float:
     """Rank a palette color as 'likely the garment' rather than backdrop.
 
     Frequent colors win, saturated colors are boosted, and near-white /
-    near-black colors (typical studio backgrounds and deep shadow) are demoted
-    — but only demoted, so a genuinely white or black garment still wins when
+    near-black colors (typical studio backgrounds and deep shadow) are demoted,
+    but only demoted, so a genuinely white or black garment still wins when
     there is no saturated competitor.
     """
     weight = 1.0 + (hsl.s / 100.0) * 2.0
@@ -81,7 +81,7 @@ def extract_dominant_color(image_bytes: bytes) -> Color | None:
             quant = rgb.quantize(colors=8, method=Image.Quantize.MEDIANCUT)
             palette = quant.getpalette() or []
             counts = quant.getcolors() or []
-    except Exception as exc:  # noqa: BLE001 — any decode failure -> no suggestion
+    except Exception as exc:  # noqa: BLE001. Any decode failure -> no suggestion
         logger.info(f"Color extraction failed: {exc!r}")
         return None
 
@@ -120,7 +120,7 @@ def make_preview_data_url(image_bytes: bytes, max_dim: int = 512) -> str | None:
     URL for client-side eyedropping in the extension popup.
 
     A ``data:`` URL is same-origin to the popup, so a canvas drawn from it is
-    NOT tainted and ``getImageData`` works — unlike the remote image URL.
+    NOT tainted and ``getImageData`` works, unlike the remote image URL.
     Best-effort: returns ``None`` on any decode/encode failure.
     """
     try:
@@ -132,7 +132,7 @@ def make_preview_data_url(image_bytes: bytes, max_dim: int = 512) -> str | None:
             rgb.save(buf, format="JPEG", quality=80)
         encoded = base64.b64encode(buf.getvalue()).decode("ascii")
         return f"data:image/jpeg;base64,{encoded}"
-    except Exception as exc:  # noqa: BLE001 — best-effort preview
+    except Exception as exc:  # noqa: BLE001. Best-effort preview
         logger.info(f"Preview generation failed: {exc!r}")
         return None
 

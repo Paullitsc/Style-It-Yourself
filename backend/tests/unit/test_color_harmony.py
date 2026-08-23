@@ -243,7 +243,7 @@ def test_generate_recommended_colors_clamps_lightness_for_dark_base():
     recs = color_harmony.generate_recommended_colors(base, include_neutrals=False)
     for rec in recs:
         r, g, b = int(rec.hex[1:3], 16), int(rec.hex[3:5], 16), int(rec.hex[5:7], 16)
-        # Naive perceived lightness — anything brighter than the original navy.
+        # Naive perceived lightness: anything brighter than the original navy.
         assert max(r, g, b) > 0x2D
 
 
@@ -290,7 +290,7 @@ def test_generate_recommended_colors_without_neutrals():
 
 
 def test_generate_recommended_colors_for_achromatic_base():
-    """Achromatic neutrals (s≈0) have no meaningful hue — skip harmony generation.
+    """Achromatic neutrals (s≈0) have no meaningful hue, so skip harmony generation.
     The base color itself is also excluded from the neutral list (no white-on-white)."""
     base = Color(hex="#FFFFFF", hsl=HSL(h=0, s=0, l=100), name="white", is_neutral=True)
     recommendations = color_harmony.generate_recommended_colors(base, include_neutrals=True)
@@ -307,7 +307,7 @@ def test_generate_recommended_colors_for_achromatic_base_without_neutrals():
 
 
 def test_generate_recommended_colors_for_chromatic_neutral_base_navy():
-    """Navy is in NEUTRAL_COLORS but has meaningful hue (h=210, s=61) — must get harmonies."""
+    """Navy is in NEUTRAL_COLORS but has meaningful hue (h=210, s=61), so must get harmonies."""
     base = Color(hex="#0B1C2D", hsl=HSL(h=210, s=61, l=11), name="navy", is_neutral=True)
     recommendations = color_harmony.generate_recommended_colors(base, include_neutrals=True)
     analogs = [rec for rec in recommendations if rec.harmony_type == "analogous"]

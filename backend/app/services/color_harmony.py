@@ -255,7 +255,7 @@ def generate_recommended_colors(base_color: Color, include_neutrals: bool = True
     recommended_colors : list[RecommendedColor] = []
     baseHSL : HSL = base_color.hsl
 
-    # Harmonies first — they're the differentiator and should lead the list.
+    # Harmonies first: they're the differentiator and should lead the list.
     # Neutrals are appended after as the safe fallback set. Skip harmony
     # generation only for truly achromatic bases (gray/black/white); chromatic
     # "fashion neutrals" like navy/beige/tan/khaki have meaningful hue.

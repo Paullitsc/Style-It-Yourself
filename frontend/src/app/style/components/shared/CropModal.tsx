@@ -230,7 +230,7 @@ export default function CropModal({
         </div>
       </div>
 
-      {/* ReactCrop visual override — ink selection, ink handles */}
+      {/* ReactCrop visual override: ink selection, ink handles */}
       <style jsx global>{`
         .ReactCrop__crop-selection {
           border: 2px solid var(--color-ink);

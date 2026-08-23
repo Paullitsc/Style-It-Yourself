@@ -174,7 +174,7 @@ export default function EditItemModal({ item, onClose, onSave }: EditItemModalPr
             <input
               value={brand}
               onChange={(e) => setBrand(e.target.value)}
-              placeholder="—"
+              placeholder="–"
               className="w-full bg-transparent border-b border-ink pb-1 font-display text-[18px] focus:outline-none"
             />
           </FieldGroup>
@@ -182,7 +182,7 @@ export default function EditItemModal({ item, onClose, onSave }: EditItemModalPr
             <input
               value={price}
               onChange={(e) => setPrice(e.target.value)}
-              placeholder="—"
+              placeholder="–"
               inputMode="decimal"
               className="w-full bg-transparent border-b border-ink pb-1 font-display text-[18px] focus:outline-none"
             />

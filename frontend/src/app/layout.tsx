@@ -36,7 +36,7 @@ export default function RootLayout({
     // The next/font variable classes go on <html>, not <body>, so that
     // --font-mona-sans and friends exist on :root. global.css resolves
     // --font-sans from them in a :root rule, and custom properties substitute
-    // at the element where they are declared — if the variables only existed on
+    // at the element where they are declared, so if the variables only existed on
     // <body>, that :root declaration would be invalid and every font would fall
     // back to the browser default.
     <html

@@ -1,10 +1,10 @@
 /* ============================================================
-   STYLE IT YOURSELF — Editorial × Brutalist × Minimalist
+   STYLE IT YOURSELF: Editorial × Brutalist × Minimalist
    Design tokens. Loaded by every artboard.
    ============================================================ */
 
 :root {
-  /* PAPER + INK — warm off-white paper, deep ink black */
+  /* PAPER + INK: warm off-white paper, deep ink black */
   --paper:        oklch(0.985 0.004 80);    /* off-white, warm */
   --paper-2:      oklch(0.965 0.006 80);    /* slightly cooler block */
   --paper-3:      oklch(0.93  0.008 80);    /* card surface */
@@ -14,7 +14,7 @@
   --rule:         oklch(0.18  0.01  60 / 1);/* hairlines = ink */
   --rule-soft:    oklch(0.18  0.01  60 / 0.18);
 
-  /* ACCENT — single bold mark, oxblood by default */
+  /* ACCENT: single bold mark, oxblood by default */
   --accent:       oklch(0.42  0.14  25);    /* oxblood */
   --accent-ink:   oklch(0.985 0.004 80);    /* text on accent */
 
@@ -23,7 +23,7 @@
   --font-sans:    "Söhne", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-mono:    "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
 
-  /* SCALE — editorial, generous */
+  /* SCALE: editorial, generous */
   --t-display-xl: clamp(72px, 11vw, 184px);
   --t-display-l:  clamp(56px, 7vw,  120px);
   --t-display-m:  clamp(40px, 5vw,  72px);
@@ -34,7 +34,7 @@
   --t-label:      11px;     /* mono micro-labels */
   --t-label-s:    10px;
 
-  /* DENSITY — overridable via Tweaks */
+  /* DENSITY: overridable via Tweaks */
   --density: 1;
   --gutter: calc(48px * var(--density));
   --col-gap: calc(32px * var(--density));
@@ -44,11 +44,11 @@
   --hairline: 1px;
 }
 
-/* RESET — minimal
+/* RESET: minimal
    Wrapped in @layer base so Tailwind utilities (which live in
    @layer utilities) can override these element-level defaults.
    Without the layer, unlayered tag rules win the cascade over
-   layered utilities regardless of selector specificity — which
+   layered utilities regardless of selector specificity, which
    silently kills things like `border-b-2` on a <button>. */
 @layer base {
   *, *::before, *::after { box-sizing: border-box; }
@@ -110,7 +110,7 @@
   background: transparent;
 }
 
-/* PRODUCT CARD — sparse retail */
+/* PRODUCT CARD: sparse retail */
 .product {
   display: flex; flex-direction: column; gap: 12px;
 }
@@ -152,7 +152,7 @@
   width: 14px; height: 14px; border: 1px solid var(--ink);
 }
 
-/* SPECIMENS — for design system page */
+/* SPECIMENS: for design system page */
 .specimen {
   border-top: 1px solid var(--ink);
   padding: 32px 0 64px;
@@ -189,12 +189,12 @@
 /* DENSITY-AWARE blocks */
 .block-pad { padding: var(--gutter); }
 
-/* HEADING CASE — controlled at root via data attr */
+/* HEADING CASE: controlled at root via data attr */
 [data-case="upper"] .case { text-transform: uppercase; letter-spacing: -0.01em; }
 [data-case="lower"] .case { text-transform: lowercase; letter-spacing: -0.02em; }
 [data-case="title"] .case { text-transform: none; }
 
-/* IMAGE TREATMENT — controlled via data attr from tweaks */
+/* IMAGE TREATMENT: controlled via data attr from tweaks */
 [data-img="placeholder"] .feature__art {
   background-image: repeating-linear-gradient(135deg, var(--paper-2) 0 26px, var(--paper-3) 26px 28px);
 }

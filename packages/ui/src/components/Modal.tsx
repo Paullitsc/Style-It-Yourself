@@ -42,7 +42,7 @@ export interface ModalProps {
  * Editorial dialog built on Radix (via ../primitives/dialog).
  *
  * Radix owns focus trapping, focus restore, scroll lock, `aria-modal`, and
- * Escape handling — this used to be ~150 lines of hand-rolled logic here.
+ * Escape handling. This used to be ~150 lines of hand-rolled logic here.
  * The public props are unchanged so existing callers need no edits.
  */
 export function Modal({
@@ -92,7 +92,7 @@ export function Modal({
         }}
       >
         {/* Reserve the header row whenever a title OR the close button needs to
-            live there — otherwise Radix's absolutely-positioned close button
+            live there, otherwise Radix's absolutely-positioned close button
             overlaps the body content. */}
         {title || showCloseButton ? (
           <div className="flex shrink-0 items-center justify-between border-b border-ink px-[var(--space-6)] py-[var(--space-4)]">

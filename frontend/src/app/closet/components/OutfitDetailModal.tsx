@@ -128,7 +128,7 @@ export default function OutfitDetailModal({
 
         {!isLoading && !error && fullOutfit && (
           <div className="flex flex-col gap-10">
-            {/* HEAD — image + key metadata */}
+            {/* HEAD: image + key metadata */}
             <div className="grid grid-cols-[1fr_1fr] max-md:grid-cols-1 gap-10">
               {/* IMAGE */}
               <div className="relative aspect-[4/5] border border-ink overflow-hidden bg-paper-2">

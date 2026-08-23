@@ -531,7 +531,7 @@ function AddForm({
         <input
           className="text-input"
           value={form.brand}
-          placeholder="—"
+          placeholder="–"
           onChange={(e) => update({ brand: e.target.value })}
         />
       </Field>
@@ -540,7 +540,7 @@ function AddForm({
         <input
           className="text-input"
           value={form.price}
-          placeholder="—"
+          placeholder="–"
           inputMode="decimal"
           onChange={(e) => update({ price: e.target.value })}
         />

@@ -159,17 +159,17 @@ export default function ClosetPage() {
                   active={activeView === 'items'}
                   onClick={() => switchView('items')}
                   label="Pieces"
-                  count={closetData ? pad2(closetData.total_items) : '—'}
+                  count={closetData ? pad2(closetData.total_items) : '–'}
                 />
                 <SideTab
                   active={activeView === 'outfits'}
                   onClick={() => switchView('outfits')}
                   label="Outfits"
-                  count={closetData ? pad2(closetData.total_outfits) : '—'}
+                  count={closetData ? pad2(closetData.total_outfits) : '–'}
                 />
               </div>
 
-              {/* Filters — only for Pieces tab, only when closet has items */}
+              {/* Filters: only for Pieces tab, only when closet has items */}
               {activeView === 'items' && hasItems && (
                 <>
                   <hr className="border-t border-rule-soft" />

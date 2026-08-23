@@ -2,7 +2,7 @@
 
 The app's existing matching flow runs forward (recommendations -> closet items).
 The extension needs the inverse: given a candidate product, find complementary
-closet pieces. This reuses — rather than duplicates — the existing services:
+closet pieces. This reuses, rather than duplicates, the existing services:
 
   1. Convert the product into a ``ClothingItemBase`` (done by the caller).
   2. Generate category recommendations with ``generate_category_recommendations``.
@@ -102,7 +102,7 @@ def build_match(
         matched = cat in best_pick_by_cat
         if owns_category and not matched:
             warnings.append(
-                f"You own {cat.lower()} but none pair cleanly — see 'other options'."
+                f"You own {cat.lower()} but none pair cleanly. See 'other options'."
             )
     warnings = list(dict.fromkeys(warnings))
 
@@ -112,7 +112,7 @@ def build_match(
     if total_closet == 0:
         summary = "Your closet is empty. Add pieces to find matches."
     elif total_matches == 0:
-        summary = "No strong matches yet — neutral pieces tend to bridge this best."
+        summary = "No strong matches yet. Neutral pieces tend to bridge this best."
     else:
         piece_word = "piece" if total_matches == 1 else "pieces"
         summary = (

@@ -58,7 +58,7 @@ async function refreshSession(session: StoredSession): Promise<StoredSession> {
 
   if (!response.ok) {
     await clearStoredSession()
-    throw new NotAuthenticatedError('Session expired — please reconnect.')
+    throw new NotAuthenticatedError('Session expired. Please reconnect.')
   }
 
   const data = await response.json()

@@ -327,7 +327,7 @@ export default function BuildStep() {
           </div>
         </div>
 
-        {/* Sticky action bar — hides when the add-item panel is open */}
+        {/* Sticky action bar: hides when the add-item panel is open */}
         {!isPanelOpen && (
           <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-ink bg-paper">
             <div className="max-w-[1100px] mx-auto px-10 max-md:px-6 py-4 flex items-center justify-between gap-6 flex-wrap">

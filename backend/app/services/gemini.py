@@ -46,7 +46,7 @@ def _get_genai_client() -> genai.Client:
         _genai_client = genai.Client(api_key=settings.GEMINI_API_KEY)
     return _genai_client
 
-# Models — high quality is the only one wired through; the fast model
+# Models: high quality is the only one wired through; the fast model
 # constant is kept as a reference for anyone wiring up a cost-savings toggle
 # in the future (would need to pipe a request-level flag through to the
 # service and the API surface).
@@ -84,7 +84,7 @@ async def _call_gemini_with_retry(call_factory, *, label: str):
     """Call a Gemini coroutine factory with one retry on transient failures.
 
     `call_factory` must be a zero-arg callable returning a fresh coroutine
-    (a lambda over the SDK call). This is important — coroutines can only be
+    (a lambda over the SDK call). This is important: coroutines can only be
     awaited once, so a retry needs a new one.
     """
     last_error: Optional[BaseException] = None
@@ -122,7 +122,7 @@ async def _call_gemini_with_retry(call_factory, *, label: str):
                 await asyncio.sleep(GEMINI_RETRY_BACKOFF_SECONDS)
                 continue
             raise
-    # Unreachable — the loop always either returns or re-raises.
+    # Unreachable: the loop always either returns or re-raises.
     assert last_error is not None
     raise last_error
 
@@ -392,7 +392,7 @@ def _extract_image_from_response(response) -> str:
 
     Raises:
         ValueError with a user-facing message. The most common non-image
-        outcome is a content-moderation refusal — Gemini returns text
+        outcome is a content-moderation refusal, where Gemini returns text
         explaining why instead of an image. We log the raw refusal for
         debugging but translate it to actionable user copy.
     """
@@ -408,7 +408,7 @@ def _extract_image_from_response(response) -> str:
             mime = part.inline_data.mime_type
             return f"data:{mime};base64,{b64_data}"
 
-    # No image — typically a content-moderation refusal. Log the raw text
+    # No image: typically a content-moderation refusal. Log the raw text
     # for debugging, but don't expose Google's policy copy to the user.
     for part in response.candidates[0].content.parts:
         if part.text:
