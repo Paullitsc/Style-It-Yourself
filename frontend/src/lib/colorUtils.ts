@@ -275,5 +275,62 @@ export function buildColorFromHex(hex: string): Color {
 }
 
 // =============================================================================
-// AGGREGATE HUE
+// NEUTRAL PALETTE
 // =============================================================================
+
+/**
+ * The neutral palette (black through khaki) as full Color objects.
+ * Neutrals pair with everything; the landing wheel readout shows them
+ * alongside the computed harmonies.
+ */
+export function getNeutralColors(): Color[] {
+  return Object.entries(NEUTRAL_COLOR_DATA)
+    .filter(([name]) => name !== 'grey')
+    .map(([, data]) => buildColorFromHex(data.hex))
+}
+
+// =============================================================================
+// COLOR HARMONY
+// =============================================================================
+
+export type HarmonyType =
+  | 'neutral'
+  | 'analogous'
+  | 'complementary'
+  | 'triadic'
+  | 'none'
+
+/**
+ * Shortest distance between two hues on the 360 degree color wheel
+ */
+export function getHueDistance(h1: number, h2: number): number {
+  const distance = Math.abs(h1 - h2)
+  return Math.min(distance, 360 - distance)
+}
+
+/**
+ * Classify the harmony between two colors.
+ * Mirrors the backend's check_color_compatibility (services/color_harmony.py):
+ * neutrals pair with everything; otherwise classify by hue distance
+ * (analogous <= 30, complementary 180 +/- 15, triadic 120 +/- 15, else none).
+ * Keep thresholds in sync with the backend, which is the source of truth.
+ */
+export function classifyHarmony(
+  color1: Color,
+  color2: Color
+): { harmony: HarmonyType; hueDistance: number } {
+  const hueDistance = getHueDistance(color1.hsl.h, color2.hsl.h)
+  if (color1.is_neutral || color2.is_neutral) {
+    return { harmony: 'neutral', hueDistance }
+  }
+  if (hueDistance <= 30) {
+    return { harmony: 'analogous', hueDistance }
+  }
+  if (hueDistance >= 165 && hueDistance <= 195) {
+    return { harmony: 'complementary', hueDistance }
+  }
+  if (hueDistance >= 105 && hueDistance <= 135) {
+    return { harmony: 'triadic', hueDistance }
+  }
+  return { harmony: 'none', hueDistance }
+}

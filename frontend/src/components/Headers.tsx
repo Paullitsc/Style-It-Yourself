@@ -44,6 +44,13 @@ export default function Header() {
             >
               Style
             </Link>
+            <Link
+              href="/notes"
+              className={linkClass('/notes')}
+              aria-current={isActive('/notes') ? 'page' : undefined}
+            >
+              Notes
+            </Link>
             {user && (
               <Link
                 href="/closet"
