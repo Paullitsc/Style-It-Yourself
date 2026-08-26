@@ -20,6 +20,7 @@ services:
     env_file: ./frontend/.env.local
     volumes:
       - ./frontend/src:/app/frontend/src
+      - ./frontend/public:/app/frontend/public
       - ./packages/ui/src:/app/packages/ui/src
     command: npm run dev
     depends_on:
