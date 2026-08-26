@@ -477,7 +477,7 @@ function ItemsView({
     return (
       <section className="py-16 text-center">
         <p className="font-display italic text-[32px] leading-snug">
-          Empty closet.
+          Empty closet
         </p>
         <p className="font-display italic text-[18px] text-ink-2 mt-3">
           Tap Add a piece in the sidebar to upload
@@ -609,7 +609,7 @@ function OutfitsView({ outfits, onOutfitClick }: OutfitsViewProps) {
     return (
       <section className="py-16 text-center">
         <p className="font-display italic text-[32px] leading-snug">
-          No outfits saved yet.
+          No outfits saved yet
         </p>
         <p className="font-display italic text-[18px] text-ink-2 mt-3">
           Build your first outfit to save it here.

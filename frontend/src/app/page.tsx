@@ -55,9 +55,9 @@ export default function Home() {
         <div className="py-24 max-md:py-16 text-center">
           {/* HEADLINE */}
           <h1 className="font-display font-normal uppercase text-[clamp(96px,16vw,240px)] leading-[0.85] tracking-[-0.025em] m-0">
-            Style it,
+            Style it
             <br />
-            yourself.
+            yourself
           </h1>
 
           {/* LEDE */}
@@ -80,7 +80,7 @@ export default function Home() {
             >
               <span>
                 <span className="block font-display font-normal text-[clamp(34px,4.2vw,56px)] leading-[1.02] tracking-[-0.015em]">
-                  {way.title}.
+                  {way.title}
                 </span>
                 <span className="block mt-3 text-[13.5px] leading-[1.55] text-ink-3">
                   {way.description}
@@ -144,7 +144,7 @@ export default function Home() {
       {/* NOTES */}
       <section className={`${CONTAINER} pt-20 pb-24 max-md:pt-14 max-md:pb-16`}>
         <h2 className="m-0 font-display font-normal text-[clamp(40px,5vw,64px)] leading-none tracking-[-0.02em]">
-          Notes.
+          Notes
         </h2>
         <div className="mt-10 grid grid-cols-3 max-md:grid-cols-1 gap-x-10 gap-y-12">
           {NOTES.map((note) => (
@@ -154,7 +154,7 @@ export default function Home() {
               className="group block"
             >
               <h3 className="m-0 font-display font-normal text-[clamp(26px,2.6vw,34px)] leading-[1.05] tracking-[-0.01em]">
-                {note.title}.
+                {note.title}
               </h3>
               <p className="mt-3 mb-0 font-display italic text-[17px] leading-[1.4] text-ink-2">
                 {note.teaser}

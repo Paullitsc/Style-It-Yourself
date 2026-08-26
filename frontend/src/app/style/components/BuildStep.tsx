@@ -194,7 +194,7 @@ export default function BuildStep() {
               Build
             </p>
             <h1 className="m-0 font-display font-normal text-[clamp(28px,3.5vw,40px)] leading-[0.95] tracking-[-0.015em]">
-              Assemble the outfit.
+              Assemble the outfit
             </h1>
           </div>
 

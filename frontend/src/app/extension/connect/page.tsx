@@ -86,7 +86,7 @@ function ConnectFlow() {
           Browser extension
         </span>
         <h1 className="mt-3 font-display text-[clamp(34px,5vw,52px)] leading-[0.98] tracking-[-0.02em]">
-          Connect the extension.
+          Connect the extension
         </h1>
 
         <hr className="my-7 border-t border-ink" />
@@ -121,7 +121,7 @@ function StatusBody({
       return (
         <div className="space-y-4">
           <p className="font-display text-[22px] leading-snug">
-            You’re connected.
+            You’re connected
           </p>
           <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-ink-3">
             You can close this tab and reopen the extension. It will now add and
@@ -168,7 +168,7 @@ function StatusBody({
       return (
         <div className="space-y-5">
           <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-accent">
-            Couldn’t reach the extension.
+            Couldn’t reach the extension
           </p>
           <p className="font-display text-[18px] text-ink-2 leading-snug">
             Make sure it’s installed, then try again.

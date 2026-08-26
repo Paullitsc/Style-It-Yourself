@@ -65,7 +65,7 @@ export default function UploadStep() {
           Begin with{' '}
           one
           <br />
-          piece.
+          piece
         </h2>
         <p className="mt-5 mx-auto max-w-[40ch] font-display italic text-[18px] leading-[1.4] text-ink-2">
           Snap or upload a photo of a single clothing item. We&apos;ll read
