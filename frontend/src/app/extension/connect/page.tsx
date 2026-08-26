@@ -187,7 +187,7 @@ function StatusBody({
 
 function Line({ children }: { children: React.ReactNode }) {
   return (
-    <p className="font-display italic text-[20px] text-ink-2 leading-snug">
+    <p className="font-display text-[20px] text-ink-2 leading-snug">
       {children}
     </p>
   )

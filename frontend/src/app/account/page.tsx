@@ -44,7 +44,7 @@ export default function AccountPage() {
               <br />
               in brief
             </h1>
-            <p className="mt-[18px] max-w-[40ch] font-display italic text-[20px] leading-[1.35] text-ink-2">
+            <p className="mt-[18px] max-w-[40ch] font-display text-[20px] leading-[1.35] text-ink-2">
               The basics on file. Nothing fancy. Sign out below when
               you&apos;re done.
             </p>

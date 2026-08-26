@@ -44,10 +44,6 @@ body {
   font-family: 'Instrument Serif', Georgia, 'Times New Roman', serif;
 }
 
-.italic {
-  font-style: italic;
-}
-
 /* ---- header ---- */
 .masthead {
   display: flex;
@@ -58,7 +54,6 @@ body {
 }
 .masthead .wordmark {
   font-family: 'Instrument Serif', Georgia, serif;
-  font-style: italic;
   font-size: 18px;
 }
 .masthead .disconnect {
@@ -443,7 +438,6 @@ hr.rule {
 }
 .colorout__name {
   font-family: 'Instrument Serif', Georgia, serif;
-  font-style: italic;
   font-size: 15px;
   color: var(--ink-2);
 }

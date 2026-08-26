@@ -127,10 +127,10 @@ export default function SuggestionPanel({
   if (!recommendation) {
     return (
       <div className="h-full flex flex-col items-center justify-center text-center p-8">
-        <p className="font-display italic text-[24px] leading-tight mb-2">
+        <p className="font-display text-[24px] leading-tight mb-2">
           No suggestions yet
         </p>
-        <p className="font-display italic text-[16px] text-ink-2 max-w-[28ch]">
+        <p className="font-display text-[16px] text-ink-2 max-w-[28ch]">
           Upload a base item first to get colour and styling recommendations.
         </p>
       </div>
@@ -161,7 +161,7 @@ export default function SuggestionPanel({
             </div>
 
             {isLoadingMatches ? (
-              <p className="font-display italic text-[15px] text-ink-2">
+              <p className="font-display text-[15px] text-ink-2">
                 Searching your closet…
               </p>
             ) : matchError ? (
@@ -172,19 +172,19 @@ export default function SuggestionPanel({
               <ClosetItemList items={matchingItems} onQuickAdd={onQuickAdd} />
             ) : otherItems.length > 0 ? (
               <>
-                <p className="font-display italic text-[14px] text-ink-2 leading-snug mb-3">
+                <p className="font-display text-[14px] text-ink-2 leading-snug mb-3">
                   Nothing matches these recommendations exactly. Here&apos;s
                   what else you have:
                 </p>
                 <ClosetItemList items={otherItems} onQuickAdd={onQuickAdd} />
               </>
             ) : totalInCategory > 0 ? (
-              <p className="font-display italic text-[14px] text-ink-2 leading-tight">
+              <p className="font-display text-[14px] text-ink-2 leading-tight">
                 No matches in your closet. You have {totalInCategory}{' '}
                 {lowerCat} but none meet the recommendations.
               </p>
             ) : (
-              <p className="font-display italic text-[14px] text-ink-2 leading-tight">
+              <p className="font-display text-[14px] text-ink-2 leading-tight">
                 No {lowerCat} in your closet yet. Upload one below.
               </p>
             )}
@@ -354,7 +354,7 @@ export default function SuggestionPanel({
               <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mb-3">
                 Matching aesthetics
               </div>
-              <div className="font-display italic text-[16px] leading-snug text-ink-2">
+              <div className="font-display text-[16px] leading-snug text-ink-2">
                 {recommendation.aesthetics.map((tag, i) => (
                   <span key={tag}>
                     {i > 0 && <span className="text-ink-3"> · </span>}
@@ -373,7 +373,7 @@ export default function SuggestionPanel({
               <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mb-3">
                 Note
               </div>
-              <p className="font-display italic text-[15px] leading-[1.4] text-ink-2">
+              <p className="font-display text-[15px] leading-[1.4] text-ink-2">
                 {recommendation.example}
               </p>
             </section>

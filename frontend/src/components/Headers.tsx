@@ -31,7 +31,7 @@ export default function Header() {
 
           <Link
             href="/"
-            className="font-display italic text-[22px] leading-none text-center text-ink"
+            className="font-display text-[22px] leading-none text-center text-ink"
           >
             Style It Yourself
           </Link>

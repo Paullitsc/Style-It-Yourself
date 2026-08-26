@@ -417,7 +417,7 @@ export default function ColorStep() {
           Confirm the{' '}
           color
         </h2>
-        <p className="mt-5 mx-auto max-w-[40ch] font-display italic text-[18px] leading-[1.4] text-ink-2">
+        <p className="mt-5 mx-auto max-w-[40ch] font-display text-[18px] leading-[1.4] text-ink-2">
           Drag the lens onto the most accurate part of the piece, or pick from
           the detected colors.
         </p>

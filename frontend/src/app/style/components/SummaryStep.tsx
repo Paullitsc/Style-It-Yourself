@@ -148,7 +148,7 @@ export default function SummaryStep() {
           <br />
           assembled
         </h1>
-        <p className="mt-4 max-w-[40ch] font-display italic text-[20px] leading-[1.35] text-ink-2">
+        <p className="mt-4 max-w-[40ch] font-display text-[20px] leading-[1.35] text-ink-2">
           Check the cohesion, name it, and save it to your closet.
         </p>
       </section>
@@ -241,7 +241,7 @@ export default function SummaryStep() {
             </header>
 
             {isValidating ? (
-              <div className="font-display italic text-[18px] text-ink-2">
+              <div className="font-display text-[18px] text-ink-2">
                 Analyzing outfit…
               </div>
             ) : validationError ? (
@@ -249,10 +249,10 @@ export default function SummaryStep() {
                 <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-accent">
                   Validation unavailable
                 </p>
-                <p className="font-display italic text-[18px] leading-[1.35] text-ink-2 max-w-[42ch]">
+                <p className="font-display text-[18px] leading-[1.35] text-ink-2 max-w-[42ch]">
                   {validationError}
                 </p>
-                <p className="font-display italic text-[14px] text-ink-3 max-w-[42ch]">
+                <p className="font-display text-[14px] text-ink-3 max-w-[42ch]">
                   You can still save or try this outfit on. We just
                   couldn&apos;t check it this time.
                 </p>
@@ -268,7 +268,7 @@ export default function SummaryStep() {
                   </span>
                 </div>
 
-                <p className="font-display italic text-[20px] leading-[1.35] text-ink-2 max-w-[42ch]">
+                <p className="font-display text-[20px] leading-[1.35] text-ink-2 max-w-[42ch]">
                   {validation.verdict}
                 </p>
 
@@ -281,7 +281,7 @@ export default function SummaryStep() {
                       {validation.warnings.map((warning, i) => (
                         <li
                           key={i}
-                          className="flex items-baseline gap-3 font-display italic text-[16px] leading-[1.4] text-ink-2"
+                          className="flex items-baseline gap-3 font-display text-[16px] leading-[1.4] text-ink-2"
                         >
                           <span
                             className="font-mono text-[10px] uppercase tracking-[0.1em] text-accent shrink-0"
@@ -297,7 +297,7 @@ export default function SummaryStep() {
                 )}
               </div>
             ) : (
-              <p className="font-display italic text-[18px] text-ink-2">
+              <p className="font-display text-[18px] text-ink-2">
                 No validation data.
               </p>
             )}
@@ -316,7 +316,7 @@ export default function SummaryStep() {
                   onChange={(e) => setOutfitName(e.target.value)}
                   placeholder="e.g. Casual Friday, Summer Look…"
                   disabled={isSaving}
-                  className="w-full bg-transparent font-display italic text-[20px] text-ink border-b border-ink py-2 placeholder:not-italic placeholder:font-mono placeholder:text-[12px] placeholder:tracking-[0.04em] placeholder:text-ink-3 focus:outline-none disabled:opacity-50"
+                  className="w-full bg-transparent font-display text-[20px] text-ink border-b border-ink py-2 placeholder:font-mono placeholder:text-[12px] placeholder:tracking-[0.04em] placeholder:text-ink-3 focus:outline-none disabled:opacity-50"
                 />
               </div>
 
@@ -327,7 +327,7 @@ export default function SummaryStep() {
               )}
 
               {isSaving && saveProgress && (
-                <p className="font-display italic text-[16px] text-ink-2">
+                <p className="font-display text-[16px] text-ink-2">
                   {saveProgress}
                 </p>
               )}

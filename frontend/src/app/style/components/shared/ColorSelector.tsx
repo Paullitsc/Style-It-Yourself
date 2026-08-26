@@ -64,7 +64,7 @@ export default function ColorSelector({
         </div>
 
         {isExtracting ? (
-          <div className="font-display italic text-[16px] text-ink-2">
+          <div className="font-display text-[16px] text-ink-2">
             Analyzing image…
           </div>
         ) : (

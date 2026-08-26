@@ -212,7 +212,7 @@ export default function OutfitSlot({
         {isFilled ? (
           <p
             className={cn(
-              'font-display italic text-ink-2 truncate mt-1',
+              'font-display text-ink-2 truncate mt-1',
               compact ? 'text-[12px]' : 'text-[14px]',
             )}
           >

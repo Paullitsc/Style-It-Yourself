@@ -184,7 +184,7 @@ export default function OutfitDetailModal({
 
                   {validation && validation.verdict && (
                     <MetaRow label="Verdict">
-                      <span className="font-display italic text-[20px] leading-[1.35] text-ink-2">
+                      <span className="font-display text-[20px] leading-[1.35] text-ink-2">
                         {validation.verdict}
                       </span>
                     </MetaRow>
@@ -241,7 +241,7 @@ export default function OutfitDetailModal({
                   {validation.warnings.map((warning, i) => (
                     <li
                       key={i}
-                      className="flex items-baseline gap-3 font-display italic text-[18px] leading-[1.35] text-ink-2"
+                      className="flex items-baseline gap-3 font-display text-[18px] leading-[1.35] text-ink-2"
                     >
                       <span
                         className="font-mono text-[10px] uppercase tracking-[0.1em] text-accent shrink-0"
@@ -402,7 +402,7 @@ function ErrorBody({ error }: { error: string }) {
       <p className={cn('font-mono text-[11px] uppercase tracking-[0.14em] text-accent mb-3')}>
         Failed to load outfit
       </p>
-      <p className="font-display italic text-[18px] text-ink-2">{error}</p>
+      <p className="font-display text-[18px] text-ink-2">{error}</p>
     </div>
   )
 }

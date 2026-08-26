@@ -42,7 +42,7 @@ export default async function NotePage({ params }: NotePageProps) {
           <h1 className="m-0 max-w-[16ch] font-display font-normal uppercase text-[clamp(56px,8vw,112px)] leading-[0.92] tracking-[-0.025em]">
             {note.title}
           </h1>
-          <p className="mt-[18px] max-w-[48ch] font-display italic text-[20px] leading-[1.35] text-ink-2">
+          <p className="mt-[18px] max-w-[48ch] font-display text-[20px] leading-[1.35] text-ink-2">
             {note.standfirst}
           </p>
         </section>

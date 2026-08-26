@@ -77,7 +77,6 @@
 .t-body-s     { font-size: var(--t-body-s); line-height: 1.5; }
 .t-mono       { font-family: var(--font-mono); font-size: var(--t-label); letter-spacing: 0.04em; text-transform: uppercase; }
 .t-mono-s     { font-family: var(--font-mono); font-size: var(--t-label-s); letter-spacing: 0.06em; text-transform: uppercase; }
-.italic       { font-style: italic; }
 
 /* PRIMITIVES */
 .rule    { border: 0; border-top: var(--hairline) solid var(--ink); margin: 0; }

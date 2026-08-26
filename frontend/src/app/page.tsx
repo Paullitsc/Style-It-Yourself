@@ -100,7 +100,7 @@ export default function Home() {
           section on its own. */}
       <section className="bg-paper-2">
         <div className={`${CONTAINER} py-16 max-md:py-12`}>
-          <p className="m-0 font-display italic text-[22px] leading-[1.35] text-ink-2">
+          <p className="m-0 font-display text-[22px] leading-[1.35] text-ink-2">
             Point at a hue; whatever stays lit wears well with it.
           </p>
 
@@ -108,7 +108,7 @@ export default function Home() {
             <ColorWheel />
           </div>
 
-          <p className="mt-16 mb-0 font-display italic text-[17px] leading-[1.4] text-ink-2">
+          <p className="mt-16 mb-0 font-display text-[17px] leading-[1.4] text-ink-2">
             Three worked examples from the same arithmetic; nothing is a
             mockup.
           </p>
@@ -155,7 +155,7 @@ export default function Home() {
               <h3 className="m-0 font-display font-normal text-[clamp(26px,2.6vw,34px)] leading-[1.05] tracking-[-0.01em]">
                 {note.title}
               </h3>
-              <p className="mt-3 mb-0 font-display italic text-[17px] leading-[1.4] text-ink-2">
+              <p className="mt-3 mb-0 font-display text-[17px] leading-[1.4] text-ink-2">
                 {note.teaser}
               </p>
               <span className="inline-block mt-5 font-mono text-[11px] uppercase tracking-[0.12em] pb-[2px] border-b border-transparent group-hover:border-ink transition-colors">

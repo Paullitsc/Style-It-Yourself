@@ -186,7 +186,7 @@ export default function ClosetPage() {
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Color, brand, tag…"
                         aria-label="Search pieces"
-                        className="flex-1 min-w-0 bg-transparent font-display italic text-[16px] text-ink placeholder:text-ink-3 placeholder:not-italic placeholder:font-mono placeholder:text-[11px] placeholder:tracking-[0.04em] focus:outline-none"
+                        className="flex-1 min-w-0 bg-transparent font-display text-[16px] text-ink placeholder:text-ink-3 placeholder:font-mono placeholder:text-[11px] placeholder:tracking-[0.04em] focus:outline-none"
                       />
                       {searchQuery && (
                         <button
@@ -280,7 +280,7 @@ export default function ClosetPage() {
                 <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-accent mb-4">
                   Failed to load closet
                 </p>
-                <p className="font-display italic text-[18px] text-ink-2 mb-6">
+                <p className="font-display text-[18px] text-ink-2 mb-6">
                   {error}
                 </p>
                 <button
@@ -390,7 +390,7 @@ function SideTab({ active, onClick, label, count }: SideTabProps) {
           : 'text-[24px] text-ink-3 hover:text-ink',
       )}
     >
-      <span className={active ? 'italic' : ''}>{label}</span>
+      <span>{label}</span>
       <span className="font-mono text-[11px] uppercase tracking-[0.1em] opacity-50">
         {count}
       </span>
@@ -476,10 +476,10 @@ function ItemsView({
   if (closetData.total_items === 0) {
     return (
       <section className="py-16 text-center">
-        <p className="font-display italic text-[32px] leading-snug">
+        <p className="font-display text-[32px] leading-snug">
           Empty closet
         </p>
-        <p className="font-display italic text-[18px] text-ink-2 mt-3">
+        <p className="font-display text-[18px] text-ink-2 mt-3">
           Tap Add a piece in the sidebar to upload
           your first one.
         </p>
@@ -504,7 +504,7 @@ function ItemsView({
   if (sections.length === 0 && filtersActive) {
     return (
       <section className="py-16 text-center">
-        <p className="font-display italic text-[32px] leading-snug">
+        <p className="font-display text-[32px] leading-snug">
           {hasSearchQuery
             ? 'No pieces match your search.'
             : 'No pieces match this filter.'}
@@ -608,10 +608,10 @@ function OutfitsView({ outfits, onOutfitClick }: OutfitsViewProps) {
   if (outfits.length === 0) {
     return (
       <section className="py-16 text-center">
-        <p className="font-display italic text-[32px] leading-snug">
+        <p className="font-display text-[32px] leading-snug">
           No outfits saved yet
         </p>
-        <p className="font-display italic text-[18px] text-ink-2 mt-3">
+        <p className="font-display text-[18px] text-ink-2 mt-3">
           Build your first outfit to save it here.
         </p>
       </section>

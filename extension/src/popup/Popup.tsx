@@ -309,7 +309,7 @@ function ConnectScreen({ onConnect }: { onConnect: () => void }) {
   return (
     <>
       <p className="serif" style={{ fontSize: 22, lineHeight: 1.15, margin: 0 }}>
-        Connect your <span className="italic">closet</span>.
+        Connect your closet.
       </p>
       <p className="muted" style={{ margin: 0 }}>
         Sign in to Style It Yourself to add pieces from any store and check what

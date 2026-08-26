@@ -168,7 +168,7 @@ export default function ItemDetailModal({
                   href={item.source_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-display italic text-[18px] leading-none underline decoration-ink-3 underline-offset-4 hover:decoration-ink"
+                  className="font-display text-[18px] leading-none underline decoration-ink-3 underline-offset-4 hover:decoration-ink"
                 >
                   View original →
                 </a>
