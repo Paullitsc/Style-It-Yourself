@@ -25,7 +25,7 @@ export default function Header() {
 
   return (
     <>
-      <header className="border-b border-ink bg-paper">
+      <header className="sticky top-0 z-40 bg-paper">
         <div className="max-w-[1320px] mx-auto px-14 max-md:px-6 pt-4 pb-6 grid grid-cols-[1fr_auto_1fr] items-center">
           <div />
 

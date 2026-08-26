@@ -187,7 +187,7 @@ export default function BuildStep() {
   return (
     <div className="flex flex-col">
       {/* Header */}
-      <div className="border-b border-ink bg-paper sticky top-0 z-20">
+      <div className="border-b border-ink bg-paper sticky top-[var(--masthead-h)] z-20">
         <div className="max-w-[1100px] mx-auto px-10 max-md:px-6 py-5 flex items-end justify-between gap-6 flex-wrap">
           <div>
             <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mb-1">

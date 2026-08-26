@@ -152,7 +152,7 @@ export default function ClosetPage() {
         <div className="max-w-[1440px] mx-auto grid grid-cols-[240px_1fr] gap-10 max-md:grid-cols-1 max-md:gap-6 px-10 max-md:px-6 pt-8 pb-24">
           {/* SIDEBAR */}
           <aside className="border-r border-ink pr-8 max-md:border-r-0 max-md:border-b max-md:border-ink max-md:pr-0 max-md:pb-8">
-            <div className="sticky top-6 flex flex-col gap-7">
+            <div className="sticky top-[calc(var(--masthead-h)+24px)] flex flex-col gap-7">
               {/* Tabs */}
               <div className="flex flex-col gap-2">
                 <SideTab

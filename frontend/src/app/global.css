@@ -25,6 +25,11 @@
 }
 
 :root {
+  /* Height of the sticky masthead (Headers.tsx): pt-4 (16px) + 22px wordmark
+     + pb-6 (24px). Sticky elements that pin to the viewport top must offset
+     by this so they don't slide underneath it. */
+  --masthead-h: 62px;
+
   /* Spacing tokens */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
