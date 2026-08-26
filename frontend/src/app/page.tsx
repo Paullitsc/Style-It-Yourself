@@ -61,9 +61,8 @@ export default function Home() {
           </h1>
 
           {/* LEDE */}
-          <p className="mt-10 font-display italic text-[22px] leading-[1.35] text-ink-2">
-            A quiet tool for putting clothes together with intention: color,
-            formality, taste.
+          <p className="mt-10 font-display text-[22px] leading-[1.35] text-ink-2">
+            A free tool for putting clothes together with science and intention.
           </p>
         </div>
       </section>
