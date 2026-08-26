@@ -97,7 +97,7 @@ export default function CropModal({
               id="crop-title"
               className="font-display text-[24px] leading-none tracking-[-0.015em]"
             >
-              Frame the piece.
+              Frame the piece
             </h3>
           </div>
           <button

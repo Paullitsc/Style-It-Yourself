@@ -1015,10 +1015,10 @@ export default function AddItemPanel({
               <h3 className="font-display text-[32px] leading-tight tracking-[-0.015em]">
                 {itemValidation.warnings.length === 0 ? (
                   <>
-                    Perfect match.
+                    Perfect match
                   </>
                 ) : (
-                  <>Worth a look.</>
+                  <>Worth a look</>
                 )}
               </h3>
               <p className="font-display italic text-[16px] text-ink-2 mt-2 max-w-[34ch]">

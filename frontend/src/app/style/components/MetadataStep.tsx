@@ -51,7 +51,7 @@ export default function MetadataStep() {
         <h2 className="m-0 font-display font-normal text-[clamp(48px,6vw,88px)] leading-[0.95] tracking-[-0.02em]">
           Tell us about
           <br />
-          this piece.
+          this piece
         </h2>
       </section>
 

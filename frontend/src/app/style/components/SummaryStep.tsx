@@ -144,9 +144,9 @@ export default function SummaryStep() {
           Review
         </p>
         <h1 className="m-0 font-display font-normal text-[clamp(48px,7vw,108px)] leading-[0.95] tracking-[-0.025em]">
-          Your outfit,
+          Your outfit
           <br />
-          assembled.
+          assembled
         </h1>
         <p className="mt-4 max-w-[40ch] font-display italic text-[20px] leading-[1.35] text-ink-2">
           Check the cohesion, name it, and save it to your closet.

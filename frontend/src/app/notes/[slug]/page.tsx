@@ -40,7 +40,7 @@ export default async function NotePage({ params }: NotePageProps) {
             Note {note.number} of {String(NOTES.length).padStart(2, '0')}
           </p>
           <h1 className="m-0 max-w-[16ch] font-display font-normal uppercase text-[clamp(56px,8vw,112px)] leading-[0.92] tracking-[-0.025em]">
-            {note.title}.
+            {note.title}
           </h1>
           <p className="mt-[18px] max-w-[48ch] font-display italic text-[20px] leading-[1.35] text-ink-2">
             {note.standfirst}

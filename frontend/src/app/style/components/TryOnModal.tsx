@@ -190,7 +190,7 @@ export default function TryOnModal({
           <h4 className="font-display text-[36px] leading-tight tracking-[-0.015em]">
             Fitting the piece
             <br />
-            onto your photo.
+            onto your photo
           </h4>
           <p className="mt-4 mx-auto max-w-[40ch] font-display italic text-[16px] text-ink-2">
             This usually takes about 10–15 seconds.

@@ -18,7 +18,7 @@ export default function NotesPage() {
             Index
           </p>
           <h1 className="m-0 font-display font-normal uppercase text-[clamp(72px,9vw,128px)] leading-[0.92] tracking-[-0.025em]">
-            Notes.
+            Notes
           </h1>
           <p className="mt-[18px] max-w-[48ch] font-display italic text-[20px] leading-[1.35] text-ink-2">
             The engine&apos;s rulebook, written out in prose. Numbered, not
@@ -39,7 +39,7 @@ export default function NotesPage() {
               </span>
               <span>
                 <span className="block font-display font-normal text-[clamp(28px,3.2vw,42px)] leading-[1.05] tracking-[-0.01em]">
-                  {note.title}.
+                  {note.title}
                 </span>
                 <span className="block mt-2 max-w-[58ch] font-display italic text-[17px] leading-[1.4] text-ink-2">
                   {note.standfirst}

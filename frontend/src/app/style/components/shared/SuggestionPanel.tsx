@@ -128,7 +128,7 @@ export default function SuggestionPanel({
     return (
       <div className="h-full flex flex-col items-center justify-center text-center p-8">
         <p className="font-display italic text-[24px] leading-tight mb-2">
-          No suggestions yet.
+          No suggestions yet
         </p>
         <p className="font-display italic text-[16px] text-ink-2 max-w-[28ch]">
           Upload a base item first to get colour and styling recommendations.
@@ -147,7 +147,7 @@ export default function SuggestionPanel({
           Suggestions
         </p>
         <h3 className="font-display text-[24px] leading-none tracking-[-0.015em]">
-          For your {lowerCat}.
+          For your {lowerCat}
         </h3>
       </div>
 
