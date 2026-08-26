@@ -9,8 +9,7 @@ import type {
   ClothingItemResponse,
 } from '@/types'
 import { getOutfit, validateOutfit } from '@/lib/api'
-import { ConfirmationModal, Modal } from '@/components/ui'
-import { cn } from '@/lib/cn'
+import { ConfirmationModal, Modal, cn } from '@siy/ui'
 import ItemDetailModal from './ItemDetailModal'
 
 interface OutfitDetailModalProps {
@@ -129,7 +128,7 @@ export default function OutfitDetailModal({
 
         {!isLoading && !error && fullOutfit && (
           <div className="flex flex-col gap-10">
-            {/* HEAD — image + key metadata */}
+            {/* HEAD: image + key metadata */}
             <div className="grid grid-cols-[1fr_1fr] max-md:grid-cols-1 gap-10">
               {/* IMAGE */}
               <div className="relative aspect-[4/5] border border-ink overflow-hidden bg-paper-2">
@@ -152,8 +151,8 @@ export default function OutfitDetailModal({
                 </div>
 
                 <h2 className="font-display font-normal text-[clamp(40px,4.5vw,64px)] leading-[0.95] tracking-[-0.02em] m-0">
-                  <em className="italic">{outfit.name}</em>
-                  <span className="italic text-ink-3">.</span>
+                  {outfit.name}
+                  .
                 </h2>
 
                 <hr className="border-t border-ink mt-6 mb-6" />

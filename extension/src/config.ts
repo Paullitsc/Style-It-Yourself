@@ -1,7 +1,7 @@
 /**
  * Build-time configuration. These identifiers are replaced by esbuild `define`
  * (see build.mjs) with values from env vars, defaulting to local dev. The
- * Supabase ANON key is a public client key — safe to ship. The service-role key
+ * Supabase ANON key is a public client key, safe to ship. The service-role key
  * must NEVER appear in extension code.
  */
 declare const __SIY_API_BASE_URL__: string

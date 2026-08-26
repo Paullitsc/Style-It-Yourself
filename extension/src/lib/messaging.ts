@@ -2,7 +2,7 @@
  * Pull product context from the active tab.
  *
  * The content script is declared for all http(s) pages, but a freshly-installed
- * extension won't have it on already-open tabs — so if messaging fails we inject
+ * extension won't have it on already-open tabs, so if messaging fails we inject
  * it on demand via chrome.scripting and retry once.
  */
 import type { ExtractProductResult, RawProduct } from './types'
@@ -28,7 +28,7 @@ export async function getActiveTabProduct(): Promise<RawProduct> {
   try {
     result = await ask()
   } catch {
-    // Content script not present yet — inject and retry.
+    // Content script not present yet: inject and retry.
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       files: ['contentScript.js'],

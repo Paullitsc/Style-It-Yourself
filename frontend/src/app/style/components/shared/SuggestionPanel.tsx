@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthProvider'
 import { getMatchingItems } from '@/lib/api'
-import { cn } from '@/lib/cn'
+import { cn } from '@siy/ui'
 import type {
   CategoryRecommendation,
   RecommendedColor,
@@ -147,7 +147,7 @@ export default function SuggestionPanel({
           Suggestions
         </p>
         <h3 className="font-display text-[24px] leading-none tracking-[-0.015em]">
-          For your <em className="italic text-ink-3">{lowerCat}.</em>
+          For your {lowerCat}.
         </h3>
       </div>
 

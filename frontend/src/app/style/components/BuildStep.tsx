@@ -12,7 +12,7 @@ import TryOnModal from './TryOnModal'
 import ItemDetailModal from './ItemDetailModal'
 import SuggestionPanel from './shared/SuggestionPanel'
 import AddItemPanel from './AddItemPanel'
-import { cn } from '@/lib/cn'
+import { cn } from '@siy/ui'
 import type {
   ClothingItemCreate,
   ClothingItemResponse,
@@ -194,7 +194,7 @@ export default function BuildStep() {
               Build
             </p>
             <h1 className="m-0 font-display font-normal text-[clamp(28px,3.5vw,40px)] leading-[0.95] tracking-[-0.015em]">
-              Assemble the <em className="italic text-ink-3">outfit.</em>
+              Assemble the outfit.
             </h1>
           </div>
 
@@ -327,14 +327,14 @@ export default function BuildStep() {
           </div>
         </div>
 
-        {/* Sticky action bar — hides when the add-item panel is open */}
+        {/* Sticky action bar: hides when the add-item panel is open */}
         {!isPanelOpen && (
           <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-ink bg-paper">
             <div className="max-w-[1100px] mx-auto px-10 max-md:px-6 py-4 flex items-center justify-between gap-6 flex-wrap">
               <p className="font-display italic text-[16px] leading-snug text-ink-2 flex-1 min-w-[180px]">
                 {outfitComplete ? (
                   <>
-                    Outfit <em className="italic text-ink-3">complete.</em>{' '}
+                    Outfit complete.{' '}
                     Review it for the cohesion score.
                   </>
                 ) : (

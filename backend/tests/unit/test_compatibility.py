@@ -42,7 +42,7 @@ def _make_item(
 
 
 def _make_color_only_item(h: int, s: int, l: int, name: str) -> ClothingItemBase:
-    """Helper for color-clash tests — non-neutral color with controllable HSL.
+    """Helper for color-clash tests: non-neutral color with controllable HSL.
     The `name` is intentionally not in NEUTRAL_COLORS so check_color_compatibility
     doesn't short-circuit to neutral."""
     return ClothingItemBase(
@@ -221,7 +221,7 @@ def test_check_category_pairing_full_body_invalid():
 
 
 def test_check_category_pairing_sandals_with_suit_warns():
-    """Sandals don't pair with Suits — Sandals' allowed list contains Dresses
+    """Sandals don't pair with Suits: Sandals' allowed list contains Dresses
     but not Suits, so the bottom-specific check must reject this combo."""
     sandals = _make_item("Shoes", "Sandals")
     suit = _make_item("Full Body", "Suits")
@@ -250,7 +250,7 @@ def test_check_category_pairing_non_shoe_bottom():
 
 
 def test_check_category_pairing_unknown_shoe_type():
-    """Unknown shoe types have no rule — stay silent instead of falsely
+    """Unknown shoe types have no rule: stay silent instead of falsely
     warning. Confidently rejecting an unknown combination is worse than
     saying nothing."""
     unknown_shoe = _make_item("Shoes", "UnknownShoeType")
@@ -476,7 +476,7 @@ def test_calculate_cohesion_score_color_penalty_not_diluted_by_outfit_size():
 
     small_outfit_score = clashing_with(0)
     big_outfit_score = clashing_with(3)
-    # Color penalty must be the same — the only differing factor is total pairs.
+    # Color penalty must be the same; the only differing factor is total pairs.
     assert small_outfit_score == big_outfit_score
 
 
@@ -495,7 +495,7 @@ def test_calculate_cohesion_score_formality_gap():
 
 def test_calculate_cohesion_score_formality_deadzone_no_penalty():
     """Float formality gaps within ±0.5 should not move the score. 3.0 vs 3.1
-    is visually identical to the user — penalizing it for -1 point is noise."""
+    is visually identical to the user; penalizing it for -1 point is noise."""
     base_item = _make_item(
         "Tops", "T-Shirts", formality=3.0, aesthetics=["Minimalist"]
     )
@@ -654,7 +654,7 @@ def test_validate_item_with_current_outfit():
 
 def test_validate_item_color_clash_returns_mismatch():
     """Hard color clashes should escalate to 'mismatch', not be capped at
-    'warning'. Formality already has three levels — color should too."""
+    'warning'. Formality already has three levels; color should too."""
     base_item = _make_color_only_item(h=0, s=100, l=50, name="red")    # red
     new_item = _make_color_only_item(h=80, s=100, l=50, name="yellow")  # incompatible (gap=80°)
     response = compatibility.validate_item(new_item, base_item, [])
@@ -672,7 +672,7 @@ def test_validate_item_color_clash_warning_text_excludes_internal_label():
 
 
 def test_validate_item_aesthetic_checks_current_outfit():
-    """Aesthetic check shouldn't be limited to base_item — if the current
+    """Aesthetic check shouldn't be limited to base_item: if the current
     outfit has drifted, a new item that mismatches an outfit piece must warn."""
     base_item = _make_item(
         "Tops", "T-Shirts", formality=3.0, aesthetics=["Minimalist"]
@@ -735,7 +735,7 @@ def test_validate_outfit_warns_when_too_many_accessories():
         _make_item("Accessories", "Watches", aesthetics=["Minimalist"]),
         _make_item("Accessories", "Belts", aesthetics=["Minimalist"]),
         _make_item("Accessories", "Hats", aesthetics=["Minimalist"]),
-        _make_item("Accessories", "Bags", aesthetics=["Minimalist"]),  # 4th — over cap
+        _make_item("Accessories", "Bags", aesthetics=["Minimalist"]),  # 4th, over cap
     ]
     response = compatibility.validate_outfit(items, base_item)
     assert any("accessor" in w.lower() for w in response.warnings)
@@ -799,7 +799,7 @@ def test_cohesion_score_ignores_item_count():
 
 
 def test_validate_outfit_dedupes_pairwise_warnings():
-    """Three items at formality 1, 1, 5 — the 1-vs-5 mismatch arises from
+    """Three items at formality 1, 1, 5: the 1-vs-5 mismatch arises from
     two distinct pairs but shouldn't appear twice in warnings."""
     base_item = _make_item("Tops", "T-Shirts", formality=1.0, aesthetics=["Minimalist"])
     items = [
@@ -832,14 +832,14 @@ def test_formality_warning_text_uses_labels_not_floats():
     formality_warnings = [w for w in response.warnings if "Formality" in w]
     assert formality_warnings, "expected a formality warning for a 2.0 vs 5.0 gap"
     for w in formality_warnings:
-        # No bare floats like "2.0" or "5.0" — labels only.
+        # No bare floats like "2.0" or "5.0", labels only.
         assert "2.0" not in w
         assert "5.0" not in w
 
 
 def test_validate_outfit_emits_warning_for_formality_gap_under_mismatch_threshold():
     """A 1<distance≤2 formality gap deducts from the cohesion score but
-    previously surfaced no warning — users saw a sub-100 score with no
+    previously surfaced no warning: users saw a sub-100 score with no
     visible reason. Now the "warning"-tier message (alongside the existing
     "mismatch" tier) is surfaced."""
     base_item = _make_item(

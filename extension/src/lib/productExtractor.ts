@@ -11,7 +11,7 @@
  * Each layer contributes a LIST of candidate image URLs; they are merged in
  * precedence order, absolutized, deduped, ranked (junk last), and capped so the
  * popup can offer an image picker. `image` is kept as `images[0]` for
- * back-compat. Everything is defensive — any individual layer may throw or
+ * back-compat. Everything is defensive: any individual layer may throw or
  * return junk on a random page, so each is wrapped and merged by precedence.
  */
 import type { RawProduct } from './types'
@@ -59,7 +59,7 @@ export function extractProduct(): RawProduct {
 }
 
 // ---------------------------------------------------------------------------
-// Layer 1 — JSON-LD Product schema
+// Layer 1: JSON-LD Product schema
 // ---------------------------------------------------------------------------
 
 function extractFromJsonLd(): PartialProduct {
@@ -158,7 +158,7 @@ function pickBrand(brand: unknown): string | null {
 }
 
 // ---------------------------------------------------------------------------
-// Layer 2 — Open Graph / product meta tags
+// Layer 2: Open Graph / product meta tags
 // ---------------------------------------------------------------------------
 
 function extractFromMetaTags(): PartialProduct {
@@ -193,7 +193,7 @@ function metaAll(property: string): string[] {
 }
 
 // ---------------------------------------------------------------------------
-// Layer 3 — common ecommerce selectors
+// Layer 3: common ecommerce selectors
 // ---------------------------------------------------------------------------
 
 const TITLE_SELECTORS = [
@@ -289,7 +289,7 @@ function validImg(src: string): string | null {
 
 function largestFromSrcset(srcset: string | null): string | null {
   if (!srcset) return null
-  // "url1 320w, url2 640w" or "url1 1x, url2 2x" — pick the largest descriptor.
+  // "url1 320w, url2 640w" or "url1 1x, url2 2x": pick the largest descriptor.
   let best: { url: string; size: number } | null = null
   for (const part of srcset.split(',')) {
     const [url, descriptor] = part.trim().split(/\s+/)
@@ -302,7 +302,7 @@ function largestFromSrcset(srcset: string | null): string | null {
 }
 
 // ---------------------------------------------------------------------------
-// Layer 4 — largest visible images fallback
+// Layer 4: largest visible images fallback
 // ---------------------------------------------------------------------------
 
 function largeImages(): string[] {

@@ -2,22 +2,29 @@
 
 import { forwardRef } from 'react'
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
-import { cn } from '@/lib/cn'
+import { cn } from '../lib/cn'
+import { Button as ButtonPrimitive } from '../primitives/button'
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger'
 type ButtonSize = 'sm' | 'md' | 'lg'
 
-const variantClasses: Record<ButtonVariant, string> = {
-  primary: 'bg-ink text-paper border-ink hover:bg-paper hover:text-ink',
-  secondary: 'bg-transparent text-ink border-ink hover:bg-ink hover:text-paper',
-  ghost: 'bg-transparent text-ink border-ink hover:bg-ink hover:text-paper',
-  danger: 'bg-accent text-accent-ink border-accent hover:bg-paper hover:text-accent',
-}
+/** Our semantic names -> the shadcn primitive's cva variants. */
+const variantMap = {
+  primary: 'default',
+  secondary: 'secondary',
+  ghost: 'ghost',
+  danger: 'destructive',
+} as const satisfies Record<ButtonVariant, string>
 
+/**
+ * The primitive's sizes are shadcn's compact defaults (h-9 etc.). The editorial
+ * system wants generous, wide buttons, so we override with explicit padding and
+ * neutralise the primitive's fixed height.
+ */
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: 'px-[14px] py-[12px] min-w-[160px]',
-  md: 'px-[22px] py-[18px] min-w-[220px]',
-  lg: 'px-[28px] py-[22px] min-w-[260px]',
+  sm: 'h-auto px-[14px] py-[12px] min-w-[160px]',
+  md: 'h-auto px-[22px] py-[18px] min-w-[220px]',
+  lg: 'h-auto px-[28px] py-[22px] min-w-[260px]',
 }
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -45,24 +52,19 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
   },
   ref
 ) {
-  const isDisabled = disabled || loading
-
   return (
-    <button
+    <ButtonPrimitive
       ref={ref}
       type={type ?? 'button'}
+      variant={variantMap[variant]}
       className={cn(
-        'inline-flex items-center justify-between gap-[24px]',
-        'font-mono text-[11px] uppercase tracking-[0.12em]',
-        'border transition-[background-color,color] duration-200',
-        'focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-ink',
-        'disabled:opacity-50 disabled:pointer-events-none',
+        // Editorial layout: label centred, icons pushed to the edges.
+        'justify-between gap-[24px] tracking-[0.12em]',
         sizeClasses[size],
-        variantClasses[variant],
         fullWidth && 'w-full',
         className
       )}
-      disabled={isDisabled}
+      disabled={disabled || loading}
       aria-busy={loading || undefined}
       {...props}
     >
@@ -76,8 +78,6 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       )}
       <span>{children}</span>
       {!loading && rightIcon}
-    </button>
+    </ButtonPrimitive>
   )
 })
-
-export default Button

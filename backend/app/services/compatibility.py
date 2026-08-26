@@ -30,7 +30,7 @@ aggregates them into cohesion scores and verdicts.
       * Formality range: up to -30 (with a 0.5-level dead-zone)
       * Aesthetics: -30 when zero shared tags, else 0
       * Pairing rules: up to -10 (5 per shoe-bottom violation)
-    (No over-max-items penalty — UI structurally caps total items.)
+    (No over-max-items penalty: UI structurally caps total items.)
 
 4.  **Recommendation Logic:**
     * Generates targeted suggestions for missing categories based on the base
@@ -218,7 +218,7 @@ def validate_item(
     # 1. Color compatibility checks
     # Any incompatible pair escalates color_status to "mismatch" (parity with
     # formality_status). The internal harmony_type label is intentionally not
-    # interpolated into the warning text — it would surface as "(none)".
+    # interpolated into the warning text; it would surface as "(none)".
     color_warnings = []
     color_ok = True
 
@@ -264,7 +264,7 @@ def validate_item(
     
     warnings.extend(formality_warnings)
     
-    # 3. Aesthetic compatibility — check vs base_item AND each current_outfit
+    # 3. Aesthetic compatibility: check vs base_item AND each current_outfit
     # item so a drifted outfit isn't masked by a matching base.
     aesthetic_status = "cohesive"
     aesthetic_warnings = []
@@ -382,7 +382,7 @@ def calculate_cohesion_score(items: list[ClothingItemBase], base_item: ClothingI
     - Pairing: 5 per shoe-bottom rule violation, capped at 10
       (e.g. Sandals + Suit, Oxfords + Joggers).
 
-    No item-count penalty — UI caps total at MAX_OUTFIT_ITEMS. The
+    No item-count penalty: UI caps total at MAX_OUTFIT_ITEMS. The
     "too many items" warning in validate_outfit still downgrades the
     verdict via get_verdict's no-warnings gate.
     """
@@ -406,7 +406,7 @@ def calculate_cohesion_score(items: list[ClothingItemBase], base_item: ClothingI
 
     # Color penalty (up to -40 points). Industry sources consistently rank
     # color discipline (3-color rule, 60-30-10, harmony) as the single most
-    # observable cohesion signal in an outfit — heavier than formality range.
+    # observable cohesion signal in an outfit, heavier than formality range.
     color_penalty = min(incompatible_pairs * 10, 40)
     score -= color_penalty
 
@@ -426,12 +426,12 @@ def calculate_cohesion_score(items: list[ClothingItemBase], base_item: ClothingI
         common_tags = set.intersection(*all_aesthetics)
         aesthetic_penalty = 0 if common_tags else 30
     else:
-        aesthetic_penalty = 0  # Single or zero items with tags — nothing to disagree about.
+        aesthetic_penalty = 0  # Single or zero items with tags: nothing to disagree about.
 
     score -= aesthetic_penalty
 
     # Pairing penalty (up to -10). Industry treats pairing rules as a "note"
-    # rather than a visual disaster, so the weight is light — 5 per violation,
+    # rather than a visual disaster, so the weight is light: 5 per violation,
     # capped at 10 since the UI has at most one shoe + one bottom pair anyway.
     pairing_violations = 0
     for i in range(len(all_items)):
@@ -455,7 +455,7 @@ def get_verdict(score: int, is_complete: bool, warnings: list[str]) -> str:
     """Generate a human-readable verdict for the outfit.
 
     Verdict tiers are gated by both the cohesion score AND the presence of
-    warnings. An "Excellent" verdict implies a clean look — outfits carrying
+    warnings. An "Excellent" verdict implies a clean look: outfits carrying
     any warning are capped at "Good" regardless of score.
     """
     if not is_complete:
@@ -513,11 +513,11 @@ def validate_outfit(
     items_by_l1 = get_categories_in_outfit(full_outfit)
     if len(items_by_l1.get("Accessories", [])) > MAX_ACCESSORIES:
         warnings.append(
-            f"Too many accessories ({len(items_by_l1['Accessories'])} — max: {MAX_ACCESSORIES})"
+            f"Too many accessories ({len(items_by_l1['Accessories'])}, max: {MAX_ACCESSORIES})"
         )
     if len(items_by_l1.get("Outerwear", [])) > MAX_OUTERWEAR:
         warnings.append(
-            f"Too many outerwear pieces ({len(items_by_l1['Outerwear'])} — max: {MAX_OUTERWEAR})"
+            f"Too many outerwear pieces ({len(items_by_l1['Outerwear'])}, max: {MAX_OUTERWEAR})"
         )
     for l1 in ("Tops", "Bottoms", "Shoes", "Full Body"):
         count = len(items_by_l1.get(l1, []))
@@ -537,7 +537,7 @@ def validate_outfit(
             if not is_compatible:
                 warnings.append(f"{item1.category.l2} and {item2.category.l2} colors may clash")
             
-            # Formality check — surface both "warning" and "mismatch" tiers.
+            # Formality check: surface both "warning" and "mismatch" tiers.
             # The cohesion score deducts for any range above the 0.5 dead-zone,
             # so a "warning"-tier pair (1 < distance ≤ 2) silently reduced the
             # score with no visible reason. dedup at the end will collapse
@@ -558,7 +558,7 @@ def validate_outfit(
     if len(aesthetic_sets) >= 2 and not set.intersection(*aesthetic_sets):
         warnings.append("No shared aesthetic tags across the outfit")
 
-    # Dedupe — pair-wise checks can produce the same warning string from
+    # Dedupe: pair-wise checks can produce the same warning string from
     # multiple distinct pairs (e.g. three items at formality 1,1,5 surfaces
     # the same Casual-vs-Black-Tie mismatch twice). dict.fromkeys preserves
     # first-seen order on Python 3.7+.
@@ -623,7 +623,7 @@ def generate_category_recommendations(
     # Exclude already filled categories
     categories_to_recommend = [cat for cat in categories_to_recommend if cat not in filled_categories]
 
-    # Colors don't depend on the slot category — compute once and reuse.
+    # Colors don't depend on the slot category, so compute once and reuse.
     colors = generate_recommended_colors(base_item.color, include_neutrals=True)
 
     # 2. For each category to recommend

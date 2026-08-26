@@ -237,7 +237,7 @@ class TryOnResponse(BaseModel):
         "image_fetch",     # Couldn't load user/item image from URL (bad input)
         "validation",      # Content moderation or malformed Gemini response (bad input)
         "unexpected",      # Anything else (internal server error)
-    ]] = Field(None, description="Machine-readable error category — drives HTTP status mapping")
+    ]] = Field(None, description="Machine-readable error category; drives HTTP status mapping")
     generated_image_url: Optional[str] = None  # Made optional for error cases
     processing_time: Optional[float] = Field(None, description="Time in seconds") # Made optional
 
@@ -263,7 +263,7 @@ class ClothingItemCreateRequest(BaseModel):
 
 # ==============================================================================
 # PATCH /api/clothing-items/{item_id} (Auth required)
-# Partial update — used to correct items (e.g. extension mis-guesses)
+# Partial update: used to correct items (e.g. extension mis-guesses)
 # ==============================================================================
 
 class ClothingItemUpdate(BaseModel):
@@ -285,7 +285,7 @@ class ClothingItemUpdate(BaseModel):
 
 
 # ==============================================================================
-# EXTENSION — /api/extension/*
+# EXTENSION: /api/extension/*
 # Chrome extension capture-and-control surface. The extension never
 # reimplements styling logic; it normalizes scraped product context into the
 # existing closet data model and delegates to the same services as the app.

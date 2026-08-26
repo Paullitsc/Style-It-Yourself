@@ -10,7 +10,7 @@ interface Props {
 
 /**
  * Draws a backend-relayed (same-origin data:) image to a canvas and samples
- * the pixel under the cursor. MUST be fed the data: URL only — drawing a
+ * the pixel under the cursor. MUST be fed the data: URL only, since drawing a
  * remote cross-origin image would taint the canvas and break getImageData.
  */
 export function ImageEyedropper({ previewSrc, currentHex, onPick }: Props) {
@@ -66,7 +66,7 @@ export function ImageEyedropper({ previewSrc, currentHex, onPick }: Props) {
       if (n === 0) return
       onPick(colorFromRgb(Math.round(r / n), Math.round(g / n), Math.round(b / n)))
     } catch {
-      /* canvas unreadable — ignore */
+      /* canvas unreadable, ignore */
     }
   }
 

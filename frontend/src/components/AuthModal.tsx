@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Button, Modal, TextInput } from '@/components/ui'
+import { Button, Modal, TextInput } from '@siy/ui'
 
 interface AuthModalProps {
   isOpen: boolean

@@ -1,9 +1,12 @@
 'use client'
 
 import { useId, useRef, useState } from 'react'
-import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from 'react'
-import { ChevronDown, Upload, X } from 'lucide-react'
-import { cn } from '@/lib/cn'
+import type { InputHTMLAttributes, ReactNode } from 'react'
+import { HugeiconsIcon } from '@hugeicons/react'
+import { Cancel01Icon, Upload01Icon } from '@hugeicons/core-free-icons'
+import { cn } from '../lib/cn'
+import { Input as InputPrimitive } from '../primitives/input'
+import { Label } from '../primitives/label'
 
 interface FieldProps {
   id?: string
@@ -61,98 +64,23 @@ export function TextInput({
 
   return (
     <div className={cn('space-y-[var(--space-1)]', className)}>
-      <label htmlFor={fieldId} className="block font-mono text-[10px] uppercase tracking-[0.06em] text-ink-3">
+      <Label htmlFor={fieldId} className="block font-mono text-[10px] uppercase tracking-[0.06em] text-ink-3">
         {label}
         {required && <span className="ml-[2px] text-accent">*</span>}
-      </label>
+      </Label>
 
       <div className="relative">
         {leftIcon && <span className="pointer-events-none absolute left-[var(--space-3)] top-1/2 -translate-y-1/2 text-ink-3">{leftIcon}</span>}
-        <input
+        <InputPrimitive
           id={fieldId}
           type={type}
           required={required}
           aria-invalid={Boolean(error)}
           aria-describedby={describedBy}
           className={cn(
-            'h-[var(--size-control-md)] w-full bg-transparent text-ink font-display text-[18px]',
-            'border-0 border-b border-ink rounded-none',
-            'placeholder:text-ink-3 focus:outline-none focus:border-accent',
-            'disabled:cursor-not-allowed disabled:opacity-60',
-            leftIcon ? 'pl-[calc(var(--space-3)*2+var(--size-icon-sm))] pr-0' : 'px-0'
+            leftIcon && 'pl-[calc(var(--space-3)*2+var(--size-icon-sm))] pr-0'
           )}
           {...props}
-        />
-      </div>
-
-      <FieldMeta id={fieldId} hint={hint} error={error} />
-    </div>
-  )
-}
-
-interface SelectOption {
-  value: string
-  label: string
-  disabled?: boolean
-}
-
-export interface SelectInputProps extends SelectHTMLAttributes<HTMLSelectElement>, FieldProps {
-  options: SelectOption[]
-  placeholder?: string
-}
-
-export function SelectInput({
-  id,
-  label,
-  hint,
-  error,
-  required,
-  className,
-  options,
-  placeholder,
-  ...props
-}: SelectInputProps) {
-  const generatedId = useId()
-  const fieldId = id ?? generatedId
-  const describedBy = getDescribedBy(fieldId, hint, error)
-
-  return (
-    <div className={cn('space-y-[var(--space-1)]', className)}>
-      <label htmlFor={fieldId} className="block font-mono text-[10px] uppercase tracking-[0.06em] text-ink-3">
-        {label}
-        {required && <span className="ml-[2px] text-accent">*</span>}
-      </label>
-
-      <div className="relative">
-        <select
-          id={fieldId}
-          required={required}
-          aria-invalid={Boolean(error)}
-          aria-describedby={describedBy}
-          className={cn(
-            'h-[var(--size-control-md)] w-full appearance-none bg-transparent text-ink font-display text-[18px]',
-            'border-0 border-b border-ink rounded-none px-0 pr-[calc(var(--space-3)*2+var(--size-icon-md))]',
-            'focus:outline-none focus:border-accent',
-            'disabled:cursor-not-allowed disabled:opacity-60'
-          )}
-          {...props}
-        >
-          {placeholder && (
-            <option value="" disabled>
-              {placeholder}
-            </option>
-          )}
-          {options.map((option) => (
-            <option key={option.value} value={option.value} disabled={option.disabled}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-
-        <ChevronDown
-          className="pointer-events-none absolute right-[var(--space-3)] top-1/2 -translate-y-1/2 text-ink-3"
-          size={16}
-          aria-hidden="true"
         />
       </div>
 
@@ -240,10 +168,10 @@ export function FileUploadInput({
 
   return (
     <div className={cn('space-y-[var(--space-1)]', className)}>
-      <label htmlFor={fieldId} className="block font-mono text-[10px] uppercase tracking-[0.06em] text-ink-3">
+      <Label htmlFor={fieldId} className="block font-mono text-[10px] uppercase tracking-[0.06em] text-ink-3">
         {label}
         {required && <span className="ml-[2px] text-accent">*</span>}
-      </label>
+      </Label>
 
       <button
         type="button"
@@ -276,7 +204,13 @@ export function FileUploadInput({
         aria-describedby={describedBy}
         aria-invalid={Boolean(resolvedError)}
       >
-        <Upload size={24} className={cn('text-ink-3', isDragging && 'text-accent')} aria-hidden="true" />
+        <HugeiconsIcon
+          icon={Upload01Icon}
+          size={24}
+          strokeWidth={1}
+          className={cn('text-ink-3', isDragging && 'text-accent')}
+          aria-hidden="true"
+        />
         <span className="font-mono text-[11px] uppercase tracking-[0.04em] text-ink">{dropLabel}</span>
         <span className="font-mono text-[10px] uppercase tracking-[0.06em] text-ink-3">
           {accept ? accept : 'Any file type'} • Max {maxSizeMB}MB
@@ -309,7 +243,7 @@ export function FileUploadInput({
               className="p-[var(--space-1)] text-ink-3 transition-colors hover:text-ink focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-ink"
               aria-label="Remove selected file"
             >
-              <X size={14} aria-hidden="true" />
+              <HugeiconsIcon icon={Cancel01Icon} size={14} strokeWidth={1} aria-hidden="true" />
             </button>
           )}
         </div>
@@ -319,5 +253,3 @@ export function FileUploadInput({
     </div>
   )
 }
-
-export default TextInput

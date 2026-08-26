@@ -40,12 +40,12 @@ export default function AccountPage() {
               Account
             </p>
             <h1 className="m-0 font-display font-normal uppercase text-[clamp(72px,9vw,128px)] leading-[0.92] tracking-[-0.025em]">
-              Your <em className="italic text-ink-3">account,</em>
+              Your account,
               <br />
               in brief.
             </h1>
             <p className="mt-[18px] max-w-[40ch] font-display italic text-[20px] leading-[1.35] text-ink-2">
-              The basics on file. Nothing fancy — sign out below when
+              The basics on file. Nothing fancy. Sign out below when
               you&apos;re done.
             </p>
           </section>
@@ -54,7 +54,7 @@ export default function AccountPage() {
           <section className="grid grid-cols-[260px_1fr] max-md:grid-cols-1 gap-y-7 gap-x-10 pt-10">
             <MetaRow label="Email">
               <span className="font-display text-[24px] leading-none break-all">
-                {user?.email ?? '—'}
+                {user?.email ?? '–'}
               </span>
             </MetaRow>
 

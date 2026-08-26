@@ -267,7 +267,7 @@ async def create_outfit(
     endpoint), the file is uploaded to generated-images AFTER the outfit row
     exists so the storage path can include the real outfit_id. This way the
     try-on endpoint never creates orphan files for try-ons the user doesn't
-    save — the upload only happens here, gated by the user committing.
+    save; the upload only happens here, gated by the user committing.
     """
     supabase = await get_supabase_client()
 
@@ -276,7 +276,7 @@ async def create_outfit(
         isinstance(final_image_url, str) and final_image_url.startswith("data:")
     )
 
-    # Insert the outfit row first WITHOUT the (very large) data URL — we'll
+    # Insert the outfit row first WITHOUT the (very large) data URL; we'll
     # update it with the real public URL once the file is uploaded.
     outfit_data = {
         "user_id": user_id,
@@ -306,7 +306,7 @@ async def create_outfit(
                 .execute()
             )
         except Exception as e:
-            # Don't fail the outfit save if the image upload fails — the
+            # Don't fail the outfit save if the image upload fails: the
             # outfit metadata is the primary record. Log and continue with
             # a null generated_image_url so the user still has their outfit.
             logging.getLogger(__name__).warning(

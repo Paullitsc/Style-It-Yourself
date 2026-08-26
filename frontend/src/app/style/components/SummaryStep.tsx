@@ -8,7 +8,7 @@ import { validateOutfit, saveOutfitWithItems } from '@/lib/api'
 import type { ValidateOutfitResponse } from '@/types'
 import AuthModal from '@/components/AuthModal'
 import TryOnOutfitModal from './TryonOutfitModal'
-import { cn } from '@/lib/cn'
+import { cn } from '@siy/ui'
 
 export default function SummaryStep() {
   const router = useRouter()
@@ -50,7 +50,7 @@ export default function SummaryStep() {
       hasValidated.current = true
       setIsValidating(true)
       try {
-        // allItems is [base, ...outfitItems] — slice off the base since the
+        // allItems is [base, ...outfitItems], so slice off the base since the
         // backend's validate_outfit re-prepends it. Without this, the base
         // appears twice in full_outfit and triggers spurious duplicate-L1
         // warnings (notably "Too many outerwear pieces" when base is Outerwear).
@@ -58,7 +58,7 @@ export default function SummaryStep() {
         const result = await validateOutfit(otherItems, baseItem)
         setValidation(result)
       } catch (error) {
-        // Don't fake a score-of-0 response — distinguish "validation failed"
+        // Don't fake a score-of-0 response: distinguish "validation failed"
         // from "outfit is bad". Leave validation null and surface the error.
         setValidationError(
           error instanceof Error
@@ -144,7 +144,7 @@ export default function SummaryStep() {
           Review
         </p>
         <h1 className="m-0 font-display font-normal text-[clamp(48px,7vw,108px)] leading-[0.95] tracking-[-0.025em]">
-          Your <em className="italic text-ink-3">outfit,</em>
+          Your outfit,
           <br />
           assembled.
         </h1>
@@ -201,7 +201,7 @@ export default function SummaryStep() {
             // Use the validated color strip when available; otherwise fall
             // back to item colors directly so the palette still renders even
             // if validation failed. Both sources should produce the same
-            // sequence under normal operation — the fallback only matters
+            // sequence under normal operation; the fallback only matters
             // when the validation API was unreachable.
             const colorStrip =
               validation?.color_strip && validation.color_strip.length > 0
@@ -253,7 +253,7 @@ export default function SummaryStep() {
                   {validationError}
                 </p>
                 <p className="font-display italic text-[14px] text-ink-3 max-w-[42ch]">
-                  You can still save or try this outfit on — we just
+                  You can still save or try this outfit on. We just
                   couldn&apos;t check it this time.
                 </p>
               </div>
@@ -373,7 +373,7 @@ export default function SummaryStep() {
                 <span>
                   Save to closet
                   {!user && (
-                    <span className="ml-2 text-ink-3 normal-case font-normal italic">
+                    <span className="ml-2 text-ink-3 normal-case font-normal">
                       (login required)
                     </span>
                   )}
@@ -394,7 +394,7 @@ export default function SummaryStep() {
                 <span>
                   Try on outfit
                   {!user && (
-                    <span className="ml-2 text-ink-3 normal-case font-normal italic">
+                    <span className="ml-2 text-ink-3 normal-case font-normal">
                       (login required)
                     </span>
                   )}

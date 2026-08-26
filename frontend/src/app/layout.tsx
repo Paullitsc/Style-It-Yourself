@@ -1,7 +1,6 @@
 // src/app/layout.tsx
 import type { Metadata } from "next";
 import { Instrument_Serif, JetBrains_Mono, Mona_Sans } from "next/font/google";
-import "@/styles/system.css";
 import "./global.css";
 import Header from "@/components/Headers";
 import { AuthProvider } from "@/components/AuthProvider";
@@ -34,8 +33,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${monaSans.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} font-sans antialiased bg-paper text-ink flex flex-col min-h-screen`}>
+    // The next/font variable classes go on <html>, not <body>, so that
+    // --font-mona-sans and friends exist on :root. global.css resolves
+    // --font-sans from them in a :root rule, and custom properties substitute
+    // at the element where they are declared, so if the variables only existed on
+    // <body>, that :root declaration would be invalid and every font would fall
+    // back to the browser default.
+    <html
+      lang="en"
+      className={`${monaSans.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable}`}
+    >
+      <body className="font-sans antialiased bg-paper text-ink flex flex-col min-h-screen">
         <AuthProvider>
           <Header />
           <main className="flex-1 flex flex-col">

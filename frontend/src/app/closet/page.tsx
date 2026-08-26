@@ -5,14 +5,13 @@ import Link from 'next/link'
 import { useAuth } from '@/components/AuthProvider'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { getCloset, deleteClothingItem, deleteOutfit, updateClothingItem } from '@/lib/api'
-import { cn } from '@/lib/cn'
+import { cn, CardSkeleton } from '@siy/ui'
 import type {
   ClosetResponse,
   ClothingItemResponse,
   ClothingItemUpdate,
   OutfitSummary,
 } from '@/types'
-import { CardSkeleton } from '@/components/ui'
 import ItemDetailModal from './components/ItemDetailModal'
 import EditItemModal from './components/EditItemModal'
 import OutfitDetailModal from './components/OutfitDetailModal'
@@ -160,17 +159,17 @@ export default function ClosetPage() {
                   active={activeView === 'items'}
                   onClick={() => switchView('items')}
                   label="Pieces"
-                  count={closetData ? pad2(closetData.total_items) : '—'}
+                  count={closetData ? pad2(closetData.total_items) : '–'}
                 />
                 <SideTab
                   active={activeView === 'outfits'}
                   onClick={() => switchView('outfits')}
                   label="Outfits"
-                  count={closetData ? pad2(closetData.total_outfits) : '—'}
+                  count={closetData ? pad2(closetData.total_outfits) : '–'}
                 />
               </div>
 
-              {/* Filters — only for Pieces tab, only when closet has items */}
+              {/* Filters: only for Pieces tab, only when closet has items */}
               {activeView === 'items' && hasItems && (
                 <>
                   <hr className="border-t border-rule-soft" />
@@ -481,7 +480,7 @@ function ItemsView({
           Empty closet.
         </p>
         <p className="font-display italic text-[18px] text-ink-2 mt-3">
-          Tap <em className="italic">Add a piece</em> in the sidebar to upload
+          Tap Add a piece in the sidebar to upload
           your first one.
         </p>
       </section>
@@ -623,7 +622,7 @@ function OutfitsView({ outfits, onOutfitClick }: OutfitsViewProps) {
     <section>
       <header className="grid grid-cols-[auto_auto_1fr] gap-4 items-baseline pb-[14px] mb-5 border-b border-ink">
         <span className="font-display uppercase text-[28px] leading-none tracking-[-0.015em]">
-          Saved <em className="italic text-ink-3">outfits</em>
+          Saved outfits
         </span>
         <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
           {pad2(outfits.length)} {outfits.length === 1 ? 'look' : 'looks'}

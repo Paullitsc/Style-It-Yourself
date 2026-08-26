@@ -1,9 +1,30 @@
 @import "tailwindcss";
 
-:root {
-  --background: oklch(0.985 0.004 80); /* paper */
-  --foreground: oklch(0.18  0.01  60); /* ink */
+/* The design system lives in @siy/ui. Importing it here (rather than as a
+   separate entry in layout.tsx) keeps ONE Tailwind stylesheet graph, so
+   @theme below can see the tokens system.css defines. */
+@import "@siy/ui/styles.css";
 
+/* Tailwind v4 only auto-scans this project; @siy/ui lives outside it. */
+@source "../../../packages/ui/src";
+
+/* Bind the design system's font tokens to the actual webfonts.
+   This block MUST stay after the @siy/ui import. Tailwind emits @theme values
+   at the `@import "tailwindcss"` position above, so system.css, imported after
+   it, would otherwise win with its standalone literals ("Söhne" for sans,
+   which is not licensed or loaded here) and body copy would silently render in
+   Helvetica. The variables come from next/font in layout.tsx, applied as a
+   className on <body>; var() resolves at the point of use, so descendants of
+   <body> pick them up correctly.
+   Verify after touching this: computed font-family on <body> should report
+   Mona Sans, not Helvetica. */
+:root {
+  --font-sans: var(--font-mona-sans), "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-display: var(--font-instrument-serif), "Times New Roman", Georgia, serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+:root {
   /* Spacing tokens */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
@@ -23,104 +44,96 @@
   --size-icon-md: 1rem;
   --size-icon-lg: 1.25rem;
 
-  /* Radius tokens */
-  --radius-sm: 0.375rem;
-  --radius-md: 0.625rem;
-  --radius-lg: 0.875rem;
-  --radius-xl: 1rem;
+  /* ============================================================
+     shadcn/ui semantic layer: REMAPPED, not redefined.
+     Every value points at an editorial token from system.css so
+     there is exactly one source of truth for colour.
+
+     Deliberate deviations from stock shadcn:
+     - --radius is 2px, not 0.625rem. The design system caps radius
+       at 2px; shadcn's rounded-md/lg would violate it.
+     - shadcn's "accent" role means "subtle hover surface". Ours is
+       the oxblood brand mark (39 usages of bg-accent/text-accent).
+       Redefining --accent here would silently repaint all of them,
+       so shadcn's hover role is routed to --muted instead and
+       --accent stays oxblood. Restyle generated components to use
+       muted for hover.
+     - --destructive is oxblood: this system uses the single accent
+       for destructive actions rather than a separate red.
+     ============================================================ */
+  --background: var(--paper);
+  --foreground: var(--ink);
+
+  --card: var(--paper);
+  --card-foreground: var(--ink);
+
+  --popover: var(--paper);
+  --popover-foreground: var(--ink);
+
+  --primary: var(--ink);
+  --primary-foreground: var(--paper);
+
+  --secondary: var(--paper-2);
+  --secondary-foreground: var(--ink);
+
+  --muted: var(--paper-2);
+  --muted-foreground: var(--ink-3);
+
+  --destructive: var(--accent);
+  --destructive-foreground: var(--accent-ink);
+
+  --border: var(--rule-soft);
+  --input: var(--rule);
+  --ring: var(--accent);
+
+  --radius: 2px;
 }
 
+/* NOTE: plain @theme, not `@theme inline`. Inline mode does not emit the
+   --color-* custom properties, and 13 call sites across 5 files reference
+   var(--color-ink) / var(--color-paper-2) etc. directly (Skeleton.tsx,
+   CropModal.tsx, ColorStep.tsx, AddItemPanel.tsx). Inline would silently
+   blank those colours. */
 @theme {
-  /* --- 1. NEUTRAL --- */
-  --color-neutral-50: #ffffff;
-  --color-neutral-100: #fdfdfd;
-  --color-neutral-200: #fdfdfd;
-  --color-neutral-300: #fcfcfc;
-  --color-neutral-400: #fbfbfb;
-  --color-neutral-500: #fafafa;
-  --color-neutral-600: #e4e4e4;
-  --color-neutral-700: #b2b2b2;
-  --color-neutral-800: #8a8a8a;
-  --color-neutral-900: #696969;
+  /* --- Editorial palette (the real design system) --- */
+  --color-paper: var(--paper);
+  --color-paper-2: var(--paper-2);
+  --color-paper-3: var(--paper-3);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-rule-soft: var(--rule-soft);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
 
-  /* --- 2. PRIMARY (Charcoal) --- */
-  --color-primary-50: #e9ebeb;
-  --color-primary-100: #bcbfc1;
-  --color-primary-200: #9ba1a3;
-  --color-primary-300: #6e767a;
-  --color-primary-400: #515b60;
-  --color-primary-500: #263238; /* Main Dark Charcoal */
-  --color-primary-600: #232e33;
-  --color-primary-700: #1b2428;
-  --color-primary-800: #151c1f;
-  --color-primary-900: #101518; /* App Background */
+  /* --- shadcn semantic aliases (resolve to the above) --- */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
 
-  /* --- 3. ACCENT (Gold) --- */
-  --color-accent-50: #fbf7eb;
-  --color-accent-100: #f2e6c1;
-  --color-accent-200: #ebdaa3;
-  --color-accent-300: #e2c979;
-  --color-accent-400: #ddbf5f;
-  --color-accent-500: #d4af37; /* Main Gold */
-  --color-accent-600: #c19f32;
-  --color-accent-700: #977c27;
-  --color-accent-800: #75601e;
-  --color-accent-900: #594a17;
+  --radius-sm: var(--radius);
+  --radius-md: var(--radius);
+  --radius-lg: var(--radius);
+  --radius-xl: var(--radius);
 
-  /* --- 4. SUCCESS --- */
-  --color-success-50: #eaf2eb;
-  --color-success-100: #bed7bf;
-  --color-success-200: #9fc3a1;
-  --color-success-300: #73a876;
-  --color-success-400: #58975b;
-  --color-success-500: #2e7d32;
-  --color-success-600: #2a722e;
-  --color-success-700: #215924;
-  --color-success-800: #19451c;
-  --color-success-900: #133515;
-
-  /* --- 5. ERROR --- */
-  --color-error-50: #f8e8e8;
-  --color-error-100: #e9b9b9;
-  --color-error-200: #de9797;
-  --color-error-300: #cf6767;
-  --color-error-400: #c54949;
-  --color-error-500: #b71c1c;
-  --color-error-600: #a71919;
-  --color-error-700: #821414;
-  --color-error-800: #650f0f;
-  --color-error-900: #4d0c0c;
-
-  /* --- 6. WARNING --- */
-  --color-warning-50: #fdeee6;
-  --color-warning-100: #f7c9b0;
-  --color-warning-200: #f4af8a;
-  --color-warning-300: #ee8a54;
-  --color-warning-400: #eb7433;
-  --color-warning-500: #e65100;
-  --color-warning-600: #d14a00;
-  --color-warning-700: #a33a00;
-  --color-warning-800: #7f2d00;
-  --color-warning-900: #612200;
-
-  /* --- 7. EDITORIAL (Phase 0+, coexists with dark theme until Phase 6) --- */
-  --color-paper: oklch(0.985 0.004 80);
-  --color-paper-2: oklch(0.965 0.006 80);
-  --color-paper-3: oklch(0.93  0.008 80);
-  --color-ink: oklch(0.18  0.01  60);
-  --color-ink-2: oklch(0.32  0.008 60);
-  --color-ink-3: oklch(0.55  0.006 60);
-  --color-rule-soft: oklch(0.18 0.01 60 / 0.18);
-  --color-accent: oklch(0.42  0.14  25);
-  --color-accent-ink: oklch(0.985 0.004 80);
-
-  /* --- FONTS & VARS --- */
+  /* --- Fonts (next/font CSS variables) --- */
   --font-sans: var(--font-mona-sans), "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-display: var(--font-instrument-serif), "Times New Roman", Georgia, serif;
   --font-mono: var(--font-jetbrains-mono), ui-monospace, "SF Mono", Menlo, monospace;
-
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
 }
 
 body {

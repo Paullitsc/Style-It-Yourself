@@ -5,8 +5,7 @@ import { tryOnSingle, uploadUserPhoto, uploadItemImage } from '@/lib/api'
 import type { ClothingItemBase } from '@/types'
 import ImageUploadZone from './shared/ImageUploadZone'
 import TryOnResult from './shared/TryOnResult'
-import { Modal } from '@/components/ui'
-import { cn } from '@/lib/cn'
+import { Modal, cn } from '@siy/ui'
 
 interface TryOnModalProps {
   item: ClothingItemBase
@@ -189,7 +188,7 @@ export default function TryOnModal({
             Generating
           </p>
           <h4 className="font-display text-[36px] leading-tight tracking-[-0.015em]">
-            <em className="italic text-ink-3">Fitting</em> the piece
+            Fitting the piece
             <br />
             onto your photo.
           </h4>

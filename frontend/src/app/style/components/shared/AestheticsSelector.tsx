@@ -1,7 +1,7 @@
 'use client'
 
 import { AESTHETIC_TAGS } from '@/types'
-import { cn } from '@/lib/cn'
+import { cn } from '@siy/ui'
 
 interface AestheticsSelectorProps {
   selected: string[]

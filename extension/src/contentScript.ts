@@ -1,5 +1,5 @@
 /**
- * Content script — the only piece that touches the product page DOM.
+ * Content script: the only piece that touches the product page DOM.
  *
  * It stays passive (just registers a message listener) until the popup asks for
  * product context, then runs the layered extractor and replies. The popup will

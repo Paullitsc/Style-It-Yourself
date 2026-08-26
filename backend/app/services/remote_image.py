@@ -28,12 +28,12 @@ from PIL import Image
 
 logger = logging.getLogger(__name__)
 
-# Tunables — conservative defaults appropriate for clothing product images.
+# Tunables: conservative defaults appropriate for clothing product images.
 DEFAULT_MAX_BYTES: int = 10 * 1024 * 1024  # 10 MB
 DEFAULT_TIMEOUT_SECONDS: float = 10.0
 MAX_REDIRECTS: int = 3
 
-# A real browser-ish UA — some CDNs 403 the default httpx UA.
+# A real browser-ish UA: some CDNs 403 the default httpx UA.
 _USER_AGENT = (
     "Mozilla/5.0 (compatible; StyleItYourselfBot/1.0; "
     "+https://styleityourself.app/extension)"
@@ -66,7 +66,7 @@ def is_blocked_ip(ip_str: str) -> bool:
     try:
         ip = ipaddress.ip_address(ip_str)
     except ValueError:
-        # Not parseable as an IP — treat as blocked (fail closed).
+        # Not parseable as an IP: treat as blocked (fail closed).
         return True
 
     # Unwrap IPv4-mapped / 6to4 style addresses so a mapped 127.0.0.1 can't slip through.
@@ -97,7 +97,7 @@ def _resolve_host_ips(host: str) -> list[str]:
 def validate_image_url(url: str) -> None:
     """Validate a URL is safe to fetch. Raises RemoteImageError if not.
 
-    Pure with respect to bytes — performs DNS resolution but no HTTP request,
+    Pure with respect to bytes: performs DNS resolution but no HTTP request,
     so it is the cheap front-line guard (and the unit-test surface).
     """
     if not url or not isinstance(url, str):
@@ -131,7 +131,7 @@ def _validate_image_bytes(data: bytes, fallback_mime: str) -> str:
         with Image.open(io.BytesIO(data)) as img:
             fmt = (img.format or "").upper()
             img.verify()  # cheap structural check
-    except Exception as exc:  # noqa: BLE001 — any decode failure is a bad image
+    except Exception as exc:  # noqa: BLE001. Any decode failure is a bad image
         raise RemoteImageError("Downloaded data is not a valid image.") from exc
 
     if fmt in _FORMAT_TO_MIME:

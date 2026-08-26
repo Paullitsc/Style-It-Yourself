@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import ReactCrop, { type Crop, type PixelCrop } from 'react-image-crop'
 import 'react-image-crop/dist/ReactCrop.css'
-import { cn } from '@/lib/cn'
+import { cn } from '@siy/ui'
 
 interface CropModalProps {
   file: File
@@ -97,7 +97,7 @@ export default function CropModal({
               id="crop-title"
               className="font-display text-[24px] leading-none tracking-[-0.015em]"
             >
-              Frame the <em className="italic text-ink-3">piece.</em>
+              Frame the piece.
             </h3>
           </div>
           <button
@@ -145,9 +145,7 @@ export default function CropModal({
                 <div className="absolute top-5 right-5 bg-paper border border-ink px-3 py-2 pointer-events-none z-20">
                   <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink">
                     {displaySize.width}px ×{' '}
-                    <em className="italic text-ink-3 not-italic">
-                      {displaySize.height}px
-                    </em>
+                    {displaySize.height}px
                   </p>
                   <p className="font-mono text-[9px] uppercase tracking-[0.08em] text-ink-3 mt-1">
                     Aspect {(displaySize.width / displaySize.height).toFixed(2)}:1
@@ -232,7 +230,7 @@ export default function CropModal({
         </div>
       </div>
 
-      {/* ReactCrop visual override — ink selection, ink handles */}
+      {/* ReactCrop visual override: ink selection, ink handles */}
       <style jsx global>{`
         .ReactCrop__crop-selection {
           border: 2px solid var(--color-ink);

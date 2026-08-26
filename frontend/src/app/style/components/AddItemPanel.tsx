@@ -15,7 +15,7 @@ import type { CategoryRecommendation, RecommendedColor, Color } from '@/types'
 import { extractDominantColors, getDominantColor } from '@/lib/colorExtractor'
 import { buildColorFromHex } from '@/lib/colorUtils'
 import { validateItem } from '@/lib/api'
-import { cn } from '@/lib/cn'
+import { cn } from '@siy/ui'
 
 import CropModal from './shared/CropModal'
 import ColorPickerModal from './shared/ColorPickerModal'
@@ -505,7 +505,7 @@ export default function AddItemPanel({
       setItemValidation(validation)
       setCurrentStep('validate')
     } catch (error) {
-      // Don't fake a successful validation response — surface the failure
+      // Don't fake a successful validation response: surface the failure
       // explicitly so the user can distinguish "compatible" from "we couldn't
       // check".
       console.error('Validation failed', error)
@@ -602,7 +602,7 @@ export default function AddItemPanel({
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-5 py-6">
-        {/* STEP 1 — UPLOAD */}
+        {/* STEP 1: UPLOAD */}
         {currentStep === 'upload' && (
           <div className="flex flex-col gap-6">
             {addingItem.croppedImage ? (
@@ -651,7 +651,7 @@ export default function AddItemPanel({
           </div>
         )}
 
-        {/* STEP 2 — METADATA */}
+        {/* STEP 2: METADATA */}
         {currentStep === 'metadata' && addingItem.croppedImage && (
           <div className="flex flex-col gap-7">
             <div className="flex justify-center">
@@ -825,7 +825,7 @@ export default function AddItemPanel({
           </div>
         )}
 
-        {/* STEP 3 — COLOR */}
+        {/* STEP 3: COLOR */}
         {currentStep === 'colors' && addingItem.croppedImage && (
           <div className="flex flex-col gap-7">
             {/* Image with magnifier and color frame */}
@@ -965,7 +965,7 @@ export default function AddItemPanel({
           </div>
         )}
 
-        {/* STEP 4 — VALIDATE */}
+        {/* STEP 4: VALIDATE */}
         {currentStep === 'validate' && validationError && (
           <div className="flex flex-col gap-6">
             <div>
@@ -973,7 +973,7 @@ export default function AddItemPanel({
                 Validation unavailable
               </p>
               <h3 className="font-display text-[32px] leading-tight tracking-[-0.015em]">
-                We couldn&apos;t check this <em className="italic text-ink-3">piece</em>.
+                We couldn&apos;t check this piece.
               </h3>
               <p className="font-display italic text-[16px] text-ink-2 mt-2 max-w-[34ch]">
                 {validationError}
@@ -1015,7 +1015,7 @@ export default function AddItemPanel({
               <h3 className="font-display text-[32px] leading-tight tracking-[-0.015em]">
                 {itemValidation.warnings.length === 0 ? (
                   <>
-                    <em className="italic text-ink-3">Perfect</em> match.
+                    Perfect match.
                   </>
                 ) : (
                   <>Worth a look.</>
@@ -1023,7 +1023,7 @@ export default function AddItemPanel({
               </h3>
               <p className="font-display italic text-[16px] text-ink-2 mt-2 max-w-[34ch]">
                 How this pairs with your{' '}
-                <em className="italic">{baseItem?.category.l2}</em>.
+                {baseItem?.category.l2}.
               </p>
             </div>
 

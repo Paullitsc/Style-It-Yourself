@@ -1,0 +1,10 @@
+# Gitignored files Claude Code copies into new worktrees (gitignore syntax).
+# Only files that are BOTH gitignored and matched are copied; tracked files
+# come along via git anyway. Build outputs (.next/, extension/dist/,
+# __pycache__/, node_modules/) are deliberately excluded: worktrees should
+# regenerate those, not inherit stale copies.
+
+# Env / credentials: backend/.env, frontend/.env.local, and any future
+# .env.* files at any depth (unslashed patterns match in every directory).
+.env
+.env.*

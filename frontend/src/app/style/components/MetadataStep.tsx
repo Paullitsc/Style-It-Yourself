@@ -3,8 +3,7 @@
 import { useCallback, useState } from 'react'
 import { useStyleStore } from '@/store/styleStore'
 import { CATEGORY_TAXONOMY } from '@/types'
-import { TextInput } from '@/components/ui'
-import { cn } from '@/lib/cn'
+import { TextInput, cn } from '@siy/ui'
 import CategorySelector from './shared/CategorySelector'
 import FormalitySlider from './shared/FormalitySlider'
 import AestheticsSelector from './shared/AestheticsSelector'
@@ -50,7 +49,7 @@ export default function MetadataStep() {
           Step 02
         </p>
         <h2 className="m-0 font-display font-normal text-[clamp(48px,6vw,88px)] leading-[0.95] tracking-[-0.02em]">
-          Tell us <em className="italic text-ink-3">about</em>
+          Tell us about
           <br />
           this piece.
         </h2>

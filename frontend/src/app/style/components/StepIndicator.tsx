@@ -1,7 +1,7 @@
 'use client'
 
 import { useStyleStore, type StyleStep } from '@/store/styleStore'
-import { cn } from '@/lib/cn'
+import { cn } from '@siy/ui'
 
 const STEPS: { key: StyleStep; label: string }[] = [
   { key: 'upload', label: 'Upload' },

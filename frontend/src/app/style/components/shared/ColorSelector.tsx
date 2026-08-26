@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { buildColorFromHex, hslToHex } from '@/lib/colorUtils'
 import type { Color } from '@/types'
-import { cn } from '@/lib/cn'
+import { cn } from '@siy/ui'
 
 interface ColorSelectorProps {
   detectedColors: Color[]
@@ -189,7 +189,7 @@ export default function ColorSelector({
 
           {adjustedColor.is_neutral && (
             <div className="mt-3 font-mono text-[10px] uppercase tracking-[0.08em] text-ink-3">
-              <em className="italic">Neutral.</em>
+              Neutral.
             </div>
           )}
         </div>

@@ -74,9 +74,9 @@ export const COLOR_PALETTE: Color[] = [
 ].map(([hex, name]) => colorFromHex(hex, name))
 
 // ---------------------------------------------------------------------------
-// Hue-based naming — hand-mirrored from frontend/src/lib/colorUtils.ts so an
+// Hue-based naming, hand-mirrored from frontend/src/lib/colorUtils.ts so an
 // eyedropped pixel is named consistently with the web app's in-app picker.
-// (Backend auto-detection uses color_harmony — a different namer — so the
+// (Backend auto-detection uses color_harmony, a different namer, so the
 // initial suggested color and an eyedropped value can use different names.)
 // ---------------------------------------------------------------------------
 

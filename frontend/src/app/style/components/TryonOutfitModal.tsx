@@ -6,8 +6,7 @@ import { useStyleStore } from '@/store/styleStore'
 import type { ClothingItemCreate, TryOnOutfitRequest } from '@/types'
 import ImageUploadZone from './shared/ImageUploadZone'
 import TryOnResult from './shared/TryOnResult'
-import { Modal } from '@/components/ui'
-import { cn } from '@/lib/cn'
+import { Modal, cn } from '@siy/ui'
 
 interface TryOnOutfitModalProps {
   items: Array<{
@@ -181,13 +180,13 @@ export default function TryOnOutfitModal({
             Generating
           </p>
           <h4 className="font-display text-[36px] leading-tight tracking-[-0.015em]">
-            <em className="italic text-ink-3">Stitching</em>{' '}
+            Stitching{' '}
             {items.length} pieces
             <br />
             onto your photo.
           </h4>
           <p className="mt-4 mx-auto max-w-[40ch] font-display italic text-[16px] text-ink-2">
-            Hold tight — this is the slow part of the magic.
+            Hold tight. This is the slow part of the magic.
           </p>
           <p className="mt-6 font-mono text-[11px] uppercase tracking-[0.14em] text-ink">
             Elapsed {String(elapsed).padStart(2, '0')}s

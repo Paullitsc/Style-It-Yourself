@@ -49,7 +49,7 @@ MAX_IMAGE_DIMENSION = 4096
 def _validate_image_bytes(data: bytes) -> None:
     """Confirm bytes are a real image and within size limits.
 
-    Trusts the content_type header on its own aren't enough — a malicious or
+    Trusts the content_type header on its own aren't enough: a malicious or
     misconfigured client can mark anything as image/jpeg. Pillow's open()
     raises UnidentifiedImageError on non-image content and DecompressionBomb
     family on suspicious dimensions; we additionally enforce an explicit
@@ -91,7 +91,7 @@ def _validate_image_bytes(data: bytes) -> None:
 
 # Per-user rate limit on try-on generation. Each Gemini call is paid, so a
 # determined user (or a buggy frontend) can run up a real bill in seconds
-# without this guard. In-memory only — survives a single worker process but
+# without this guard. In-memory only: survives a single worker process but
 # not restarts or multi-worker deploys. For a multi-worker setup, move this
 # to Redis or a Supabase counter table.
 _TRYON_WINDOW_SECONDS = 60
@@ -125,7 +125,7 @@ async def _cleanup_user_photo(user_id: str, user_photo_url: str) -> None:
     """Best-effort delete of a user-photo URL that we own.
 
     Guard ensures we only delete URLs scoped to this user's path in the
-    user-photos bucket — an external URL the caller passed in shouldn't be
+    user-photos bucket; an external URL the caller passed in shouldn't be
     touched. Any deletion failure is logged but doesn't disrupt the response.
     """
     if not user_photo_url or "/user-photos/" not in user_photo_url:
@@ -439,7 +439,7 @@ async def try_on_single(
     await validate_image_url(request.user_photo_url)
     await validate_image_url(request.item_image_url)
 
-    # 2. Service Call — user photo is cleaned up in finally regardless of outcome
+    # 2. Service Call. User photo is cleaned up in finally regardless of outcome
     # so storage doesn't grow unboundedly per try-on attempt.
     try:
         result = await generate_tryon_single(
@@ -460,7 +460,7 @@ async def try_on_single(
                 detail=result.error or "AI service failed to generate image.",
             )
 
-        # No storage upload here — return the data URL directly. The image
+        # No storage upload here: return the data URL directly. The image
         # only gets uploaded to Supabase when the user commits by saving an
         # outfit (see create_outfit), so try-ons the user never saves don't
         # leave orphan files in storage.
@@ -577,7 +577,7 @@ async def try_on_outfit(
     for img_url, _ in request.item_images:
         await validate_image_url(img_url)
 
-    # 2. Service Call — user photo cleaned up in finally regardless of outcome.
+    # 2. Service Call. User photo cleaned up in finally regardless of outcome.
     try:
         result = await generate_tryon_outfit(
             user_image_url=request.user_photo_url,
@@ -596,7 +596,7 @@ async def try_on_outfit(
                 detail=result.error or "AI service failed to generate image.",
             )
 
-        # No storage upload here — return the data URL directly (see /single
+        # No storage upload here: return the data URL directly (see /single
         # endpoint for rationale).
         return TryOnResponse(
             success=True,

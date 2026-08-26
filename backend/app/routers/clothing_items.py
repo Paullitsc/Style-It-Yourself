@@ -244,7 +244,7 @@ async def get_clothing_items(
     summary="Update a clothing item",
     description=(
         "Partially updates a clothing item owned by the authenticated user. "
-        "Only the provided fields are changed — useful for correcting metadata "
+        "Only the provided fields are changed, useful for correcting metadata "
         "the extension guessed (color, category, formality, aesthetics, etc.)."
     ),
     responses={
