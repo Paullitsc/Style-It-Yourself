@@ -75,40 +75,43 @@ export default function Home() {
       </section>
 
       {/* MANIFESTO: the "why this is free" mission statement, with a CTA
-          and a logo cloud. A full-bleed tinted band — sections on this page
+          and a logo cloud. A full-bleed tinted band; sections on this page
           are differentiated by alternating paper/paper-2 grounds, not rules.
           Brand marks render in their official colors by explicit product
-          decision — the one-accent rule governs our own UI color, not
-          third-party logos. */}
+          decision. Competitor name-drops are deliberate positioning. */}
       <section className="bg-paper-2">
-        <div className={`${CONTAINER} pt-12 pb-16 max-md:pt-9 max-md:pb-12`}>
-          <p className="m-0 mb-4 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3">
+        <div className={`${CONTAINER} pt-14 pb-20 max-md:pt-10 max-md:pb-14`}>
+          <p className="m-0 mb-5 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3">
             Manifesto
           </p>
 
-          <div className="grid grid-cols-[1fr_auto] max-md:grid-cols-1 gap-x-16 gap-y-8 items-center">
+          <div className="grid grid-cols-[1.25fr_1fr] max-md:grid-cols-1 gap-x-20 gap-y-10 items-end">
             <div>
-              <h2 className="m-0 font-display font-normal text-[clamp(36px,4.5vw,56px)] leading-none tracking-[-0.02em]">
+              <h2 className="m-0 font-display font-normal text-[clamp(44px,5.5vw,76px)] leading-[0.98] tracking-[-0.02em]">
                 Free and staying that way
               </h2>
-              <p className="mt-5 mb-0 max-w-[68ch] text-[14px] max-md:text-[13px] leading-[1.6] text-ink-2">
-                Most styling apps charge a subscription for advice you can
-                learn yourself — the color rules, the formality math, the
-                pairing logic. SIY is the counter-argument: free and
-                open-source. Clone it from GitHub and it runs on your own
-                machine around the clock. This hosted copy stays free until
-                our credits run out with Supabase, Vercel, and Cloudflare,
-                which keep it online, and Google Gemini, the model behind
-                the try-on.
-              </p>
+
+              <div className="mt-8 max-md:mt-6 flex flex-col gap-4 font-display text-[clamp(19px,2vw,26px)] leading-[1.3]">
+                <p className="m-0">
+                  Phia raised $35 million to send you shopping. Ensemble
+                  wants a subscription to get you dressed.
+                </p>
+                <p className="m-0 text-ink-2">
+                  Palette, silhouette, formality: none of it is a secret.
+                  Everything they charge for, you can learn.
+                </p>
+                <p className="m-0">
+                  SIY is the counter-argument. Free and open source.
+                </p>
+              </div>
             </div>
 
-            <div className="flex flex-col gap-4 max-md:items-start">
+            <div className="flex flex-col gap-7 max-md:gap-6 items-end max-md:items-start">
               <a
                 href="https://github.com/Paullitsc/Style-It-Yourself"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group inline-flex items-center justify-between gap-6 px-[22px] py-[14px] border border-ink bg-transparent text-ink font-mono text-[11px] uppercase tracking-[0.12em] transition-colors hover:bg-ink hover:text-paper"
+                className="group inline-flex items-center justify-between gap-8 px-[26px] py-[17px] border border-ink bg-transparent text-ink font-mono text-[11px] uppercase tracking-[0.12em] transition-colors hover:bg-ink hover:text-paper"
               >
                 <span className="inline-flex items-center gap-3">
                   <Image
@@ -123,27 +126,35 @@ export default function Home() {
                 <span aria-hidden="true">↗</span>
               </a>
 
-              <div className="flex items-center gap-5 max-md:gap-4 flex-wrap">
-                {(
-                  [
-                    ['supabase', 'Supabase'],
-                    ['vercel', 'Vercel'],
-                    ['cloudflare', 'Cloudflare'],
-                    ['googlegemini', 'Gemini'],
-                  ] as const
-                ).map(([slug, name]) => (
-                  <span key={slug} className="inline-flex items-center gap-2">
-                    <Image
-                      src={`/logos/${slug}.svg`}
-                      alt=""
-                      width={14}
-                      height={14}
-                    />
-                    <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink-2">
-                      {name}
+              <div className="text-right max-md:text-left">
+                <p className="m-0 mb-3 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3">
+                  Kept online by
+                </p>
+                <div className="flex items-center justify-end max-md:justify-start gap-5 max-md:gap-4 flex-wrap">
+                  {(
+                    [
+                      ['supabase', 'Supabase'],
+                      ['vercel', 'Vercel'],
+                      ['cloudflare', 'Cloudflare'],
+                      ['googlegemini', 'Gemini'],
+                    ] as const
+                  ).map(([slug, name]) => (
+                    <span key={slug} className="inline-flex items-center gap-2">
+                      <Image
+                        src={`/logos/${slug}.svg`}
+                        alt=""
+                        width={14}
+                        height={14}
+                      />
+                      <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink-2">
+                        {name}
+                      </span>
                     </span>
-                  </span>
-                ))}
+                  ))}
+                </div>
+                <p className="m-0 mt-4 font-mono text-[10px] uppercase tracking-[0.1em] text-ink-3">
+                  This hosted copy stays free until the credits run out
+                </p>
               </div>
             </div>
           </div>
