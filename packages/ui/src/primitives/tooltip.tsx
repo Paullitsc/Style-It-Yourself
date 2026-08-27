@@ -4,7 +4,8 @@ import { Tooltip as TooltipPrimitive } from "radix-ui"
 import { cn } from "../lib/cn"
 
 // shadcn/ui tooltip, restyled to the editorial system: an ink block with
-// paper mono microcopy, square corners, no shadow, no animation.
+// paper mono microcopy, square corners, no shadow, no animation. Content
+// renders as written (sentence case): tooltips carry sentences, not labels.
 
 function TooltipProvider({
   delayDuration = 0,
@@ -47,7 +48,7 @@ function TooltipContent({
         data-slot="tooltip-content"
         sideOffset={sideOffset}
         className={cn(
-          "z-50 w-fit max-w-[40ch] rounded-none bg-primary px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.08em] text-primary-foreground text-balance",
+          "z-50 w-fit max-w-[40ch] rounded-none bg-primary px-3 py-2 font-mono text-[11px] leading-[1.5] tracking-[0.02em] text-primary-foreground text-balance",
           className
         )}
         {...props}
