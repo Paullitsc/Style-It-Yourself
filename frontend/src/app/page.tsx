@@ -1,5 +1,5 @@
 import Image from 'next/image'
-import { Badge } from '@siy/ui'
+import { Badge, Tooltip, TooltipContent, TooltipTrigger } from '@siy/ui'
 import Link from 'next/link'
 import { buildColorFromHex, classifyHarmony } from '@/lib/colorUtils'
 import type { HarmonyType } from '@/lib/colorUtils'
@@ -195,13 +195,28 @@ export default function Home() {
                   ))}
                 </div>
                 {/* bg-paper chip on the section's paper-2 band: the ground
-                    inversion draws the boundary, no border needed */}
-                <Badge
-                  variant="secondary"
-                  className="mt-4 bg-paper px-3 py-2 text-left text-ink-3"
-                >
-                  This hosted copy stays free until the free credits we have from the services above run out
-                </Badge>
+                    inversion draws the boundary, no border needed. One line
+                    always; the full story lives in the tooltip. */}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge
+                      variant="secondary"
+                      className="mt-4 cursor-help bg-paper px-2.5 py-1.5 text-[9px] whitespace-nowrap text-ink-3 underline decoration-ink-3 decoration-dotted underline-offset-4"
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="inline-block size-[6px] shrink-0 bg-ink"
+                      />
+                      Hosted free while the credits last
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" align="end">
+                    Hosted on free credits from the services above. Gemini
+                    try-on burns them fastest, and past 20k users they run
+                    out. Clone the repo on GitHub and set it up locally with
+                    Claude Code.
+                  </TooltipContent>
+                </Tooltip>
               </div>
             </div>
           </div>
