@@ -40,28 +40,13 @@ const FEATURES = [
   },
 ]
 
-// Verified references behind the color engine section, ordered as a
-// ladder: the primary origin text, the reference entry, the empirical
-// why, then the fashion application. Every URL was checked to resolve
-// before shipping; do not add one without doing the same.
-const COLOR_SOURCES = [
-  {
-    pub: 'Isaac Newton',
-    title: 'Opticks (1704), origin of the color wheel',
-    url: 'https://www.gutenberg.org/ebooks/33504',
-  },
-  {
-    pub: 'Britannica',
-    title: 'Color wheel: definition, art, and facts',
-    url: 'https://www.britannica.com/science/color-wheel',
-  },
-  {
-    pub: 'PNAS',
-    title: 'An ecological valence theory of human color preference',
-    url: 'https://www.pnas.org/doi/10.1073/pnas.0906172107',
-  },
+// Verified reading behind the color engine section. Every URL was
+// checked to resolve before shipping; do not add one without doing the
+// same.
+const READINGS = [
   {
     pub: 'Vogue',
+    logo: '/logos/vogue.svg',
     title: 'How to master color theory in clothing',
     url: 'https://www.vogue.com/article/color-theory-for-clothing',
   },
@@ -367,38 +352,36 @@ export default function Home() {
                 pair with everything.
               </p>
 
-              {/* verified citations; do not add a link here without
-                  checking it resolves */}
               <div className="mt-3">
                 <p className="m-0 mb-2 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3">
-                  Sources
+                  Recommended readings
                 </p>
-                <ol className="m-0 list-none p-0">
-                  {COLOR_SOURCES.map((source, i) => (
-                    <li key={source.url}>
-                      <a
-                        href={source.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="group flex items-baseline gap-3 py-[7px] font-mono text-[11px] uppercase tracking-[0.08em]"
-                      >
-                        <span className="text-ink-3">
-                          {String(i + 1).padStart(2, '0')}
-                        </span>
-                        <span className="flex-1 text-ink-2 transition-colors group-hover:text-ink">
-                          {source.title}
-                          <span className="text-ink-3"> - {source.pub}</span>
-                        </span>
-                        <span
-                          aria-hidden="true"
-                          className="text-ink-3 transition-colors group-hover:text-ink"
-                        >
-                          ↗
-                        </span>
-                      </a>
-                    </li>
-                  ))}
-                </ol>
+                {READINGS.map((reading) => (
+                  <a
+                    key={reading.url}
+                    href={reading.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group flex items-center gap-4 py-[7px] font-mono text-[11px] uppercase tracking-[0.08em]"
+                  >
+                    <Image
+                      src={reading.logo}
+                      alt={reading.pub}
+                      width={58}
+                      height={16}
+                      className="h-[13px] w-auto shrink-0"
+                    />
+                    <span className="flex-1 text-ink-2 transition-colors group-hover:text-ink">
+                      {reading.title}
+                    </span>
+                    <span
+                      aria-hidden="true"
+                      className="text-ink-3 transition-colors group-hover:text-ink"
+                    >
+                      ↗
+                    </span>
+                  </a>
+                ))}
               </div>
             </div>
 

@@ -90,9 +90,9 @@ export default function ColorWheel() {
   }
 
   return (
-    <div className="flex flex-col gap-10 max-md:gap-8">
+    <div className="flex flex-col gap-10 max-md:gap-8 items-end max-md:items-center">
       {/* WHEEL */}
-      <div className="mx-auto">
+      <div>
         <div
           role="img"
           aria-label={`Color wheel pointed at ${readout.base.name}, ${hue} degrees. The arcs that wear well with it stay lit; the rest is veiled.`}
@@ -112,6 +112,16 @@ export default function ColorWheel() {
               WebkitMask: RING_MASK,
             }}
           />
+          {/* The wordmark sits on the achromatic centre and wears the
+              pointed hue live. */}
+          <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+            <span
+              className="font-display text-[56px] max-md:text-[44px] leading-none tracking-[-0.01em] transition-colors duration-150"
+              style={{ color: readout.base.hex }}
+            >
+              SIY
+            </span>
+          </div>
           {/* pointed-hue tick */}
           <div
             className="absolute inset-0 pointer-events-none"
