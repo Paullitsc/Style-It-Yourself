@@ -75,11 +75,12 @@ export default function Home() {
       </section>
 
       {/* MANIFESTO: the "why this is free" mission statement, with a CTA
-          and a logo cloud. A full section in its own right, closed by a
-          bottom rule. Brand marks render in their official colors by
-          explicit product decision — the one-accent rule governs our own
-          UI color, not third-party logos. */}
-      <section className="border-t border-b border-ink">
+          and a logo cloud. A full-bleed tinted band — sections on this page
+          are differentiated by alternating paper/paper-2 grounds, not rules.
+          Brand marks render in their official colors by explicit product
+          decision — the one-accent rule governs our own UI color, not
+          third-party logos. */}
+      <section className="bg-paper-2">
         <div className={`${CONTAINER} pt-12 pb-16 max-md:pt-9 max-md:pb-12`}>
           <p className="m-0 mb-4 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3">
             Manifesto
@@ -107,7 +108,7 @@ export default function Home() {
                 href="https://github.com/Paullitsc/Style-It-Yourself"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group inline-flex items-center justify-between gap-6 px-[22px] py-[14px] border border-ink bg-paper text-ink font-mono text-[11px] uppercase tracking-[0.12em] transition-colors hover:bg-ink hover:text-paper"
+                className="group inline-flex items-center justify-between gap-6 px-[22px] py-[14px] border border-ink bg-transparent text-ink font-mono text-[11px] uppercase tracking-[0.12em] transition-colors hover:bg-ink hover:text-paper"
               >
                 <span className="inline-flex items-center gap-3">
                   <Image
