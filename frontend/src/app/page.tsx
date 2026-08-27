@@ -78,7 +78,7 @@ export default function Home() {
           and a logo cloud. A full-bleed tinted band; sections on this page
           are differentiated by alternating paper/paper-2 grounds, not rules.
           Brand marks render in their official colors by explicit product
-          decision. Competitor name-drops are deliberate positioning. */}
+          decision. */}
       <section className="bg-paper-2">
         <div className={`${CONTAINER} pt-14 pb-20 max-md:pt-10 max-md:pb-14`}>
           <p className="m-0 mb-5 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3">
@@ -93,19 +93,21 @@ export default function Home() {
 
               <div className="mt-8 max-md:mt-6 flex flex-col gap-4 font-display text-[clamp(19px,2vw,26px)] leading-[1.3]">
                 <p className="m-0">
-                  Phia raised $35 million to send you shopping. Ensemble
-                  wants a subscription to get you dressed.
+                  You own more outfits than you think. What&apos;s missing
+                  isn&apos;t clothes. It&apos;s the eye: palette, silhouette,
+                  formality.
                 </p>
                 <p className="m-0 text-ink-2">
-                  Palette, silhouette, formality: none of it is a secret.
-                  Everything they charge for, you can learn.
+                  A whole industry lives in that gap. It bottles your doubt
+                  and rents it back to you, monthly.
                 </p>
                 <p className="m-0 text-ink-2">
-                  Their tools end at checkout. Our extension checks any
-                  product page against the closet you already own.
+                  An eye is not a gift. It&apos;s arithmetic. Learnable in an
+                  afternoon, yours for life.
                 </p>
                 <p className="m-0">
-                  SIY is the counter-argument. Free and open source.
+                  SIY is free and open source. The name is the instruction.
+                  Style it yourself.
                 </p>
               </div>
             </div>
