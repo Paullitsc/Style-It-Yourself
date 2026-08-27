@@ -276,13 +276,16 @@ export default function Home() {
         <div className="grid grid-cols-4 max-lg:grid-cols-2 max-md:grid-cols-1 gap-x-6 gap-y-12 max-md:gap-y-10">
           {FEATURES.map((feature) => (
             <div key={feature.title} className="flex flex-col">
-              <div className="relative aspect-[4/5] overflow-hidden border border-ink product__frame--placeholder">
+              {/* 3:2 frames matching native landscape UI captures; cropping
+                  anchors top-left so headlines and primary content survive
+                  wider or taller replacements */}
+              <div className="relative aspect-[3/2] overflow-hidden border border-ink product__frame--placeholder">
                 <Image
                   src={feature.img}
                   alt={`${feature.title} in Style It Yourself`}
                   fill
                   sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                  className="object-cover object-top"
+                  className="object-cover object-left-top"
                 />
               </div>
 
