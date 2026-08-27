@@ -130,6 +130,15 @@ export default function Home() {
                   </span>
                   <span aria-hidden="true">↗</span>
                 </a>
+                {/* the primary action: filled ink, unlike the outline pair
+                    around it */}
+                <Link
+                  href="/style"
+                  className="group inline-flex w-full items-center justify-between gap-8 px-[26px] py-[17px] border border-ink bg-ink text-paper font-mono text-[11px] uppercase tracking-[0.12em] transition-colors hover:bg-transparent hover:text-ink"
+                >
+                  Style it yourself
+                  <span aria-hidden="true">→</span>
+                </Link>
                 <a
                   href="https://github.com/Paullitsc/Style-It-Yourself/tree/main/extension"
                   target="_blank"
