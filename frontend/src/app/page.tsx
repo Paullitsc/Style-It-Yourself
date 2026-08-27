@@ -28,25 +28,30 @@ const WAYS_IN = [
   },
 ]
 
-// Verified references behind the color engine section, most trusted
-// first, each backing a different claim: the theory, triads worn in
-// practice, and combination pairing. Every URL was checked to resolve
+// Verified references behind the color engine section, ordered as a
+// ladder: the primary origin text, the reference entry, the empirical
+// why, then the fashion application. Every URL was checked to resolve
 // before shipping; do not add one without doing the same.
 const COLOR_SOURCES = [
+  {
+    pub: 'Isaac Newton',
+    title: 'Opticks (1704), origin of the color wheel',
+    url: 'https://www.gutenberg.org/ebooks/33504',
+  },
+  {
+    pub: 'Britannica',
+    title: 'Color wheel: definition, art, and facts',
+    url: 'https://www.britannica.com/science/color-wheel',
+  },
+  {
+    pub: 'PNAS',
+    title: 'An ecological valence theory of human color preference',
+    url: 'https://www.pnas.org/doi/10.1073/pnas.0906172107',
+  },
   {
     pub: 'Vogue',
     title: 'How to master color theory in clothing',
     url: 'https://www.vogue.com/article/color-theory-for-clothing',
-  },
-  {
-    pub: 'GQ',
-    title: 'Primary color blocking, spring\u2019s biggest trend',
-    url: 'https://www.gq.com/story/primary-color-blocking-trend-2026',
-  },
-  {
-    pub: 'Marie Claire',
-    title: 'Unexpected color combinations to try',
-    url: 'https://www.marieclaire.com/fashion/summer-2025-color-combinations/',
   },
 ]
 
@@ -331,7 +336,7 @@ export default function Home() {
                         </span>
                         <span className="flex-1 text-ink-2 transition-colors group-hover:text-ink">
                           {source.title}
-                          <span className="text-ink-3"> · {source.pub}</span>
+                          <span className="text-ink-3"> - {source.pub}</span>
                         </span>
                         <span
                           aria-hidden="true"
