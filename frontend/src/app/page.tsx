@@ -12,38 +12,30 @@ import Link from 'next/link'
 import ColorWheel from './components/ColorWheel'
 
 // The four-up feature grid. Every screenshot is a live capture of the
-// real UI taken with Playwright (frontend/public/screens/); the hatched
-// placeholder class stays underneath as the loading ground.
+// real UI (frontend/public/screens/); replace the files, keep the names.
+// The description strings below are the card copy.
 const FEATURES = [
   {
-    n: '01',
     title: 'Style a piece you own',
     description: 'Upload one piece; the engine builds the rest around it.',
-    shot: 'The styling flow',
     img: '/screens/styling-flow.png',
     href: '/style',
   },
   {
-    n: '02',
     title: 'Try it on with AI',
     description: 'See the finished outfit on your own photo before you commit.',
-    shot: 'The virtual try-on',
     img: '/screens/ai-try-on.png',
     href: '/style',
   },
   {
-    n: '03',
     title: 'Mix and match',
     description: 'Pair anything new against every piece your closet already holds.',
-    shot: 'The outfit builder',
     img: '/screens/closet-builder.png',
-    href: '/closet',
+    href: '/style',
   },
   {
-    n: '04',
     title: 'Use it on any store',
     description: 'The Chrome extension reads product pages anywhere, SSENSE included.',
-    shot: 'The extension popup',
     img: '/screens/extension.png',
     href: 'https://github.com/Paullitsc/Style-It-Yourself/tree/main/extension',
   },
@@ -277,56 +269,67 @@ export default function Home() {
       </section>
 
       {/* FEATURES: a four-up teaser grid, the retail-catalog register.
-          Cards are teasers, not documentation; the screenshots stay small
-          on purpose. */}
+          Screenshots live in frontend/public/screens/ (styling-flow.png,
+          ai-try-on.png, closet-builder.png, extension.png): replace the
+          files, keep the names. Card copy lives in FEATURES above. */}
       <section className={`${CONTAINER} pt-16 pb-24 max-md:pt-12 max-md:pb-16`}>
-        <p className="m-0 mb-4 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3">
-          What it does
-        </p>
-        <h2 className="m-0 font-display font-normal text-[clamp(44px,5.5vw,76px)] leading-[0.98] tracking-[-0.02em]">
-          Four ways in
-        </h2>
-
-        <div className="mt-10 max-md:mt-8 grid grid-cols-4 max-lg:grid-cols-2 max-md:grid-cols-1 gap-x-6 gap-y-12 max-md:gap-y-10">
+        <div className="grid grid-cols-4 max-lg:grid-cols-2 max-md:grid-cols-1 gap-x-6 gap-y-12 max-md:gap-y-10">
           {FEATURES.map((feature) => (
-            <Link
-              key={feature.n}
-              href={feature.href}
-              className="group block"
-              {...(feature.href.startsWith('http')
-                ? { target: '_blank', rel: 'noopener noreferrer' }
-                : {})}
-            >
+            <div key={feature.title} className="flex flex-col">
               <div className="relative aspect-[4/5] overflow-hidden border border-ink product__frame--placeholder">
                 <Image
                   src={feature.img}
-                  alt={`${feature.shot} in Style It Yourself`}
+                  alt={`${feature.title} in Style It Yourself`}
                   fill
                   sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw"
                   className="object-cover object-top"
                 />
-                <span className="absolute inset-x-0 bottom-0 flex items-center justify-between px-3 py-2 bg-paper font-mono text-[9px] uppercase tracking-[0.1em] text-ink-3">
-                  <span>Live capture</span>
-                  <span>{feature.shot}</span>
-                </span>
               </div>
 
-              <p className="m-0 mt-4 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3">
-                {feature.n}
-              </p>
-              <h3 className="m-0 mt-1 font-display font-normal text-[clamp(22px,1.9vw,28px)] leading-[1.05] tracking-[-0.01em]">
+              <h3 className="m-0 mt-5 font-display font-normal text-[clamp(22px,1.9vw,28px)] leading-[1.05] tracking-[-0.01em]">
                 {feature.title}
-                <span
-                  aria-hidden="true"
-                  className="inline-block ml-2 transition-transform group-hover:translate-x-1"
-                >
-                  →
-                </span>
               </h3>
-              <p className="mt-2 mb-0 text-[13.5px] leading-[1.55] text-ink-3">
+              <p className="mt-2 mb-5 text-[13.5px] leading-[1.55] text-ink-3">
                 {feature.description}
               </p>
-            </Link>
+
+              {feature.href.startsWith('http') ? (
+                <a
+                  href={feature.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group mt-auto inline-flex w-full items-center justify-between gap-6 px-[22px] py-[15px] border border-ink bg-transparent text-ink font-mono text-[11px] uppercase tracking-[0.12em] transition-colors hover:bg-ink hover:text-paper"
+                >
+                  <span className="inline-flex items-center gap-3">
+                    <Image
+                      src="/logos/googlechrome.svg"
+                      alt=""
+                      width={15}
+                      height={15}
+                    />
+                    Get the extension
+                  </span>
+                  <span aria-hidden="true">↗</span>
+                </a>
+              ) : (
+                <Link
+                  href={feature.href}
+                  className="group mt-auto inline-flex w-full items-center justify-between gap-6 px-[22px] py-[15px] border border-ink bg-transparent text-ink font-mono text-[11px] uppercase tracking-[0.12em] transition-colors hover:bg-ink hover:text-paper"
+                >
+                  <span className="inline-flex items-center gap-3">
+                    <HugeiconsIcon
+                      icon={AiClothesIcon}
+                      size={15}
+                      strokeWidth={1}
+                      aria-hidden="true"
+                      className="shrink-0"
+                    />
+                    Style it yourself
+                  </span>
+                  <span aria-hidden="true">→</span>
+                </Link>
+              )}
+            </div>
           ))}
         </div>
       </section>
