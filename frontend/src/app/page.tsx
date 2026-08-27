@@ -11,6 +11,9 @@ import {
 import Link from 'next/link'
 import ColorWheel from './components/ColorWheel'
 
+const EXTENSION_REPO_URL =
+  'https://github.com/Paullitsc/Style-It-Yourself/tree/main/extension'
+
 // The four-up feature grid. Every screenshot is a live capture of the
 // real UI (frontend/public/screens/); replace the files, keep the names.
 // The description strings below are the card copy.
@@ -19,25 +22,21 @@ const FEATURES = [
     title: 'Style a piece you own',
     description: 'Upload one piece; the engine builds the rest around it.',
     img: '/screens/styling-flow.png',
-    href: '/style',
   },
   {
     title: 'Try it on with AI',
     description: 'See the finished outfit on your own photo before you commit.',
     img: '/screens/ai-try-on.png',
-    href: '/style',
   },
   {
     title: 'Mix and match',
     description: 'Pair anything new against every piece your closet already holds.',
     img: '/screens/closet-builder.png',
-    href: '/style',
   },
   {
     title: 'Use it on any store',
     description: 'The Chrome extension reads product pages anywhere, SSENSE included.',
     img: '/screens/extension.png',
-    href: 'https://github.com/Paullitsc/Style-It-Yourself/tree/main/extension',
   },
 ]
 
@@ -190,7 +189,7 @@ export default function Home() {
                   <span aria-hidden="true">↗</span>
                 </Link>
                 <a
-                  href="https://github.com/Paullitsc/Style-It-Yourself/tree/main/extension"
+                  href={EXTENSION_REPO_URL}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="group inline-flex w-full items-center justify-between gap-8 px-[26px] py-[17px] border border-ink bg-transparent text-ink font-mono text-[11px] uppercase tracking-[0.12em] transition-colors hover:bg-ink hover:text-paper"
@@ -275,10 +274,7 @@ export default function Home() {
       <section className={`${CONTAINER} pt-16 pb-24 max-md:pt-12 max-md:pb-16`}>
         <div className="grid grid-cols-4 max-lg:grid-cols-2 max-md:grid-cols-1 gap-x-6 gap-y-12 max-md:gap-y-10">
           {FEATURES.map((feature) => (
-            <div key={feature.title} className="flex flex-col">
-              {/* 3:2 frames matching native landscape UI captures; cropping
-                  anchors top-left so headlines and primary content survive
-                  wider or taller replacements */}
+            <div key={feature.title}>
               <div className="relative aspect-[3/2] overflow-hidden border border-ink product__frame--placeholder">
                 <Image
                   src={feature.img}
@@ -292,48 +288,50 @@ export default function Home() {
               <h3 className="m-0 mt-5 font-display font-normal text-[clamp(22px,1.9vw,28px)] leading-[1.05] tracking-[-0.01em]">
                 {feature.title}
               </h3>
-              <p className="mt-2 mb-5 text-[13.5px] leading-[1.55] text-ink-3">
+              <p className="mt-2 mb-0 text-[13.5px] leading-[1.55] text-ink-3">
                 {feature.description}
               </p>
-
-              {feature.href.startsWith('http') ? (
-                <a
-                  href={feature.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group mt-auto inline-flex w-full items-center justify-between gap-6 px-[22px] py-[15px] border border-ink bg-transparent text-ink font-mono text-[11px] uppercase tracking-[0.12em] transition-colors hover:bg-ink hover:text-paper"
-                >
-                  <span className="inline-flex items-center gap-3">
-                    <Image
-                      src="/logos/googlechrome.svg"
-                      alt=""
-                      width={15}
-                      height={15}
-                    />
-                    Get the extension
-                  </span>
-                  <span aria-hidden="true">↗</span>
-                </a>
-              ) : (
-                <Link
-                  href={feature.href}
-                  className="group mt-auto inline-flex w-full items-center justify-between gap-6 px-[22px] py-[15px] border border-ink bg-transparent text-ink font-mono text-[11px] uppercase tracking-[0.12em] transition-colors hover:bg-ink hover:text-paper"
-                >
-                  <span className="inline-flex items-center gap-3">
-                    <HugeiconsIcon
-                      icon={AiClothesIcon}
-                      size={15}
-                      strokeWidth={1}
-                      aria-hidden="true"
-                      className="shrink-0"
-                    />
-                    Style it yourself
-                  </span>
-                  <span aria-hidden="true">→</span>
-                </Link>
-              )}
             </div>
           ))}
+        </div>
+
+        {/* One action row for the whole grid: three cards share the same
+            destination, so the button is stated once, beside the
+            extension's. Mirrors the manifesto rail pair. */}
+        <div className="mt-12 max-md:mt-10 flex gap-3 max-md:flex-col">
+          <Link
+            href="/style"
+            className="group inline-flex w-[300px] max-md:w-full items-center justify-between gap-6 px-[22px] py-[15px] border border-ink bg-transparent text-ink font-mono text-[11px] uppercase tracking-[0.12em] transition-colors hover:bg-ink hover:text-paper"
+          >
+            <span className="inline-flex items-center gap-3">
+              <HugeiconsIcon
+                icon={AiClothesIcon}
+                size={15}
+                strokeWidth={1}
+                aria-hidden="true"
+                className="shrink-0"
+              />
+              Style it yourself
+            </span>
+            <span aria-hidden="true">→</span>
+          </Link>
+          <a
+            href={EXTENSION_REPO_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group inline-flex w-[300px] max-md:w-full items-center justify-between gap-6 px-[22px] py-[15px] border border-ink bg-transparent text-ink font-mono text-[11px] uppercase tracking-[0.12em] transition-colors hover:bg-ink hover:text-paper"
+          >
+            <span className="inline-flex items-center gap-3">
+              <Image
+                src="/logos/googlechrome.svg"
+                alt=""
+                width={15}
+                height={15}
+              />
+              Get the extension
+            </span>
+            <span aria-hidden="true">↗</span>
+          </a>
         </div>
       </section>
 
