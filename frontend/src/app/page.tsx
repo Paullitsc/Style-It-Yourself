@@ -1,4 +1,5 @@
 import Image from 'next/image'
+import { Badge } from '@siy/ui'
 import Link from 'next/link'
 import { buildColorFromHex, classifyHarmony } from '@/lib/colorUtils'
 import type { HarmonyType } from '@/lib/colorUtils'
@@ -193,9 +194,14 @@ export default function Home() {
                     </span>
                   ))}
                 </div>
-                <p className="m-0 mt-4 font-mono text-[10px] uppercase tracking-[0.1em] text-ink-3">
+                {/* bg-paper chip on the section's paper-2 band: the ground
+                    inversion draws the boundary, no border needed */}
+                <Badge
+                  variant="secondary"
+                  className="mt-4 bg-paper px-3 py-2 text-left text-ink-3"
+                >
                   This hosted copy stays free until the credits run out
-                </p>
+                </Badge>
               </div>
             </div>
           </div>
