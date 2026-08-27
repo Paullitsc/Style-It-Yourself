@@ -109,9 +109,15 @@ export default function Home() {
                   services do the same with a monthly subscription, charging
                   for knowledge that should belong to everyone. So we built
                   this tool to close the gap instead: learn the rules, style
-                  yourself, pay nothing. And we are not against buying more
-                  clothes. Just buy the pieces your closet is actually
-                  missing.
+                  yourself, pay nothing.
+                </p>
+                <p className="m-0">
+                  Along the way, SIY becomes your digital closet. The way
+                  Amazon digitized books, we are digitizing wardrobes: every
+                  piece you own, catalogued and ready to pair. And we are
+                  not against buying more clothes. Once you can see
+                  everything you have in one place, you finally know what is
+                  actually missing.
                 </p>
                 <p className="m-0">
                   That is why we open sourced SIY, for the love of the game.
