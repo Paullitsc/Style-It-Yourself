@@ -10,8 +10,7 @@ import {
 } from '@siy/ui'
 import Link from 'next/link'
 import ColorWheel from './components/ColorWheel'
-import HeroFade from './components/HeroFade'
-import Reveal from './components/Reveal'
+import StackPages from './components/StackPages'
 
 const EXTENSION_REPO_URL =
   'https://github.com/Paullitsc/Style-It-Yourself/tree/main/extension'
@@ -59,14 +58,15 @@ const CONTAINER = 'max-w-[1320px] w-full mx-auto px-14 max-md:px-6'
 export default function Home() {
   return (
     <div className="flex-1">
+      <StackPages>
       {/* STAGE. Sized so the first viewport ends exactly where the hero does —
           the manifesto section below begins right at the fold on any screen.
           The headline scales on both axes (vw for width, vh for height) so
           short screens never overflow; min-h lets extreme sizes (landscape
           phones) grow gracefully instead of crushing. */}
-      <section className="min-h-[calc(100dvh-var(--masthead-h))] flex items-center justify-center">
+      <section className="bg-paper min-h-[calc(100dvh-var(--masthead-h))] flex items-center justify-center">
         <div className={`${CONTAINER} py-10 max-md:py-8 text-center`}>
-          <HeroFade>
+          <div>
             {/* HEADLINE */}
             <h1 className="font-display font-normal uppercase text-[clamp(56px,min(16vw,24vh),240px)] leading-[0.85] tracking-[-0.025em] m-0">
               Style it
@@ -78,7 +78,7 @@ export default function Home() {
             <p className="mt-[clamp(14px,3vh,40px)] font-display text-[clamp(16px,2.4vh,22px)] leading-[1.35] text-ink-2">
               A free tool for putting clothes together with science and intention.
             </p>
-          </HeroFade>
+          </div>
         </div>
       </section>
 
@@ -87,8 +87,8 @@ export default function Home() {
           are differentiated by alternating paper/paper-2 grounds, not rules.
           Brand marks render in their official colors by explicit product
           decision. */}
-      <section className="bg-paper-2">
-        <Reveal className={`${CONTAINER} pt-14 pb-20 max-md:pt-10 max-md:pb-14`}>
+      <section className="bg-paper-2 min-h-[calc(100dvh-var(--masthead-h))]">
+        <div className={`${CONTAINER} pt-14 pb-20 max-md:pt-10 max-md:pb-14`}>
           <p className="m-0 mb-5 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3">
             Our Manifesto
           </p>
@@ -251,14 +251,15 @@ export default function Home() {
               </div>
             </div>
           </div>
-        </Reveal>
+        </div>
       </section>
 
       {/* FEATURES: a vertical index; every feature is its own sub-section
           pairing a large capture with its copy, image side alternating row
           by row. Screenshots live in frontend/public/screens/ (replace the
           files, keep the names); card copy lives in FEATURES above. */}
-      <section className={`${CONTAINER} pt-16 pb-24 max-md:pt-12 max-md:pb-16`}>
+      <section className={`bg-paper pt-16 pb-24 max-md:pt-12 max-md:pb-16`}>
+        <div className={CONTAINER}>
         <div className="divide-y divide-rule-soft">
           {FEATURES.map((feature, i) => (
             <div
@@ -331,11 +332,12 @@ export default function Home() {
             <span aria-hidden="true">↗</span>
           </a>
         </div>
+        </div>
       </section>
 
       {/* THE COLOR ENGINE: a full-bleed tinted band; the paper-2 ground
           divides the section on its own. */}
-      <section className="bg-paper-2">
+      <section className="bg-paper-2 min-h-[calc(100dvh-var(--masthead-h))]">
         <div className={`${CONTAINER} pt-12 pb-16 max-md:pt-9 max-md:pb-12`}>
           <p className="m-0 mb-4 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3">
             Color theory
@@ -402,7 +404,7 @@ export default function Home() {
           </div>
         </div>
       </section>
-
+      </StackPages>
     </div>
   )
 }
