@@ -11,36 +11,40 @@ import {
 import Link from 'next/link'
 import ColorWheel from './components/ColorWheel'
 
-// The four-up feature grid. Each card carries a screenshot frame; the
-// hatched placeholder renders until a real capture lands in
-// frontend/public/screens/<shot>.png and `img` is set on the entry.
+// The four-up feature grid. Every screenshot is a live capture of the
+// real UI taken with Playwright (frontend/public/screens/); the hatched
+// placeholder class stays underneath as the loading ground.
 const FEATURES = [
   {
     n: '01',
     title: 'Style a piece you own',
     description: 'Upload one piece; the engine builds the rest around it.',
     shot: 'The styling flow',
+    img: '/screens/styling-flow.png',
     href: '/style',
   },
   {
     n: '02',
     title: 'Try it on with AI',
     description: 'See the finished outfit on your own photo before you commit.',
-    shot: 'An AI try-on',
+    shot: 'The virtual try-on',
+    img: '/screens/ai-try-on.png',
     href: '/style',
   },
   {
     n: '03',
     title: 'Mix and match',
     description: 'Pair anything new against every piece your closet already holds.',
-    shot: 'The closet builder',
+    shot: 'The outfit builder',
+    img: '/screens/closet-builder.png',
     href: '/closet',
   },
   {
     n: '04',
     title: 'Use it on any store',
     description: 'The Chrome extension reads product pages anywhere, SSENSE included.',
-    shot: 'The extension at work',
+    shot: 'The extension popup',
+    img: '/screens/extension.png',
     href: 'https://github.com/Paullitsc/Style-It-Yourself/tree/main/extension',
   },
 ]
@@ -293,10 +297,16 @@ export default function Home() {
                 ? { target: '_blank', rel: 'noopener noreferrer' }
                 : {})}
             >
-              {/* screenshot frame; hatched placeholder until real captures land */}
               <div className="relative aspect-[4/5] overflow-hidden border border-ink product__frame--placeholder">
+                <Image
+                  src={feature.img}
+                  alt={`${feature.shot} in Style It Yourself`}
+                  fill
+                  sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                  className="object-cover object-top"
+                />
                 <span className="absolute inset-x-0 bottom-0 flex items-center justify-between px-3 py-2 bg-paper font-mono text-[9px] uppercase tracking-[0.1em] text-ink-3">
-                  <span>Screenshot to come</span>
+                  <span>Live capture</span>
                   <span>{feature.shot}</span>
                 </span>
               </div>
