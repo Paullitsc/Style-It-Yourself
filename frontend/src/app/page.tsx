@@ -10,6 +10,8 @@ import {
 } from '@siy/ui'
 import Link from 'next/link'
 import ColorWheel from './components/ColorWheel'
+import HeroFade from './components/HeroFade'
+import Reveal from './components/Reveal'
 
 const EXTENSION_REPO_URL =
   'https://github.com/Paullitsc/Style-It-Yourself/tree/main/extension'
@@ -64,7 +66,7 @@ export default function Home() {
           phones) grow gracefully instead of crushing. */}
       <section className="min-h-[calc(100dvh-var(--masthead-h))] flex items-center justify-center">
         <div className={`${CONTAINER} py-10 max-md:py-8 text-center`}>
-          <div>
+          <HeroFade>
             {/* HEADLINE */}
             <h1 className="font-display font-normal uppercase text-[clamp(56px,min(16vw,24vh),240px)] leading-[0.85] tracking-[-0.025em] m-0">
               Style it
@@ -76,7 +78,7 @@ export default function Home() {
             <p className="mt-[clamp(14px,3vh,40px)] font-display text-[clamp(16px,2.4vh,22px)] leading-[1.35] text-ink-2">
               A free tool for putting clothes together with science and intention.
             </p>
-          </div>
+          </HeroFade>
         </div>
       </section>
 
@@ -86,7 +88,7 @@ export default function Home() {
           Brand marks render in their official colors by explicit product
           decision. */}
       <section className="bg-paper-2">
-        <div className={`${CONTAINER} pt-14 pb-20 max-md:pt-10 max-md:pb-14`}>
+        <Reveal className={`${CONTAINER} pt-14 pb-20 max-md:pt-10 max-md:pb-14`}>
           <p className="m-0 mb-5 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3">
             Our Manifesto
           </p>
@@ -249,7 +251,7 @@ export default function Home() {
               </div>
             </div>
           </div>
-        </div>
+        </Reveal>
       </section>
 
       {/* FEATURES: a vertical index; every feature is its own sub-section
