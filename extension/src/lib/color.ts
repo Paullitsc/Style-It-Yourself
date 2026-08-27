@@ -7,6 +7,7 @@ const NEUTRAL_NAMES = new Set([
   'gray',
   'grey',
   'navy',
+  'brown',
   'beige',
   'cream',
   'tan',
@@ -63,6 +64,7 @@ export const COLOR_PALETTE: Color[] = [
   ['#FFFFFF', 'white'],
   ['#808080', 'gray'],
   ['#0B1C2D', 'navy'],
+  ['#6F4E37', 'brown'],
   ['#D2B48C', 'tan'],
   ['#F5F5DC', 'beige'],
   ['#7B3F3F', 'red'],
@@ -85,6 +87,7 @@ const NEUTRAL_COLOR_DATA: Record<string, HSL> = {
   white: { h: 0, s: 0, l: 100 },
   gray: { h: 0, s: 0, l: 50 },
   navy: { h: 210, s: 61, l: 11 },
+  brown: { h: 25, s: 34, l: 33 },
   beige: { h: 60, s: 56, l: 91 },
   cream: { h: 57, s: 100, l: 91 },
   tan: { h: 34, s: 44, l: 69 },
@@ -170,6 +173,10 @@ export function getColorName(hsl: HSL): { name: string; isNeutral: boolean } {
     if (hsl.l < 20) return { name: 'Black', isNeutral: true }
     if (hsl.l > 85) return { name: 'White', isNeutral: true }
     return { name: 'Gray', isNeutral: true }
+  }
+  // dark warm hues read as brown, the earth-tone neutral (mirrors backend)
+  if (hsl.h >= 15 && hsl.h < 65 && hsl.l <= 35 && hsl.s <= 60) {
+    return { name: 'Brown', isNeutral: true }
   }
   let baseName = 'Gray'
   for (const c of COLOR_NAMES) {

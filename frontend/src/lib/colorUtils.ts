@@ -15,6 +15,7 @@ const NEUTRAL_COLOR_DATA: Record<string, { hex: string; hsl: HSL }> = {
   gray:   { hex: "#808080", hsl: { h: 0, s: 0, l: 50 } },
   grey:   { hex: "#808080", hsl: { h: 0, s: 0, l: 50 } },
   navy:   { hex: "#0B1C2D", hsl: { h: 210, s: 61, l: 11 } },
+  brown:  { hex: "#6F4E37", hsl: { h: 25, s: 34, l: 33 } },
   beige:  { hex: "#F5F5DC", hsl: { h: 60, s: 56, l: 91 } },
   cream:  { hex: "#FFFDD0", hsl: { h: 57, s: 100, l: 91 } },
   tan:    { hex: "#D2B48C", hsl: { h: 34, s: 44, l: 69 } },
@@ -221,6 +222,12 @@ export function getColorName(hsl: HSL): { name: string; isNeutral: boolean } {
     if (hsl.l < 20) return { name: "Black", isNeutral: true }
     if (hsl.l > 85) return { name: "White", isNeutral: true }
     return { name: "Gray", isNeutral: true }
+  }
+
+  // Dark warm hues read as brown, the earth-tone neutral, long before
+  // their vivid hue names (mirrors the backend's earth-tone rule)
+  if (hsl.h >= 15 && hsl.h < 65 && hsl.l <= 35 && hsl.s <= 60) {
+    return { name: "Brown", isNeutral: true }
   }
   
   // Find hue-based name

@@ -1,8 +1,26 @@
 """Color harmony calculations and utilities.
 uses the HSL (Hue, Saturation, Lightness) color model to mathematically determine if colors look good together and to generate matching color palettes."""
 
+from enum import Enum
+
 from app.models.schemas import HSL, Color, RecommendedColor
 from app.utils.constants import NEUTRAL_COLORS, NEUTRAL_COLOR_DATA
+
+
+class Harmony(str, Enum):
+    """Harmony labels returned by check_color_compatibility.
+
+    A str subclass, so existing string comparisons and JSON serialization
+    keep working; __str__ is pinned to the raw value for the same reason.
+    """
+
+    NEUTRAL = "neutral"
+    ANALOGOUS = "analogous"
+    COMPLEMENTARY = "complementary"
+    TRIADIC = "triadic"
+    NONE = "none"
+
+    __str__ = str.__str__
 
 
 # British/American spelling alias so "grey" still classifies as neutral
@@ -54,26 +72,42 @@ def are_colors_triadic(hsl1: HSL, hsl2: HSL, threshold: int = 15) -> bool:
     return l <= hue_distance <= r
 
 
-def check_color_compatibility(color1: Color, color2: Color) -> tuple[bool, str]:
-    #TODO look into returning ENUM instead of str
-    #TODO extend functionality to 3 colors to better support triadics.
-    """Check if two colors are compatible.    """
+def are_three_colors_triadic(
+    hsl1: HSL, hsl2: HSL, hsl3: HSL, threshold: int = 15
+) -> bool:
+    """Check if three colors form a full triad.
+
+    True only when every pairwise arc sits inside 120° ± threshold, i.e. the
+    three hues are evenly spread around the wheel.
+    """
+    return (
+        are_colors_triadic(hsl1, hsl2, threshold)
+        and are_colors_triadic(hsl2, hsl3, threshold)
+        and are_colors_triadic(hsl1, hsl3, threshold)
+    )
+
+
+def check_color_compatibility(color1: Color, color2: Color) -> tuple[bool, Harmony]:
+    """Check if two colors are compatible.
+
+    Returns (compatible, harmony); the label is a Harmony member, which is a
+    str subclass, so callers comparing against plain strings keep working.
+    For full three-color triads see are_three_colors_triadic.
+    """
 
     # neutral colors are compatible with every color.
     if is_neutral_color(color1.name) or is_neutral_color(color2.name):
-        return True, "neutral"
+        return True, Harmony.NEUTRAL
     # analogous colors are compatible since they share a common hue and provide a unified look
     elif are_colors_analogous(color1.hsl, color2.hsl):
-        return True, "analogous"
+        return True, Harmony.ANALOGOUS
     # complementary colors are compatible since they make each other 'pop'. They create a contrast.
     elif are_colors_complementary(color1.hsl, color2.hsl):
-        return True, "complementary"
+        return True, Harmony.COMPLEMENTARY
     elif are_colors_triadic(color1.hsl, color2.hsl):
-        return True, "triadic"
-
-
+        return True, Harmony.TRIADIC
     else:
-        return False, "none"
+        return False, Harmony.NONE
 
 def hsl_to_rgb(hsl: HSL) -> tuple[int, int, int]:
     """
@@ -137,8 +171,12 @@ def get_color_name_from_hsl(hsl: HSL) -> str:
     h, s, l = hsl.get_hsl()
 
 
-    # Low Saturation:
-    if s < 10:
+    # Saturation and lightness relate at the extremes: the closer lightness
+    # sits to either pole, the less saturation it takes for a color to read
+    # as achromatic. s < 10 is always neutral; the tolerance widens past
+    # l = 25 / l = 75.
+    neutral_sat_tolerance = 10 + max(0, abs(l - 50) - 25)
+    if s < neutral_sat_tolerance:
         if l < 15:
             return "black"
         elif l > 90:
@@ -152,7 +190,16 @@ def get_color_name_from_hsl(hsl: HSL) -> str:
     elif l > 95:
         return "white"
 
-    # todo: implement extrema relation between saturation & light.
+    # Warm earth tones read as neutrals long before their vivid hue names:
+    # dark warm hues are brown, very light ones beige or cream, muted
+    # mid-lightness ones tan.
+    if 15 <= h < 65:
+        if l <= 35 and s <= 60:
+            return "brown"
+        if l >= 85:
+            return "beige" if s <= 70 else "cream"
+        if s <= 45:
+            return "tan"
 
 
     # Hue buckets
