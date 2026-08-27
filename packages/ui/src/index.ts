@@ -32,4 +32,4 @@ export { cn } from './lib/cn'
 // Icon system: the design system owns the hugeicons dependency; route code
 // imports the renderer and icon definitions through here.
 export { HugeiconsIcon } from '@hugeicons/react'
-export { CloudServerIcon } from '@hugeicons/core-free-icons'
+export { CloudServerIcon, HangerIcon } from '@hugeicons/core-free-icons'

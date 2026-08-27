@@ -2,6 +2,7 @@ import Image from 'next/image'
 import {
   Badge,
   CloudServerIcon,
+  HangerIcon,
   HugeiconsIcon,
   Tooltip,
   TooltipContent,
@@ -130,13 +131,22 @@ export default function Home() {
                   </span>
                   <span aria-hidden="true">↗</span>
                 </a>
-                {/* the primary action: filled ink, unlike the outline pair
-                    around it */}
                 <Link
                   href="/style"
-                  className="group inline-flex w-full items-center justify-between gap-8 px-[26px] py-[17px] border border-ink bg-ink text-paper font-mono text-[11px] uppercase tracking-[0.12em] transition-colors hover:bg-transparent hover:text-ink"
+                  className="group inline-flex w-full items-center justify-between gap-8 px-[26px] py-[17px] border border-ink bg-transparent text-ink font-mono text-[11px] uppercase tracking-[0.12em] transition-colors hover:bg-ink hover:text-paper"
                 >
-                  Style it yourself
+                  <span className="inline-flex items-center gap-3">
+                    {/* svg inherits currentColor, so it flips with the
+                        button's hover fill on its own */}
+                    <HugeiconsIcon
+                      icon={HangerIcon}
+                      size={16}
+                      strokeWidth={1}
+                      aria-hidden="true"
+                      className="shrink-0"
+                    />
+                    Style it yourself
+                  </span>
                   <span aria-hidden="true">→</span>
                 </Link>
                 <a
