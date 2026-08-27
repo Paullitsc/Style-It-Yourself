@@ -200,7 +200,7 @@ export default function Home() {
                   variant="secondary"
                   className="mt-4 bg-paper px-3 py-2 text-left text-ink-3"
                 >
-                  This hosted copy stays free until the credits run out
+                  This hosted copy stays free until the free credits we have from the services above run out
                 </Badge>
               </div>
             </div>
