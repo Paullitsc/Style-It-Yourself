@@ -50,6 +50,23 @@ function colorAt(hue: number): Color {
   return buildColorFromHex(hslToHex(((hue % 360) + 360) % 360, 62, 47))
 }
 
+function ReadoutLabel({
+  term,
+  arithmetic,
+}: {
+  term: string
+  arithmetic: string
+}) {
+  return (
+    <dt>
+      <span className="block text-ink">{term}</span>
+      <span className="mt-[3px] block text-[10px] tracking-[0.08em] text-ink-3">
+        {arithmetic}
+      </span>
+    </dt>
+  )
+}
+
 export default function ColorWheel() {
   const [hue, setHue] = useState(210)
 
@@ -101,51 +118,59 @@ export default function ColorWheel() {
           >
             <div className="absolute left-1/2 top-[-1.5%] h-[21%] w-[2px] -translate-x-1/2 bg-ink" />
           </div>
+          {/* Neutrals live in the wheel's centre: the middle of a hue wheel
+              is the achromatic axis (zero saturation), which is what a
+              neutral is. They sit inside every arc because they pair with
+              every arc. */}
+          <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center gap-[10px]">
+            <div className="flex flex-wrap justify-center gap-[6px] max-w-[82px]">
+              {NEUTRALS.map((color) => (
+                <span
+                  key={color.hex}
+                  className="w-[15px] h-[15px] rounded-[2px] border border-rule-soft"
+                  style={{ backgroundColor: color.hex }}
+                />
+              ))}
+            </div>
+            <p className="m-0 text-center font-mono text-[9px] uppercase tracking-[0.12em] leading-[1.6] text-ink-3">
+              Neutrals
+              <br />
+              pair with everything
+            </p>
+          </div>
         </div>
         <p className="mt-5 mb-0 text-center font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3">
           Point anywhere on the wheel
         </p>
       </div>
 
-      {/* READOUT */}
-      <dl className="m-0 grid grid-cols-[130px_1fr] max-md:grid-cols-[104px_1fr] gap-y-5 gap-x-6 items-baseline font-mono text-[11px] uppercase tracking-[0.1em]">
-        <dt className="text-ink-3">Pointed at</dt>
+      {/* READOUT: each row names the relation and shows its arithmetic:
+          the same offsets the backend recommends with. */}
+      <dl className="m-0 grid grid-cols-[150px_1fr] max-md:grid-cols-[110px_1fr] gap-y-6 gap-x-6 items-baseline font-mono text-[11px] uppercase tracking-[0.1em]">
+        <ReadoutLabel term="Pointed at" arithmetic={`${hue}°`} />
         <dd className="m-0">
           <Swatch color={readout.base} />
         </dd>
 
-        <dt className="text-ink-3">Analogous</dt>
+        <ReadoutLabel term="Analogous" arithmetic="±30°" />
         <dd className="m-0 flex flex-wrap gap-x-8 gap-y-2">
           {readout.analogous.map((color) => (
             <Swatch key={color.hex} color={color} />
           ))}
         </dd>
 
-        <dt className="text-ink-3">Complementary</dt>
+        <ReadoutLabel term="Complementary" arithmetic="180°" />
         <dd className="m-0 flex flex-wrap gap-x-8 gap-y-2">
           {readout.complementary.map((color) => (
             <Swatch key={color.hex} color={color} />
           ))}
         </dd>
 
-        <dt className="text-ink-3">Triadic</dt>
+        <ReadoutLabel term="Triadic" arithmetic="±120°" />
         <dd className="m-0 flex flex-wrap gap-x-8 gap-y-2">
           {readout.triadic.map((color) => (
             <Swatch key={color.hex} color={color} />
           ))}
-        </dd>
-
-        <dt className="text-ink-3">Neutral</dt>
-        <dd className="m-0 flex items-center flex-wrap gap-[6px]">
-          {NEUTRALS.map((color) => (
-            <span
-              key={color.hex}
-              title={color.name}
-              className="w-[13px] h-[13px] rounded-[2px] border border-rule-soft"
-              style={{ backgroundColor: color.hex }}
-            />
-          ))}
-          <span className="ml-3 text-ink-3">Always compatible</span>
         </dd>
       </dl>
     </div>

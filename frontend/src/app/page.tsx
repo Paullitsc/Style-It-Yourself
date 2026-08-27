@@ -8,10 +8,7 @@ import {
   TooltipTrigger,
 } from '@siy/ui'
 import Link from 'next/link'
-import { buildColorFromHex, classifyHarmony } from '@/lib/colorUtils'
-import type { HarmonyType } from '@/lib/colorUtils'
 import ColorWheel from './components/ColorWheel'
-import Swatch from './components/Swatch'
 import { NOTES } from './notes/notes'
 
 // Subtexts are capped at one line on desktop; keep them short.
@@ -29,30 +26,6 @@ const WAYS_IN = [
     description: 'Pick a hue; follow the wheel.',
   },
 ]
-
-// Curated pairs only; every readout below (names, hues, arcs, verdicts) is
-// computed by the same code that scores outfits, so the strip cannot drift
-// from what the builder actually says.
-const SPECIMEN_PAIRS: Array<[string, string]> = [
-  ['#B45309', '#C9A227'],
-  ['#7A1F2B', '#1F6F6B'],
-  ['#6C2FA0', '#3A8F3A'],
-]
-
-// The -30 is the color-clash penalty from backend outfit scoring.
-const HARMONY_VERDICTS: Record<HarmonyType, string> = {
-  analogous: 'Analogous',
-  complementary: 'Complementary',
-  triadic: 'Triadic',
-  neutral: 'Neutral',
-  none: 'Clash -30',
-}
-
-const SPECIMENS = SPECIMEN_PAIRS.map(([hexA, hexB]) => {
-  const a = buildColorFromHex(hexA)
-  const b = buildColorFromHex(hexB)
-  return { a, b, ...classifyHarmony(a, b) }
-})
 
 const CONTAINER = 'max-w-[1320px] w-full mx-auto px-14 max-md:px-6'
 
@@ -264,44 +237,27 @@ export default function Home() {
         </div>
       </section>
 
-      {/* THE ENGINE: a full-bleed tinted band; the paper-2 ground divides the
-          section on its own. */}
+      {/* THE COLOR ENGINE: a full-bleed tinted band; the paper-2 ground
+          divides the section on its own. */}
       <section className="bg-paper-2">
-        <div className={`${CONTAINER} py-16 max-md:py-12`}>
-          <p className="m-0 font-display text-[22px] leading-[1.35] text-ink-2">
+        <div className={`${CONTAINER} pt-12 pb-16 max-md:pt-9 max-md:pb-12`}>
+          <p className="m-0 mb-4 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3">
+            Color theory
+          </p>
+          <h2 className="m-0 font-display font-normal text-[clamp(44px,5.5vw,76px)] leading-[0.98] tracking-[-0.02em]">
+            The color engine
+          </h2>
+          <p className="mt-5 mb-0 max-w-[60ch] font-display text-[clamp(17px,1.5vw,21px)] leading-[1.45] text-ink-2">
             Point at a hue; whatever stays lit wears well with it.
           </p>
 
-          <div className="mt-12">
+          <div className="mt-10 max-md:mt-8">
             <ColorWheel />
-          </div>
-
-          <p className="mt-16 mb-0 font-display text-[17px] leading-[1.4] text-ink-2">
-            Three worked examples from the same arithmetic; nothing is a
-            mockup.
-          </p>
-
-          <div className="mt-6 divide-y divide-rule-soft">
-            {SPECIMENS.map((spec) => (
-              <div
-                key={spec.a.hex + spec.b.hex}
-                className="grid grid-cols-[1.3fr_1.3fr_0.6fr_1fr] max-md:grid-cols-2 gap-x-6 gap-y-2 items-center py-[14px] font-mono text-[11px] uppercase tracking-[0.1em]"
-              >
-                <Swatch color={spec.a} />
-                <Swatch color={spec.b} />
-                <span className="text-ink-3">Arc {spec.hueDistance}°</span>
-                <span
-                  className={`text-right max-md:text-left ${spec.harmony === 'none' ? 'text-accent' : ''}`}
-                >
-                  {HARMONY_VERDICTS[spec.harmony]}
-                </span>
-              </div>
-            ))}
           </div>
 
           <Link
             href="/style"
-            className="inline-block mt-7 font-mono text-[11px] uppercase tracking-[0.12em] pb-[2px] border-b border-transparent hover:border-ink transition-colors"
+            className="inline-block mt-10 font-mono text-[11px] uppercase tracking-[0.12em] pb-[2px] border-b border-transparent hover:border-ink transition-colors"
           >
             Run your own numbers →
           </Link>
