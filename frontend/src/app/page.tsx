@@ -324,7 +324,7 @@ export default function Home() {
                 width={15}
                 height={15}
               />
-              Try it with Chrome Extension
+              Try it with extension
             </span>
             <span aria-hidden="true">↗</span>
           </a>
