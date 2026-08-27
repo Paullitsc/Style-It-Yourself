@@ -28,8 +28,10 @@ const WAYS_IN = [
   },
 ]
 
-// Verified references behind the color engine section's claims, most
-// trusted first. Every URL was checked to resolve before shipping.
+// Verified references behind the color engine section, most trusted
+// first, each backing a different claim: the theory, triads worn in
+// practice, and combination pairing. Every URL was checked to resolve
+// before shipping; do not add one without doing the same.
 const COLOR_SOURCES = [
   {
     pub: 'Vogue',
@@ -37,19 +39,9 @@ const COLOR_SOURCES = [
     url: 'https://www.vogue.com/article/color-theory-for-clothing',
   },
   {
-    pub: 'Britannica',
-    title: 'Color wheel: definition, art, and facts',
-    url: 'https://www.britannica.com/science/color-wheel',
-  },
-  {
-    pub: 'MasterClass',
-    title: 'How to match clothes using the color wheel',
-    url: 'https://www.masterclass.com/articles/how-to-match-clothes-using-the-color-wheel',
-  },
-  {
-    pub: 'Canva',
-    title: 'Color wheel: color theory and calculator',
-    url: 'https://www.canva.com/colors/color-wheel/',
+    pub: 'GQ',
+    title: 'Primary color blocking, spring\u2019s biggest trend',
+    url: 'https://www.gq.com/story/primary-color-blocking-trend-2026',
   },
   {
     pub: 'Marie Claire',
