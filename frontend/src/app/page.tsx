@@ -219,7 +219,7 @@ export default function Home() {
                     Hosted on free credits from the services above. Gemini
                     try-on burns them fastest, and past 20k users they run
                     out. Clone the repo on GitHub and set it up locally with
-                    Claude Code.
+                    Claude Code or any other harnesses.
                   </TooltipContent>
                 </Tooltip>
               </div>
