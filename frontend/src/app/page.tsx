@@ -93,33 +93,34 @@ export default function Home() {
 
               <div className="mt-8 max-md:mt-6 flex flex-col gap-5 max-w-[60ch] font-display text-[clamp(17px,1.5vw,21px)] leading-[1.45]">
                 <p className="m-0">
-                  Ever bought a new piece of clothing and then realized you
-                  have nothing to wear it with? You are not alone. The
-                  problem is not how much you own. It is that nobody ever
-                  taught you what pairs with what. You already have more
-                  outfits than you think; what has been missing is the eye,
-                  the taste for palette, silhouette, formality. And that eye
-                  is a science you can learn, not a talent you are born
-                  with.
+                  Every closet has one: the piece bought on feeling that has
+                  never once been worn. The problem is not how much you own;
+                  it is that nobody ever taught you what pairs with what.
+                  You already have more outfits than you think. What is
+                  missing is the eye: palette, silhouette, formality. The
+                  industry calls that taste. Written down, it is arithmetic,
+                  and arithmetic can be learned.
                 </p>
                 <p className="m-0 text-ink-2">
-                  However, a whole industry lives in that gap: fashion, or
-                  more specifically, fast fashion. It bottles your doubt and
-                  sells it back to you with every purchase. Software
-                  services do the same with a monthly subscription, charging
-                  for knowledge that should belong to everyone. So we built
-                  this tool to close that gap for good, and we are giving
-                  it away for free. No paywall, no ads, no tracking. Just a
-                  simple, open source tool to help you style yourself.
+                  A whole business lives in the space between those two
+                  words. Fast fashion bottles your doubt and sells it back
+                  with every purchase; styling apps do the same by
+                  subscription. But the rules are small and old.
+                  Complementary colors sit opposite on the wheel. Formality
+                  runs a five-step scale, and an outfit fails when two
+                  pieces stop describing the same event. None of it is
+                  secret; it is just rarely written down. So we wrote it
+                  down, built a tool around it, and gave the tool away. No
+                  paywall, no ads, no tracking.
                 </p>
                 <p className="m-0">
-                  Along the way, SIY becomes your digital closet. The way
-                  Amazon digitized books, we are digitizing wardrobes: every
-                  piece you own, catalogued and ready to pair. And for the
-                  shopaholics out there: we are not against buying more
-                  clothes, we just want you to buy smarter. Once you can see
-                  everything you have in one place, you finally know what is
-                  actually missing.
+                  Along the way, SIY becomes your digital closet. What
+                  Amazon did to the bookshelf, this does to the wardrobe:
+                  every piece you own, catalogued by hue, cut, and occasion,
+                  ready to pair. Once the whole collection sits in one view,
+                  you finally see what is actually missing. We are not
+                  against buying more clothes; we just want you to buy
+                  smarter.
                 </p>
                 <p className="m-0">
                   TLDR, we open sourced SIY for the love of the game.
