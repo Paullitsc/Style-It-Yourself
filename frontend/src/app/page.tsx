@@ -118,9 +118,9 @@ export default function Home() {
                   Amazon did to the bookshelf, this does to the wardrobe:
                   every piece you own, catalogued by hue, cut, and occasion,
                   ready to pair. Once the whole collection sits in one view,
-                  you finally see what is actually missing. We are not
-                  against buying more clothes; we just want you to buy
-                  smarter.
+                  you finally see what is actually missing. And to the
+                  fashion enthusiasts: we are not against buying more
+                  clothes; we just want you to buy smarter.
                 </p>
                 <p className="m-0">
                   TLDR, we open sourced SIY for the love of the game.
