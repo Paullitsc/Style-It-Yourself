@@ -82,7 +82,7 @@ export default function Home() {
       <section className="bg-paper-2">
         <div className={`${CONTAINER} pt-14 pb-20 max-md:pt-10 max-md:pb-14`}>
           <p className="m-0 mb-5 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3">
-            Manifesto
+            Our Manifesto
           </p>
 
           <div className="grid grid-cols-[1.25fr_1fr] max-md:grid-cols-1 gap-x-20 gap-y-10 items-end">
@@ -91,23 +91,32 @@ export default function Home() {
                 Free and staying that way
               </h2>
 
-              <div className="mt-8 max-md:mt-6 flex flex-col gap-4 font-display text-[clamp(19px,2vw,26px)] leading-[1.3]">
+              <div className="mt-8 max-md:mt-6 flex flex-col gap-5 max-w-[60ch] font-display text-[clamp(17px,1.5vw,21px)] leading-[1.45]">
                 <p className="m-0">
-                  You own more outfits than you think. What&apos;s missing
-                  isn&apos;t clothes. It&apos;s the eye: palette, silhouette,
-                  formality.
+                  Ever bought a new piece of clothing and then realized you
+                  have nothing to wear it with? You are not alone. The
+                  problem is not that you don&apos;t own enough clothes. The
+                  problem is that you don&apos;t know how to put them
+                  together with what you already own. You actually own more
+                  outfits than you think. What has been missing isn&apos;t
+                  just clothes, it is the eye, the taste: palette,
+                  silhouette, formality. And there is a whole science behind
+                  it, one you can learn and apply as you grow your own taste
+                  and style. Anyone can become their own stylist.
                 </p>
                 <p className="m-0 text-ink-2">
-                  A whole industry lives in that gap. It bottles your doubt
-                  and rents it back to you, monthly.
-                </p>
-                <p className="m-0 text-ink-2">
-                  An eye is not a gift. It&apos;s arithmetic. Learnable in an
-                  afternoon, yours for life.
+                  However, a whole industry lives in that gap: fashion, or
+                  more specifically, fast fashion. It bottles your doubt and
+                  sells it back to you with every purchase. There are also
+                  software services out there charging monthly for this free
+                  knowledge, but we believe it should be free and accessible
+                  to everyone. So we built this tool to help you style
+                  yourself, and we will keep it free. We are not saying you
+                  shouldn&apos;t buy more clothes. You should buy only the
+                  clothes you actually need or are missing.
                 </p>
                 <p className="m-0">
-                  SIY is free and open source. The name is the instruction.
-                  Style it yourself.
+                  That is why we open sourced SIY, for the love of the game.
                 </p>
               </div>
             </div>
