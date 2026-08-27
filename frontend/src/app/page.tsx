@@ -20,12 +20,12 @@ const EXTENSION_REPO_URL =
 const FEATURES = [
   {
     title: 'Style a piece you own',
-    description: 'Upload one piece; the engine builds the rest around it.',
+    description: 'Upload your favorite piece with all of its details, and the engine will suggest what to pair it with.',
     img: '/screens/styling-flow.png',
   },
   {
     title: 'Try it on with AI',
-    description: 'See the finished outfit on your own photo before you commit.',
+    description: 'See the finished outfit on your own photo before you commit with Google Nano Banana Pro frontier image model.',
     img: '/screens/ai-try-on.png',
   },
   {
@@ -35,7 +35,7 @@ const FEATURES = [
   },
   {
     title: 'Use it on any store',
-    description: 'The Chrome extension reads product pages anywhere, SSENSE included.',
+    description: 'The Chrome extension reads product pages anywhere on the web, so you can style it yourself without leaving the retailer.',
     img: '/screens/extension.png',
   },
 ]
