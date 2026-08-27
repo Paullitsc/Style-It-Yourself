@@ -95,25 +95,23 @@ export default function Home() {
                 <p className="m-0">
                   Ever bought a new piece of clothing and then realized you
                   have nothing to wear it with? You are not alone. The
-                  problem is not that you don&apos;t own enough clothes. The
-                  problem is that you don&apos;t know how to put them
-                  together with what you already own. You actually own more
-                  outfits than you think. What has been missing isn&apos;t
-                  just clothes, it is the eye, the taste: palette,
-                  silhouette, formality. And there is a whole science behind
-                  it, one you can learn and apply as you grow your own taste
-                  and style. Anyone can become their own stylist.
+                  problem is not how much you own. It is that nobody ever
+                  taught you what pairs with what. You already have more
+                  outfits than you think; what has been missing is the eye,
+                  the taste for palette, silhouette, formality. And that eye
+                  is a science you can learn, not a talent you are born
+                  with. Anyone can become their own stylist.
                 </p>
                 <p className="m-0 text-ink-2">
                   However, a whole industry lives in that gap: fashion, or
                   more specifically, fast fashion. It bottles your doubt and
-                  sells it back to you with every purchase. There are also
-                  software services out there charging monthly for this free
-                  knowledge, but we believe it should be free and accessible
-                  to everyone. So we built this tool to help you style
-                  yourself, and we will keep it free. We are not saying you
-                  shouldn&apos;t buy more clothes. You should buy only the
-                  clothes you actually need or are missing.
+                  sells it back to you with every purchase. Software
+                  services do the same with a monthly subscription, charging
+                  for knowledge that should belong to everyone. So we built
+                  this tool to close the gap instead: learn the rules, style
+                  yourself, pay nothing. And we are not against buying more
+                  clothes. Just buy the pieces your closet is actually
+                  missing.
                 </p>
                 <p className="m-0">
                   That is why we open sourced SIY, for the love of the game.
