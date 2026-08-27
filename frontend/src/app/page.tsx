@@ -28,6 +28,36 @@ const WAYS_IN = [
   },
 ]
 
+// Verified references behind the color engine section's claims, most
+// trusted first. Every URL was checked to resolve before shipping.
+const COLOR_SOURCES = [
+  {
+    pub: 'Vogue',
+    title: 'How to master color theory in clothing',
+    url: 'https://www.vogue.com/article/color-theory-for-clothing',
+  },
+  {
+    pub: 'Britannica',
+    title: 'Color wheel: definition, art, and facts',
+    url: 'https://www.britannica.com/science/color-wheel',
+  },
+  {
+    pub: 'MasterClass',
+    title: 'How to match clothes using the color wheel',
+    url: 'https://www.masterclass.com/articles/how-to-match-clothes-using-the-color-wheel',
+  },
+  {
+    pub: 'Canva',
+    title: 'Color wheel: color theory and calculator',
+    url: 'https://www.canva.com/colors/color-wheel/',
+  },
+  {
+    pub: 'Marie Claire',
+    title: 'Unexpected color combinations to try',
+    url: 'https://www.marieclaire.com/fashion/summer-2025-color-combinations/',
+  },
+]
+
 const CONTAINER = 'max-w-[1320px] w-full mx-auto px-14 max-md:px-6'
 
 export default function Home() {
@@ -288,6 +318,40 @@ export default function Home() {
                 pair with everything. The wheel is that arithmetic, running
                 live.
               </p>
+
+              {/* verified citations; do not add a link here without
+                  checking it resolves */}
+              <div className="mt-3">
+                <p className="m-0 mb-2 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3">
+                  Sources
+                </p>
+                <ol className="m-0 list-none p-0">
+                  {COLOR_SOURCES.map((source, i) => (
+                    <li key={source.url}>
+                      <a
+                        href={source.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group flex items-baseline gap-3 py-[7px] font-mono text-[11px] uppercase tracking-[0.08em]"
+                      >
+                        <span className="text-ink-3">
+                          {String(i + 1).padStart(2, '0')}
+                        </span>
+                        <span className="flex-1 text-ink-2 transition-colors group-hover:text-ink">
+                          {source.title}
+                          <span className="text-ink-3"> · {source.pub}</span>
+                        </span>
+                        <span
+                          aria-hidden="true"
+                          className="text-ink-3 transition-colors group-hover:text-ink"
+                        >
+                          ↗
+                        </span>
+                      </a>
+                    </li>
+                  ))}
+                </ol>
+              </div>
             </div>
 
             <ColorWheel />
