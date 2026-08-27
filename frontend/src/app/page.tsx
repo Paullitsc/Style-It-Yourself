@@ -100,7 +100,7 @@ export default function Home() {
                   outfits than you think; what has been missing is the eye,
                   the taste for palette, silhouette, formality. And that eye
                   is a science you can learn, not a talent you are born
-                  with. Anyone can become their own stylist.
+                  with.
                 </p>
                 <p className="m-0 text-ink-2">
                   However, a whole industry lives in that gap: fashion, or
@@ -108,19 +108,21 @@ export default function Home() {
                   sells it back to you with every purchase. Software
                   services do the same with a monthly subscription, charging
                   for knowledge that should belong to everyone. So we built
-                  this tool to close the gap instead: learn the rules, style
-                  yourself, pay nothing.
+                  this tool to close that gap for good, and we are giving
+                  it away for free. No paywall, no ads, no tracking. Just a
+                  simple, open source tool to help you style yourself.
                 </p>
                 <p className="m-0">
                   Along the way, SIY becomes your digital closet. The way
                   Amazon digitized books, we are digitizing wardrobes: every
-                  piece you own, catalogued and ready to pair. And we are
-                  not against buying more clothes. Once you can see
+                  piece you own, catalogued and ready to pair. And for the
+                  shopaholics out there: we are not against buying more
+                  clothes, we just want you to buy smarter. Once you can see
                   everything you have in one place, you finally know what is
                   actually missing.
                 </p>
                 <p className="m-0">
-                  That is why we open sourced SIY, for the love of the game.
+                  TLDR, we open sourced SIY for the love of the game.
                 </p>
               </div>
             </div>
