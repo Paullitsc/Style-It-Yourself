@@ -283,7 +283,7 @@ export default function Home() {
         {/* One action row for the whole grid: three cards share the same
             destination, so the button is stated once, beside the
             extension's. Mirrors the manifesto rail pair. */}
-        <div className="mt-12 max-md:mt-10 flex gap-3 max-md:flex-col">
+        <div className="mt-12 max-md:mt-10 flex justify-center gap-3 max-md:flex-col">
           <Link
             href="/style"
             className="group inline-flex w-[300px] max-md:w-full items-center justify-between gap-6 px-[22px] py-[15px] border border-ink bg-transparent text-ink font-mono text-[11px] uppercase tracking-[0.12em] transition-colors hover:bg-ink hover:text-paper"
@@ -296,7 +296,7 @@ export default function Home() {
                 aria-hidden="true"
                 className="shrink-0"
               />
-              Style it yourself
+              Try it here
             </span>
             <span aria-hidden="true">→</span>
           </Link>
@@ -313,7 +313,7 @@ export default function Home() {
                 width={15}
                 height={15}
               />
-              Get the extension
+              Try it with Chrome Extension
             </span>
             <span aria-hidden="true">↗</span>
           </a>
