@@ -1,5 +1,12 @@
 import Image from 'next/image'
-import { Badge, Tooltip, TooltipContent, TooltipTrigger } from '@siy/ui'
+import {
+  Badge,
+  CloudServerIcon,
+  HugeiconsIcon,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@siy/ui'
 import Link from 'next/link'
 import { buildColorFromHex, classifyHarmony } from '@/lib/colorUtils'
 import type { HarmonyType } from '@/lib/colorUtils'
@@ -201,11 +208,16 @@ export default function Home() {
                   <TooltipTrigger asChild>
                     <Badge
                       variant="secondary"
-                      className="mt-4 cursor-help bg-paper px-2.5 py-1.5 text-[9px] whitespace-nowrap text-ink-3 underline decoration-ink-3 decoration-dotted underline-offset-4"
+                      className="mt-4 gap-1.5 cursor-help bg-paper px-2.5 py-1.5 text-[9px] whitespace-nowrap text-ink-3 underline decoration-ink-3 decoration-dotted underline-offset-4"
                     >
-                      <span
+                      {/* hosting status mark; borrows Supabase's green
+                          from the logo row above */}
+                      <HugeiconsIcon
+                        icon={CloudServerIcon}
+                        size={13}
+                        strokeWidth={1}
                         aria-hidden="true"
-                        className="inline-block size-[6px] shrink-0 bg-ink"
+                        className="shrink-0 text-[#3FCF8E]"
                       />
                       Hosted free while the credits last
                     </Badge>
