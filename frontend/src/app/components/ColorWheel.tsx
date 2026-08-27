@@ -8,6 +8,7 @@ import {
   hslToHex,
 } from '@/lib/colorUtils'
 import type { Color } from '@/types'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@siy/ui'
 import Swatch from './Swatch'
 
 // The wheel is 36 solid 10-degree segments with hard stops: quantized
@@ -89,13 +90,13 @@ export default function ColorWheel() {
   }
 
   return (
-    <div className="grid grid-cols-[auto_1fr] max-md:grid-cols-1 gap-x-20 gap-y-10 items-center">
+    <div className="flex flex-col gap-10 max-md:gap-8">
       {/* WHEEL */}
-      <div>
+      <div className="mx-auto">
         <div
           role="img"
           aria-label={`Color wheel pointed at ${readout.base.name}, ${hue} degrees. The arcs that wear well with it stay lit; the rest is veiled.`}
-          className="relative w-[320px] h-[320px] max-md:w-[260px] max-md:h-[260px] max-md:mx-auto cursor-crosshair touch-none select-none"
+          className="relative w-[320px] h-[320px] max-md:w-[260px] max-md:h-[260px] mx-auto cursor-crosshair touch-none select-none"
           onPointerMove={readHue}
           onPointerDown={readHue}
         >
@@ -117,26 +118,6 @@ export default function ColorWheel() {
             style={{ transform: `rotate(${hue}deg)` }}
           >
             <div className="absolute left-1/2 top-[-1.5%] h-[21%] w-[2px] -translate-x-1/2 bg-ink" />
-          </div>
-          {/* Neutrals live in the wheel's centre: the middle of a hue wheel
-              is the achromatic axis (zero saturation), which is what a
-              neutral is. They sit inside every arc because they pair with
-              every arc. */}
-          <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center gap-[10px]">
-            <div className="flex flex-wrap justify-center gap-[6px] max-w-[82px]">
-              {NEUTRALS.map((color) => (
-                <span
-                  key={color.hex}
-                  className="w-[15px] h-[15px] rounded-[2px] border border-rule-soft"
-                  style={{ backgroundColor: color.hex }}
-                />
-              ))}
-            </div>
-            <p className="m-0 text-center font-mono text-[9px] uppercase tracking-[0.12em] leading-[1.6] text-ink-3">
-              Neutrals
-              <br />
-              pair with everything
-            </p>
           </div>
         </div>
         <p className="mt-5 mb-0 text-center font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3">
@@ -171,6 +152,24 @@ export default function ColorWheel() {
           {readout.triadic.map((color) => (
             <Swatch key={color.hex} color={color} />
           ))}
+        </dd>
+
+        <ReadoutLabel term="Neutral" arithmetic="no angle" />
+        <dd className="m-0 flex items-center flex-wrap gap-[6px]">
+          {NEUTRALS.map((color) => (
+            <Tooltip key={color.hex}>
+              <TooltipTrigger asChild>
+                <span
+                  tabIndex={0}
+                  aria-label={color.name}
+                  className="w-[15px] h-[15px] cursor-help rounded-[2px] border border-rule-soft"
+                  style={{ backgroundColor: color.hex }}
+                />
+              </TooltipTrigger>
+              <TooltipContent>{color.name}</TooltipContent>
+            </Tooltip>
+          ))}
+          <span className="ml-3 text-ink-3">Pair with everything</span>
         </dd>
       </dl>
     </div>
