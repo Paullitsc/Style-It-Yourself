@@ -10,21 +10,38 @@ import {
 } from '@siy/ui'
 import Link from 'next/link'
 import ColorWheel from './components/ColorWheel'
-import { NOTES } from './notes/notes'
 
-// Subtexts are capped at one line on desktop; keep them short.
-const WAYS_IN = [
+// The four-up feature grid. Each card carries a screenshot frame; the
+// hatched placeholder renders until a real capture lands in
+// frontend/public/screens/<shot>.png and `img` is set on the entry.
+const FEATURES = [
   {
+    n: '01',
     title: 'Style a piece you own',
     description: 'Upload one piece; the engine builds the rest around it.',
+    shot: 'The styling flow',
+    href: '/style',
   },
   {
-    title: 'Dress for an occasion',
-    description: 'Name the event; dress inside its band and palette.',
+    n: '02',
+    title: 'Try it on with AI',
+    description: 'See the finished outfit on your own photo before you commit.',
+    shot: 'An AI try-on',
+    href: '/style',
   },
   {
-    title: 'Start from a color',
-    description: 'Pick a hue; follow the wheel.',
+    n: '03',
+    title: 'Mix and match',
+    description: 'Pair anything new against every piece your closet already holds.',
+    shot: 'The closet builder',
+    href: '/closet',
+  },
+  {
+    n: '04',
+    title: 'Use it on any store',
+    description: 'The Chrome extension reads product pages anywhere, SSENSE included.',
+    shot: 'The extension at work',
+    href: 'https://github.com/Paullitsc/Style-It-Yourself/tree/main/extension',
   },
 ]
 
@@ -255,29 +272,50 @@ export default function Home() {
         </div>
       </section>
 
-      {/* WAYS IN: a bare oversized index. */}
+      {/* FEATURES: a four-up teaser grid, the retail-catalog register.
+          Cards are teasers, not documentation; the screenshots stay small
+          on purpose. */}
       <section className={`${CONTAINER} pt-16 pb-24 max-md:pt-12 max-md:pb-16`}>
-        <div className="divide-y divide-rule-soft">
-          {WAYS_IN.map((way) => (
+        <p className="m-0 mb-4 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3">
+          What it does
+        </p>
+        <h2 className="m-0 font-display font-normal text-[clamp(44px,5.5vw,76px)] leading-[0.98] tracking-[-0.02em]">
+          Four ways in
+        </h2>
+
+        <div className="mt-10 max-md:mt-8 grid grid-cols-4 max-lg:grid-cols-2 max-md:grid-cols-1 gap-x-6 gap-y-12 max-md:gap-y-10">
+          {FEATURES.map((feature) => (
             <Link
-              key={way.title}
-              href="/style"
-              className="group flex items-baseline justify-between gap-8 max-md:gap-4 py-8 max-md:py-6"
+              key={feature.n}
+              href={feature.href}
+              className="group block"
+              {...(feature.href.startsWith('http')
+                ? { target: '_blank', rel: 'noopener noreferrer' }
+                : {})}
             >
-              <span>
-                <span className="block font-display font-normal text-[clamp(34px,4.2vw,56px)] leading-[1.02] tracking-[-0.015em]">
-                  {way.title}
+              {/* screenshot frame; hatched placeholder until real captures land */}
+              <div className="relative aspect-[4/5] overflow-hidden border border-ink product__frame--placeholder">
+                <span className="absolute inset-x-0 bottom-0 flex items-center justify-between px-3 py-2 bg-paper font-mono text-[9px] uppercase tracking-[0.1em] text-ink-3">
+                  <span>Screenshot to come</span>
+                  <span>{feature.shot}</span>
                 </span>
-                <span className="block mt-3 text-[13.5px] leading-[1.55] text-ink-3">
-                  {way.description}
+              </div>
+
+              <p className="m-0 mt-4 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3">
+                {feature.n}
+              </p>
+              <h3 className="m-0 mt-1 font-display font-normal text-[clamp(22px,1.9vw,28px)] leading-[1.05] tracking-[-0.01em]">
+                {feature.title}
+                <span
+                  aria-hidden="true"
+                  className="inline-block ml-2 transition-transform group-hover:translate-x-1"
+                >
+                  →
                 </span>
-              </span>
-              <span
-                aria-hidden="true"
-                className="font-display text-[28px] leading-none transition-transform group-hover:translate-x-1"
-              >
-                →
-              </span>
+              </h3>
+              <p className="mt-2 mb-0 text-[13.5px] leading-[1.55] text-ink-3">
+                {feature.description}
+              </p>
             </Link>
           ))}
         </div>
@@ -312,8 +350,7 @@ export default function Home() {
               <p className="m-0">
                 Neutrals never appear on the wheel because they have no hue
                 to place: zero saturation means no angle and no arc. They
-                pair with everything. The wheel is that arithmetic, running
-                live.
+                pair with everything.
               </p>
 
               {/* verified citations; do not add a link here without
@@ -356,31 +393,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* NOTES */}
-      <section className={`${CONTAINER} pt-20 pb-24 max-md:pt-14 max-md:pb-16`}>
-        <h2 className="m-0 font-display font-normal text-[clamp(40px,5vw,64px)] leading-none tracking-[-0.02em]">
-          Notes
-        </h2>
-        <div className="mt-10 grid grid-cols-3 max-md:grid-cols-1 gap-x-10 gap-y-12">
-          {NOTES.map((note) => (
-            <Link
-              key={note.slug}
-              href={`/notes/${note.slug}`}
-              className="group block"
-            >
-              <h3 className="m-0 font-display font-normal text-[clamp(26px,2.6vw,34px)] leading-[1.05] tracking-[-0.01em]">
-                {note.title}
-              </h3>
-              <p className="mt-3 mb-0 font-display text-[17px] leading-[1.4] text-ink-2">
-                {note.teaser}
-              </p>
-              <span className="inline-block mt-5 font-mono text-[11px] uppercase tracking-[0.12em] pb-[2px] border-b border-transparent group-hover:border-ink transition-colors">
-                Read the note →
-              </span>
-            </Link>
-          ))}
-        </div>
-      </section>
     </div>
   )
 }
