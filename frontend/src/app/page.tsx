@@ -1,8 +1,8 @@
 import Image from 'next/image'
 import {
   Badge,
+  AiClothesIcon,
   CloudServerIcon,
-  HangerIcon,
   HugeiconsIcon,
   Tooltip,
   TooltipContent,
@@ -139,7 +139,7 @@ export default function Home() {
                     {/* svg inherits currentColor, so it flips with the
                         button's hover fill on its own */}
                     <HugeiconsIcon
-                      icon={HangerIcon}
+                      icon={AiClothesIcon}
                       size={16}
                       strokeWidth={1}
                       aria-hidden="true"
@@ -147,7 +147,7 @@ export default function Home() {
                     />
                     Style it yourself
                   </span>
-                  <span aria-hidden="true">→</span>
+                  <span aria-hidden="true">↗</span>
                 </Link>
                 <a
                   href="https://github.com/Paullitsc/Style-It-Yourself/tree/main/extension"
