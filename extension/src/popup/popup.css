@@ -57,6 +57,9 @@ body {
   justify-content: space-between;
   padding: 12px 16px;
   border-bottom: 1px solid var(--ink);
+  /* #root is a capped flex column; without this the masthead compresses
+     when the body content is tall */
+  flex-shrink: 0;
 }
 .masthead .wordmark {
   font-family: 'Instrument Serif', Georgia, serif;
@@ -86,6 +89,11 @@ body {
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
+}
+/* The body scrolls; its children must never be flex-compressed to fit,
+   or images collapse into slivers. Scroll, don't shrink. */
+.body > * {
+  flex-shrink: 0;
 }
 
 /* ---- generic ---- */
