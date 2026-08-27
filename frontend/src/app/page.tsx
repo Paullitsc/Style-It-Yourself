@@ -252,30 +252,41 @@ export default function Home() {
         </div>
       </section>
 
-      {/* FEATURES: a four-up teaser grid, the retail-catalog register.
-          Screenshots live in frontend/public/screens/ (styling-flow.png,
-          ai-try-on.png, closet-builder.png, extension.png): replace the
-          files, keep the names. Card copy lives in FEATURES above. */}
+      {/* FEATURES: a vertical index; every feature is its own sub-section
+          pairing a large capture with its copy, image side alternating row
+          by row. Screenshots live in frontend/public/screens/ (replace the
+          files, keep the names); card copy lives in FEATURES above. */}
       <section className={`${CONTAINER} pt-16 pb-24 max-md:pt-12 max-md:pb-16`}>
-        <div className="grid grid-cols-4 max-lg:grid-cols-2 max-md:grid-cols-1 gap-x-6 gap-y-12 max-md:gap-y-10">
-          {FEATURES.map((feature) => (
-            <div key={feature.title}>
-              <div className="relative aspect-[3/2] overflow-hidden border border-ink product__frame--placeholder">
-                <Image
-                  src={feature.img}
-                  alt={`${feature.title} in Style It Yourself`}
-                  fill
-                  sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                  className="object-cover object-left-top"
-                />
+        <div className="divide-y divide-rule-soft">
+          {FEATURES.map((feature, i) => (
+            <div
+              key={feature.title}
+              className="grid grid-cols-2 max-md:grid-cols-1 gap-x-16 gap-y-7 items-center py-14 max-md:py-10 first:pt-0"
+            >
+              <div
+                className={
+                  i % 2 === 1 ? 'md:order-2 max-md:order-first' : 'max-md:order-first'
+                }
+              >
+                <div className="relative aspect-[3/2] overflow-hidden border border-ink product__frame--placeholder">
+                  <Image
+                    src={feature.img}
+                    alt={`${feature.title} in Style It Yourself`}
+                    fill
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                    className="object-cover object-left-top"
+                  />
+                </div>
               </div>
 
-              <h3 className="m-0 mt-5 font-display font-normal text-[clamp(22px,1.9vw,28px)] leading-[1.05] tracking-[-0.01em]">
-                {feature.title}
-              </h3>
-              <p className="mt-2 mb-0 text-[13.5px] leading-[1.55] text-ink-3">
-                {feature.description}
-              </p>
+              <div>
+                <h3 className="m-0 font-display font-normal text-[clamp(30px,3.2vw,46px)] leading-[1.02] tracking-[-0.015em]">
+                  {feature.title}
+                </h3>
+                <p className="mt-4 mb-0 max-w-[46ch] text-[15px] leading-[1.6] text-ink-3">
+                  {feature.description}
+                </p>
+              </div>
             </div>
           ))}
         </div>
