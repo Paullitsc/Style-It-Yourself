@@ -280,14 +280,13 @@ export default function Home() {
                 Within 30 degrees the colors are analogous: neighbors that
                 share an undertone. At 180 they are complementary, opposites
                 that sharpen each other. At 120 apart they form a triad,
-                three families in equal tension. Everything else clashes,
-                and a clash costs an outfit 30 of its 100 points.
+                three families in equal tension.
               </p>
               <p className="m-0">
                 Neutrals never appear on the wheel because they have no hue
-                to place: zero saturation means no angle, no arc, no
-                penalty. They pair with everything. The wheel is that
-                arithmetic, running live.
+                to place: zero saturation means no angle and no arc. They
+                pair with everything. The wheel is that arithmetic, running
+                live.
               </p>
             </div>
 
