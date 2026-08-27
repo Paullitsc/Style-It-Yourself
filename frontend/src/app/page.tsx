@@ -266,20 +266,29 @@ export default function Home() {
           <h2 className="m-0 font-display font-normal text-[clamp(44px,5.5vw,76px)] leading-[0.98] tracking-[-0.02em]">
             The color engine
           </h2>
-          <p className="mt-5 mb-0 max-w-[60ch] font-display text-[clamp(17px,1.5vw,21px)] leading-[1.45] text-ink-2">
-            Point at a hue; whatever stays lit wears well with it.
-          </p>
+          <div className="mt-8 max-md:mt-6 flex flex-col gap-5 max-w-[60ch] font-display text-[clamp(17px,1.5vw,21px)] leading-[1.45]">
+            <p className="m-0">
+              Every color is read as an angle on a 360 degree wheel. When
+              two pieces meet, the engine measures the arc between their
+              hues, and the arc decides whether they belong together.
+            </p>
+            <p className="m-0 text-ink-2">
+              Within 30 degrees the colors are analogous: neighbors that
+              share an undertone. At 180 they are complementary, opposites
+              that sharpen each other. At 120 apart they form a triad,
+              three families in equal tension. Everything else clashes,
+              and a clash costs an outfit 30 of its 100 points.
+            </p>
+            <p className="m-0">
+              Neutrals sit at the center of the wheel, at zero saturation.
+              No angle, no arc, no penalty: they pair with everything. The
+              wheel below is that arithmetic, running live.
+            </p>
+          </div>
 
           <div className="mt-10 max-md:mt-8">
             <ColorWheel />
           </div>
-
-          <Link
-            href="/style"
-            className="inline-block mt-10 font-mono text-[11px] uppercase tracking-[0.12em] pb-[2px] border-b border-transparent hover:border-ink transition-colors"
-          >
-            Run your own numbers →
-          </Link>
         </div>
       </section>
 
