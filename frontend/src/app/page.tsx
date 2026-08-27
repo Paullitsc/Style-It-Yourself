@@ -100,6 +100,10 @@ export default function Home() {
                   Palette, silhouette, formality: none of it is a secret.
                   Everything they charge for, you can learn.
                 </p>
+                <p className="m-0 text-ink-2">
+                  Their tools end at checkout. Our extension checks any
+                  product page against the closet you already own.
+                </p>
                 <p className="m-0">
                   SIY is the counter-argument. Free and open source.
                 </p>
@@ -107,24 +111,43 @@ export default function Home() {
             </div>
 
             <div className="flex flex-col gap-7 max-md:gap-6 items-end max-md:items-start">
-              <a
-                href="https://github.com/Paullitsc/Style-It-Yourself"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group inline-flex items-center justify-between gap-8 px-[26px] py-[17px] border border-ink bg-transparent text-ink font-mono text-[11px] uppercase tracking-[0.12em] transition-colors hover:bg-ink hover:text-paper"
-              >
-                <span className="inline-flex items-center gap-3">
-                  <Image
-                    src="/logos/github.svg"
-                    alt="GitHub"
-                    width={16}
-                    height={16}
-                    className="transition group-hover:invert"
-                  />
-                  Run it yourself
-                </span>
-                <span aria-hidden="true">↗</span>
-              </a>
+              <div className="flex flex-col gap-3 w-[300px] max-md:w-full">
+                <a
+                  href="https://github.com/Paullitsc/Style-It-Yourself"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group inline-flex w-full items-center justify-between gap-8 px-[26px] py-[17px] border border-ink bg-transparent text-ink font-mono text-[11px] uppercase tracking-[0.12em] transition-colors hover:bg-ink hover:text-paper"
+                >
+                  <span className="inline-flex items-center gap-3">
+                    <Image
+                      src="/logos/github.svg"
+                      alt="GitHub"
+                      width={16}
+                      height={16}
+                      className="transition group-hover:invert"
+                    />
+                    Run it yourself
+                  </span>
+                  <span aria-hidden="true">↗</span>
+                </a>
+                <a
+                  href="https://github.com/Paullitsc/Style-It-Yourself/tree/main/extension"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group inline-flex w-full items-center justify-between gap-8 px-[26px] py-[17px] border border-ink bg-transparent text-ink font-mono text-[11px] uppercase tracking-[0.12em] transition-colors hover:bg-ink hover:text-paper"
+                >
+                  <span className="inline-flex items-center gap-3">
+                    <Image
+                      src="/logos/googlechrome.svg"
+                      alt="Chrome"
+                      width={16}
+                      height={16}
+                    />
+                    Get the extension
+                  </span>
+                  <span aria-hidden="true">↗</span>
+                </a>
+              </div>
 
               <div className="text-right max-md:text-left">
                 <p className="m-0 mb-3 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3">
