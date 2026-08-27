@@ -74,78 +74,83 @@ export default function Home() {
         </div>
       </section>
 
-      {/* MANIFESTO: why this is free. Brand marks render in their official
-          colors by explicit product decision — the one-accent rule governs
-          our own UI color, not third-party logos. */}
-      <section className="border-t border-ink">
-        <div
-          className={`${CONTAINER} py-14 max-md:py-10 grid grid-cols-[1fr_auto] max-md:grid-cols-1 gap-x-16 gap-y-6 items-center`}
-        >
-          <div>
-            <p className="m-0 mb-3 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3">
-              Free, and staying that way
-            </p>
-            <p className="m-0 max-w-[68ch] text-[14px] max-md:text-[13px] leading-[1.6] text-ink-2">
-              Most styling apps charge a subscription for advice you can
-              learn yourself — the color rules, the formality math, the
-              pairing logic. SIY is the counter-argument: free and
-              open-source. Clone it from GitHub and it runs on your own
-              machine around the clock. This hosted copy stays free until
-              our credits run out with Supabase, Vercel, and Cloudflare,
-              which keep it online, and Google Gemini, the model behind
-              the try-on.
-            </p>
-          </div>
+      {/* MANIFESTO: the "why this is free" mission statement, with a CTA
+          and a logo cloud. A full section in its own right, closed by a
+          bottom rule. Brand marks render in their official colors by
+          explicit product decision — the one-accent rule governs our own
+          UI color, not third-party logos. */}
+      <section className="border-t border-b border-ink">
+        <div className={`${CONTAINER} pt-12 pb-16 max-md:pt-9 max-md:pb-12`}>
+          <p className="m-0 mb-4 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3">
+            Manifesto
+          </p>
 
-          <div className="flex flex-col gap-4 max-md:items-start">
-            <a
-              href="https://github.com/Paullitsc/Style-It-Yourself"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group inline-flex items-center justify-between gap-6 px-[22px] py-[14px] border border-ink bg-paper text-ink font-mono text-[11px] uppercase tracking-[0.12em] transition-colors hover:bg-ink hover:text-paper"
-            >
-              <span className="inline-flex items-center gap-3">
-                <Image
-                  src="/logos/github.svg"
-                  alt="GitHub"
-                  width={16}
-                  height={16}
-                  className="transition group-hover:invert"
-                />
-                Run it yourself
-              </span>
-              <span aria-hidden="true">↗</span>
-            </a>
+          <div className="grid grid-cols-[1fr_auto] max-md:grid-cols-1 gap-x-16 gap-y-8 items-center">
+            <div>
+              <h2 className="m-0 font-display font-normal text-[clamp(36px,4.5vw,56px)] leading-none tracking-[-0.02em]">
+                Free and staying that way
+              </h2>
+              <p className="mt-5 mb-0 max-w-[68ch] text-[14px] max-md:text-[13px] leading-[1.6] text-ink-2">
+                Most styling apps charge a subscription for advice you can
+                learn yourself — the color rules, the formality math, the
+                pairing logic. SIY is the counter-argument: free and
+                open-source. Clone it from GitHub and it runs on your own
+                machine around the clock. This hosted copy stays free until
+                our credits run out with Supabase, Vercel, and Cloudflare,
+                which keep it online, and Google Gemini, the model behind
+                the try-on.
+              </p>
+            </div>
 
-            <div className="flex items-center gap-5 max-md:gap-4 flex-wrap">
-              {(
-                [
-                  ['supabase', 'Supabase'],
-                  ['vercel', 'Vercel'],
-                  ['cloudflare', 'Cloudflare'],
-                  ['googlegemini', 'Gemini'],
-                ] as const
-              ).map(([slug, name]) => (
-                <span key={slug} className="inline-flex items-center gap-2">
+            <div className="flex flex-col gap-4 max-md:items-start">
+              <a
+                href="https://github.com/Paullitsc/Style-It-Yourself"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group inline-flex items-center justify-between gap-6 px-[22px] py-[14px] border border-ink bg-paper text-ink font-mono text-[11px] uppercase tracking-[0.12em] transition-colors hover:bg-ink hover:text-paper"
+              >
+                <span className="inline-flex items-center gap-3">
                   <Image
-                    src={`/logos/${slug}.svg`}
-                    alt=""
-                    width={14}
-                    height={14}
+                    src="/logos/github.svg"
+                    alt="GitHub"
+                    width={16}
+                    height={16}
+                    className="transition group-hover:invert"
                   />
-                  <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink-2">
-                    {name}
-                  </span>
+                  Run it yourself
                 </span>
-              ))}
+                <span aria-hidden="true">↗</span>
+              </a>
+
+              <div className="flex items-center gap-5 max-md:gap-4 flex-wrap">
+                {(
+                  [
+                    ['supabase', 'Supabase'],
+                    ['vercel', 'Vercel'],
+                    ['cloudflare', 'Cloudflare'],
+                    ['googlegemini', 'Gemini'],
+                  ] as const
+                ).map(([slug, name]) => (
+                  <span key={slug} className="inline-flex items-center gap-2">
+                    <Image
+                      src={`/logos/${slug}.svg`}
+                      alt=""
+                      width={14}
+                      height={14}
+                    />
+                    <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink-2">
+                      {name}
+                    </span>
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* WAYS IN: a bare oversized index. The break from the centered poster
-          above is the change of register itself, not a rule. */}
-      <section className={`${CONTAINER} pb-24 max-md:pb-16`}>
+      {/* WAYS IN: a bare oversized index. */}
+      <section className={`${CONTAINER} pt-16 pb-24 max-md:pt-12 max-md:pb-16`}>
         <div className="divide-y divide-rule-soft">
           {WAYS_IN.map((way) => (
             <Link
