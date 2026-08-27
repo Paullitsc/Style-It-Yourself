@@ -120,9 +120,6 @@ export default function ColorWheel() {
             <div className="absolute left-1/2 top-[-1.5%] h-[21%] w-[2px] -translate-x-1/2 bg-ink" />
           </div>
         </div>
-        <p className="mt-5 mb-0 text-center font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3">
-          Point anywhere on the wheel
-        </p>
       </div>
 
       {/* READOUT: each row names the relation and shows its arithmetic:

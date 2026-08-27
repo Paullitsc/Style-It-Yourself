@@ -284,7 +284,8 @@ export default function Home() {
                 and a clash costs an outfit 30 of its 100 points.
               </p>
               <p className="m-0">
-                Neutrals have no angle at all: zero saturation, no arc, no
+                Neutrals never appear on the wheel because they have no hue
+                to place: zero saturation means no angle, no arc, no
                 penalty. They pair with everything. The wheel is that
                 arithmetic, running live.
               </p>
