@@ -331,6 +331,17 @@ function ProductPreview({
   title: string | null
   sourceUrl: string
 }) {
+  // Placeholder-first: sites lazy-load and rewrite srcsets, so the first
+  // extracted URL can race the popup and render broken. The frame shows a
+  // hatch until the image genuinely loads; errors fall back to the hatch
+  // and the filmstrip below picks a replacement.
+  const [loaded, setLoaded] = useState(false)
+  const [failed, setFailed] = useState(false)
+  useEffect(() => {
+    setLoaded(false)
+    setFailed(false)
+  }, [imageUrl])
+
   let host = ''
   try {
     host = new URL(sourceUrl).hostname.replace(/^www\./, '')
@@ -339,11 +350,23 @@ function ProductPreview({
   }
   return (
     <div className="preview">
-      {imageUrl ? (
-        <img className="thumb" src={imageUrl} alt={title ?? 'product'} />
-      ) : (
-        <div className="thumb" />
-      )}
+      <div className="thumb thumb-frame">
+        {imageUrl && !failed && (
+          <img
+            className="thumb-img"
+            src={imageUrl}
+            alt={title ?? 'product'}
+            style={{ opacity: loaded ? 1 : 0 }}
+            onLoad={() => setLoaded(true)}
+            onError={() => setFailed(true)}
+          />
+        )}
+        {!loaded && (
+          <span className="thumb-hint">
+            {failed ? 'Pick a photo below' : ''}
+          </span>
+        )}
+      </div>
       <div>
         <p className="title">{title ?? 'Untitled product'}</p>
         {host && <span className="eyebrow">{host}</span>}

@@ -19,8 +19,13 @@ body {
 }
 
 body {
+  /* Chrome caps popups at 600px tall and guillotines anything past it.
+     Cap ourselves below that and let .body scroll internally instead,
+     with the masthead pinned. */
   width: 360px;
   min-height: 220px;
+  max-height: 580px;
+  overflow: hidden;
   background: var(--paper);
   color: var(--ink);
   font-family: 'Mona Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -30,6 +35,7 @@ body {
 #root {
   display: flex;
   flex-direction: column;
+  max-height: 580px;
 }
 
 .eyebrow {
@@ -76,6 +82,10 @@ body {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* ---- generic ---- */
@@ -186,6 +196,38 @@ hr.rule {
   border: 1px solid var(--ink);
   object-fit: cover;
   background: var(--paper-2);
+}
+/* The main frame starts as a hatched placeholder; the image fades in only
+   once it has actually loaded, so a slow or dead URL never shows a broken
+   glyph. Picking a thumbnail below swaps the src. */
+.preview .thumb-frame {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: repeating-linear-gradient(
+    135deg,
+    var(--paper-2) 0 8px,
+    var(--paper-3) 8px 9px
+  );
+}
+.preview .thumb-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: opacity 120ms ease;
+}
+.preview .thumb-hint {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  text-align: center;
+  padding: 0 6px;
 }
 .preview .title {
   font-family: 'Instrument Serif', Georgia, serif;
