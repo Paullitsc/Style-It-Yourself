@@ -103,34 +103,44 @@ export default function Home() {
           <div className="mt-8 max-md:mt-6 grid grid-cols-[1.25fr_1fr] max-md:grid-cols-1 gap-x-20 gap-y-10 items-start">
             <div className="flex flex-col gap-5 max-w-[60ch] font-display text-[clamp(17px,1.5vw,21px)] leading-[1.45]">
               <p className="m-0">
-                Every closet has one: the piece bought on feeling that has
-                never once been worn. The problem is not how much you own;
-                it is that nobody ever taught you what pairs with what.
-                You already have more outfits than you think. What is
-                missing is the eye: palette, silhouette, formality. The
-                industry calls that taste. Written down, it is arithmetic,
-                and arithmetic can be learned.
+                Remember that one piece you bought on feeling that has a
+                high cost per wear, or do you, in fact, have a few of
+                those? Have you wondered why you never wear them? Or have
+                you never once gotten a compliment on your outfit? The
+                answer is that they don&apos;t pair with anything else you
+                own, or you just don&apos;t know how to pair them. It took
+                us a long time and a wardrobe full of random pieces to
+                realize that the problem is not how much we own, but that
+                nobody ever taught us what pairs with what. We already
+                have more great outfits than we think. What is missing is
+                the eye: palette, silhouette, formality. The industry
+                calls that taste. We want to educate your eye toward that
+                taste, so that eventually you won&apos;t need us anymore.
+                We want to make you a better stylist, not a better
+                shopper.
               </p>
-              <p className="m-0 text-ink-2">
-                A whole business lives in the space between those two
-                words. Fast fashion bottles your doubt and sells it back
-                with every purchase; styling apps do the same by
+              <p className="m-0">
+                Most brands, especially fast fashion ones, bottle your
+                doubt and sell it back with every purchase, every trend
+                cycle. On the other side, we have multiple apps out there
+                pretending to solve the problem, by making you think you
+                paid a bargain price for a piece (while they claim
+                affiliate commissions) or by selling you the idea of
+                advanced AI styling, but in reality they are just another
                 subscription. But the rules are small and old.
                 Complementary colors sit opposite on the wheel. Formality
                 runs a five-step scale, and an outfit fails when two
-                pieces stop describing the same event. None of it is
-                secret; it is just rarely written down. So we wrote it
-                down, built a tool around it, and gave the tool away. No
-                paywall, no ads, no tracking.
+                pieces stop describing the same event. So we wrote them
+                down, built a tool around them, and gave the tool away.
+                Open-source, no paywall, no ads, no tracking.
               </p>
               <p className="m-0">
-                Along the way, SIY becomes your digital closet. What
-                Amazon did to the bookshelf, this does to the wardrobe:
-                every piece you own, catalogued by hue, cut, and occasion,
-                ready to pair. Once the whole collection sits in one view,
-                you finally see what is actually missing. And to the
-                fashion enthusiasts: we are not against buying more
-                clothes; we just want you to buy smarter.
+                Along the way, SIY can become your digital closet. Books,
+                music, and movies have all been digitized. Why not
+                clothes? Once the whole collection sits in one view, you
+                finally see what is actually missing. And to the fashion
+                enthusiasts: we are not against buying more clothes. We
+                just want you to buy smarter.
               </p>
               <p className="m-0">
                 TLDR, we open sourced SIY for the love of the game.
