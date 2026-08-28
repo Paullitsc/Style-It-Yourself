@@ -46,13 +46,6 @@ export default function Header() {
             >
               Style
             </Link>
-            <Link
-              href="/notes"
-              className={linkClass('/notes')}
-              aria-current={isActive('/notes') ? 'page' : undefined}
-            >
-              Notes
-            </Link>
             {user && (
               <Link
                 href="/closet"
@@ -60,15 +53,6 @@ export default function Header() {
                 aria-current={isActive('/closet') ? 'page' : undefined}
               >
                 Closet
-              </Link>
-            )}
-            {user && (
-              <Link
-                href="/account"
-                className={linkClass('/account')}
-                aria-current={isActive('/account') ? 'page' : undefined}
-              >
-                Account
               </Link>
             )}
             {user ? (

@@ -26,7 +26,7 @@ const CATEGORY_ORDER = ['Tops', 'Bottoms', 'Outerwear', 'Shoes', 'Accessories']
 const pad2 = (n: number) => String(n).padStart(2, '0')
 
 export default function ClosetPage() {
-  const { session } = useAuth()
+  const { session, user } = useAuth()
   const [closetData, setClosetData] = useState<ClosetResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -255,6 +255,20 @@ export default function ClosetPage() {
                 <span>Add a piece</span>
                 <span aria-hidden="true">＋</span>
               </Link>
+
+              {user?.email && (
+                <>
+                  <hr className="border-t border-rule-soft" />
+                  <div>
+                    <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mb-2">
+                      Signed in as
+                    </div>
+                    <div className="font-mono text-[11px] tracking-[0.04em] text-ink-2 break-all">
+                      {user.email}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </aside>
 
