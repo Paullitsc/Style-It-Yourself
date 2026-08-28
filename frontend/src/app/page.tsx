@@ -105,19 +105,15 @@ export default function Home() {
               <p className="m-0">
                 Remember that one piece you bought on feeling that has a
                 high cost per wear, or do you, in fact, have a few of
-                those? Have you wondered why you never wear them? Or have
-                you never once gotten a compliment on your outfit? The
+                those? Have you wondered why you never wear them? The
                 answer is that they don&apos;t pair with anything else you
                 own, or you just don&apos;t know how to pair them. It took
                 us a long time and a wardrobe full of random pieces to
                 realize that the problem is not how much we own, but that
                 nobody ever taught us what pairs with what. We already
-                have more great outfits than we think. What is missing is
-                the eye: palette, silhouette, formality. The industry
-                calls that taste. We want to educate your eye toward that
-                taste, so that eventually you won&apos;t need us anymore.
-                We want to make you a better stylist, not a better
-                shopper.
+                have more great outfits than we think, but what is missing is
+                the eye: palette, silhouette, formality, proportionality. The industry
+                calls that taste.
               </p>
               <p className="m-0">
                 Most brands, especially fast fashion ones, bottle your
@@ -127,22 +123,17 @@ export default function Home() {
                 paid a bargain price for a piece (while they claim
                 affiliate commissions) or by selling you the idea of
                 advanced AI styling, but in reality they are just another
-                subscription. But the rules are small and old.
-                Complementary colors sit opposite on the wheel. Formality
-                runs a five-step scale, and an outfit fails when two
-                pieces stop describing the same event. So we wrote them
+                subscription. So we wrote the rules 
                 down, built a tool around them, and gave the tool away.
                 Open-source, no paywall, no ads, no tracking.
               </p>
               <p className="m-0">
-                Along the way, SIY can become your digital closet. Books,
-                music, and movies have all been digitized. Why not
-                clothes? Once the whole collection sits in one view, you
-                finally see what is actually missing. And to the fashion
+                Books, music, and movies have all been digitized. Why not
+                clothes? Once the entire collection sits in one view, you can 
+                finally see what is missing. And to our fellow fashion
                 enthusiasts: we are not against buying more clothes. We
-                just want you to buy smarter, and a better stylist does
-                that by default. Then one day, when you have outgrown the
-                advice, the closet is still yours to keep.
+                just want you to buy smarter by becoming a better stylist yourself.
+                The more you know, the better you can curate.
               </p>
               <p className="m-0">
                 TLDR, we open sourced SIY for the love of the game.
