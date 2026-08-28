@@ -105,7 +105,7 @@ export default function ItemDetailModal({
           <h2 className="font-display font-normal text-[clamp(40px,4.5vw,56px)] leading-[0.95] tracking-[-0.02em] m-0">
             {item.color?.name}
             {item.color?.name ? <br /> : null}
-            {item.category.l2.toLowerCase()}.
+            {item.category.l2.toLowerCase()}
           </h2>
 
           <hr className="border-t border-ink mt-6 mb-6" />
@@ -168,7 +168,7 @@ export default function ItemDetailModal({
                   href={item.source_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-display italic text-[18px] leading-none underline decoration-ink-3 underline-offset-4 hover:decoration-ink"
+                  className="font-display text-[18px] leading-none underline decoration-ink-3 underline-offset-4 hover:decoration-ink"
                 >
                   View original →
                 </a>

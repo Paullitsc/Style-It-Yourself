@@ -183,9 +183,9 @@ export default function TryOnOutfitModal({
             Stitching{' '}
             {items.length} pieces
             <br />
-            onto your photo.
+            onto your photo
           </h4>
-          <p className="mt-4 mx-auto max-w-[40ch] font-display italic text-[16px] text-ink-2">
+          <p className="mt-4 mx-auto max-w-[40ch] font-display text-[16px] text-ink-2">
             Hold tight. This is the slow part of the magic.
           </p>
           <p className="mt-6 font-mono text-[11px] uppercase tracking-[0.14em] text-ink">

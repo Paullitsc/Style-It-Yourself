@@ -762,7 +762,7 @@ export default function AddItemPanel({
                       value={addingItem.brand}
                       onChange={(e) => setAddingItemBrand(e.target.value)}
                       placeholder="e.g. Uniqlo, A.P.C."
-                      className="w-full bg-transparent border-b border-ink py-2 font-display italic text-[16px] text-ink placeholder:text-ink-3 placeholder:not-italic placeholder:font-mono placeholder:text-[12px] placeholder:tracking-[0.04em] focus:outline-none"
+                      className="w-full bg-transparent border-b border-ink py-2 font-display text-[16px] text-ink placeholder:text-ink-3 placeholder:font-mono placeholder:text-[12px] placeholder:tracking-[0.04em] focus:outline-none"
                     />
                   </EditorialField>
                   <EditorialField label="Size">
@@ -771,7 +771,7 @@ export default function AddItemPanel({
                       value={addingItem.size}
                       onChange={(e) => setAddingItemSize(e.target.value)}
                       placeholder="e.g. M, 32, 10.5"
-                      className="w-full bg-transparent border-b border-ink py-2 font-display italic text-[16px] text-ink placeholder:text-ink-3 placeholder:not-italic placeholder:font-mono placeholder:text-[12px] placeholder:tracking-[0.04em] focus:outline-none"
+                      className="w-full bg-transparent border-b border-ink py-2 font-display text-[16px] text-ink placeholder:text-ink-3 placeholder:font-mono placeholder:text-[12px] placeholder:tracking-[0.04em] focus:outline-none"
                     />
                   </EditorialField>
                   <EditorialField label="Price">
@@ -782,7 +782,7 @@ export default function AddItemPanel({
                       placeholder="0.00"
                       min="0"
                       step="0.01"
-                      className="w-full bg-transparent border-b border-ink py-2 font-display italic text-[16px] text-ink placeholder:text-ink-3 placeholder:not-italic placeholder:font-mono placeholder:text-[12px] placeholder:tracking-[0.04em] focus:outline-none"
+                      className="w-full bg-transparent border-b border-ink py-2 font-display text-[16px] text-ink placeholder:text-ink-3 placeholder:font-mono placeholder:text-[12px] placeholder:tracking-[0.04em] focus:outline-none"
                     />
                   </EditorialField>
                   <EditorialField label="Source URL">
@@ -791,7 +791,7 @@ export default function AddItemPanel({
                       value={addingItem.sourceUrl}
                       onChange={(e) => setAddingItemSourceUrl(e.target.value)}
                       placeholder="https://…"
-                      className="w-full bg-transparent border-b border-ink py-2 font-display italic text-[16px] text-ink placeholder:text-ink-3 placeholder:not-italic placeholder:font-mono placeholder:text-[12px] placeholder:tracking-[0.04em] focus:outline-none"
+                      className="w-full bg-transparent border-b border-ink py-2 font-display text-[16px] text-ink placeholder:text-ink-3 placeholder:font-mono placeholder:text-[12px] placeholder:tracking-[0.04em] focus:outline-none"
                     />
                   </EditorialField>
                 </div>
@@ -891,7 +891,7 @@ export default function AddItemPanel({
                     style={{ backgroundColor: suggestedColor.hex }}
                     aria-hidden="true"
                   />
-                  <span className="font-display italic text-[14px] leading-none">
+                  <span className="font-display text-[14px] leading-none">
                     {suggestedColor.name}
                   </span>
                 </div>
@@ -975,7 +975,7 @@ export default function AddItemPanel({
               <h3 className="font-display text-[32px] leading-tight tracking-[-0.015em]">
                 We couldn&apos;t check this piece.
               </h3>
-              <p className="font-display italic text-[16px] text-ink-2 mt-2 max-w-[34ch]">
+              <p className="font-display text-[16px] text-ink-2 mt-2 max-w-[34ch]">
                 {validationError}
               </p>
             </div>
@@ -1015,13 +1015,13 @@ export default function AddItemPanel({
               <h3 className="font-display text-[32px] leading-tight tracking-[-0.015em]">
                 {itemValidation.warnings.length === 0 ? (
                   <>
-                    Perfect match.
+                    Perfect match
                   </>
                 ) : (
-                  <>Worth a look.</>
+                  <>Worth a look</>
                 )}
               </h3>
-              <p className="font-display italic text-[16px] text-ink-2 mt-2 max-w-[34ch]">
+              <p className="font-display text-[16px] text-ink-2 mt-2 max-w-[34ch]">
                 How this pairs with your{' '}
                 {baseItem?.category.l2}.
               </p>
@@ -1052,7 +1052,7 @@ export default function AddItemPanel({
                   {itemValidation.warnings.map((w, i) => (
                     <li
                       key={i}
-                      className="flex items-baseline gap-3 font-display italic text-[15px] leading-[1.4] text-ink-2"
+                      className="flex items-baseline gap-3 font-display text-[15px] leading-[1.4] text-ink-2"
                     >
                       <span
                         className="font-mono text-[10px] uppercase tracking-[0.1em] text-accent shrink-0"

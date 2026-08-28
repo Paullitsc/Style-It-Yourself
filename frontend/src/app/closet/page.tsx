@@ -26,7 +26,7 @@ const CATEGORY_ORDER = ['Tops', 'Bottoms', 'Outerwear', 'Shoes', 'Accessories']
 const pad2 = (n: number) => String(n).padStart(2, '0')
 
 export default function ClosetPage() {
-  const { session } = useAuth()
+  const { session, user } = useAuth()
   const [closetData, setClosetData] = useState<ClosetResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -152,7 +152,7 @@ export default function ClosetPage() {
         <div className="max-w-[1440px] mx-auto grid grid-cols-[240px_1fr] gap-10 max-md:grid-cols-1 max-md:gap-6 px-10 max-md:px-6 pt-8 pb-24">
           {/* SIDEBAR */}
           <aside className="border-r border-ink pr-8 max-md:border-r-0 max-md:border-b max-md:border-ink max-md:pr-0 max-md:pb-8">
-            <div className="sticky top-6 flex flex-col gap-7">
+            <div className="sticky top-[calc(var(--masthead-h)+24px)] flex flex-col gap-7">
               {/* Tabs */}
               <div className="flex flex-col gap-2">
                 <SideTab
@@ -186,7 +186,7 @@ export default function ClosetPage() {
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Color, brand, tag…"
                         aria-label="Search pieces"
-                        className="flex-1 min-w-0 bg-transparent font-display italic text-[16px] text-ink placeholder:text-ink-3 placeholder:not-italic placeholder:font-mono placeholder:text-[11px] placeholder:tracking-[0.04em] focus:outline-none"
+                        className="flex-1 min-w-0 bg-transparent font-display text-[16px] text-ink placeholder:text-ink-3 placeholder:font-mono placeholder:text-[11px] placeholder:tracking-[0.04em] focus:outline-none"
                       />
                       {searchQuery && (
                         <button
@@ -255,6 +255,20 @@ export default function ClosetPage() {
                 <span>Add a piece</span>
                 <span aria-hidden="true">＋</span>
               </Link>
+
+              {user?.email && (
+                <>
+                  <hr className="border-t border-rule-soft" />
+                  <div>
+                    <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mb-2">
+                      Signed in as
+                    </div>
+                    <div className="font-mono text-[11px] tracking-[0.04em] text-ink-2 break-all">
+                      {user.email}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </aside>
 
@@ -280,7 +294,7 @@ export default function ClosetPage() {
                 <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-accent mb-4">
                   Failed to load closet
                 </p>
-                <p className="font-display italic text-[18px] text-ink-2 mb-6">
+                <p className="font-display text-[18px] text-ink-2 mb-6">
                   {error}
                 </p>
                 <button
@@ -390,7 +404,7 @@ function SideTab({ active, onClick, label, count }: SideTabProps) {
           : 'text-[24px] text-ink-3 hover:text-ink',
       )}
     >
-      <span className={active ? 'italic' : ''}>{label}</span>
+      <span>{label}</span>
       <span className="font-mono text-[11px] uppercase tracking-[0.1em] opacity-50">
         {count}
       </span>
@@ -476,10 +490,10 @@ function ItemsView({
   if (closetData.total_items === 0) {
     return (
       <section className="py-16 text-center">
-        <p className="font-display italic text-[32px] leading-snug">
-          Empty closet.
+        <p className="font-display text-[32px] leading-snug">
+          Empty closet
         </p>
-        <p className="font-display italic text-[18px] text-ink-2 mt-3">
+        <p className="font-display text-[18px] text-ink-2 mt-3">
           Tap Add a piece in the sidebar to upload
           your first one.
         </p>
@@ -504,7 +518,7 @@ function ItemsView({
   if (sections.length === 0 && filtersActive) {
     return (
       <section className="py-16 text-center">
-        <p className="font-display italic text-[32px] leading-snug">
+        <p className="font-display text-[32px] leading-snug">
           {hasSearchQuery
             ? 'No pieces match your search.'
             : 'No pieces match this filter.'}
@@ -608,10 +622,10 @@ function OutfitsView({ outfits, onOutfitClick }: OutfitsViewProps) {
   if (outfits.length === 0) {
     return (
       <section className="py-16 text-center">
-        <p className="font-display italic text-[32px] leading-snug">
-          No outfits saved yet.
+        <p className="font-display text-[32px] leading-snug">
+          No outfits saved yet
         </p>
-        <p className="font-display italic text-[18px] text-ink-2 mt-3">
+        <p className="font-display text-[18px] text-ink-2 mt-3">
           Build your first outfit to save it here.
         </p>
       </section>

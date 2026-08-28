@@ -11,7 +11,7 @@ def _make_color(name: str, h: int, s: int = 50, l: int = 50, hex_value: str = "#
 
 @pytest.mark.parametrize(
     "name",
-    ["Black", "WHITE", "gray", "Grey", "navy", "beige", "cream", "tan", "khaki"],
+    ["Black", "WHITE", "gray", "Grey", "navy", "brown", "beige", "cream", "tan", "khaki"],
 )
 def test_is_neutral_color_case_insensitive(name: str):
     assert color_harmony.is_neutral_color(name) is True
@@ -136,7 +136,9 @@ def test_hsl_to_rgb_and_hex(hsl: HSL, expected_rgb: tuple[int, int, int], expect
         (HSL(h=200, s=5, l=95), "white"),
         (HSL(h=200, s=5, l=50), "gray"),
         (HSL(h=200, s=9, l=15), "gray"),
-        (HSL(h=30, s=10, l=50), "orange"),
+        # muted warm hues are earth tones, not oranges (see the
+        # saturation/lightness relation in get_color_name_from_hsl)
+        (HSL(h=30, s=10, l=50), "tan"),
         (HSL(h=200, s=50, l=4), "black"),
         (HSL(h=200, s=50, l=96), "white"),
         (HSL(h=100, s=50, l=5), "green"),
@@ -348,3 +350,62 @@ def test_generate_recommended_colors_harmonies_come_before_neutrals():
     harmony_indices = [i for i, r in enumerate(recs) if r.harmony_type != "neutral"]
     assert all(i < first_neutral_idx for i in harmony_indices)
     assert recs[0].harmony_type != "neutral"
+
+
+def test_brown_is_neutral():
+    assert color_harmony.is_neutral_color("brown") is True
+    assert color_harmony.is_neutral_color("Brown") is True
+
+
+@pytest.mark.parametrize(
+    "hsl, expected",
+    [
+        # dark warm hues are brown, not orange
+        (HSL(h=25, s=34, l=33), "brown"),
+        (HSL(h=30, s=55, l=25), "brown"),
+        # vivid dark warm hues keep their hue name
+        (HSL(h=30, s=80, l=25), "orange"),
+        # very light warm hues split beige / cream on saturation
+        (HSL(h=60, s=56, l=91), "beige"),
+        (HSL(h=57, s=100, l=91), "cream"),
+        # muted mid-lightness warm hues are tan
+        (HSL(h=34, s=44, l=69), "tan"),
+        # vivid mid-lightness warm hues stay orange
+        (HSL(h=30, s=80, l=50), "orange"),
+    ],
+)
+def test_get_color_name_earth_tones(hsl: HSL, expected: str):
+    assert color_harmony.get_color_name_from_hsl(hsl) == expected
+
+
+def test_get_color_name_extrema_tolerance():
+    """Near the lightness poles, moderate saturation still reads achromatic;
+    at mid lightness the same saturation keeps its hue."""
+    assert color_harmony.get_color_name_from_hsl(HSL(h=200, s=20, l=93)) == "white"
+    assert color_harmony.get_color_name_from_hsl(HSL(h=200, s=20, l=8)) == "black"
+    assert color_harmony.get_color_name_from_hsl(HSL(h=190, s=20, l=50)) == "teal"
+    # the canonical navy swatch must keep its name through the tolerance
+    assert color_harmony.get_color_name_from_hsl(HSL(h=210, s=61, l=11)) == "navy"
+
+
+def test_are_three_colors_triadic():
+    a = HSL(h=0, s=50, l=50)
+    b = HSL(h=120, s=50, l=50)
+    c = HSL(h=240, s=50, l=50)
+    assert color_harmony.are_three_colors_triadic(a, b, c) is True
+    # one triadic pair is not enough when another arc is analogous
+    d = HSL(h=130, s=50, l=50)
+    assert color_harmony.are_three_colors_triadic(a, b, d) is False
+
+
+def test_harmony_enum_is_str_compatible():
+    assert color_harmony.Harmony.NEUTRAL == "neutral"
+    assert str(color_harmony.Harmony.TRIADIC) == "triadic"
+    assert f"{color_harmony.Harmony.NONE}" == "none"
+    ok, harmony = color_harmony.check_color_compatibility(
+        Color(hex="#6F4E37", hsl=HSL(h=25, s=34, l=33), name="brown", is_neutral=True),
+        Color(hex="#FF0000", hsl=HSL(h=0, s=100, l=50), name="red", is_neutral=False),
+    )
+    assert ok is True
+    assert harmony == "neutral"
+    assert isinstance(harmony, color_harmony.Harmony)

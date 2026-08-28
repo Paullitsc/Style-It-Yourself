@@ -37,10 +37,13 @@ AESTHETIC_TAGS: list[str] = [
 
 # Color constants
 
-# Neutral colors that always work together
-# todo: some of these neutral colors don't have canonical HSL values
+# Neutral colors that always work together. The swatches are
+# fashion-representative (what the garment color actually looks like), not
+# CSS-canonical: CSS "navy" (#000080) or "khaki" (#F0E68C) read wrong as
+# fabric. Every HSL triple below is derived from its hex, so the pairs
+# cannot drift apart.
 NEUTRAL_COLORS: list[str] = [
-    "black", "white", "gray", "navy", "beige", "cream", "tan", "khaki"
+    "black", "white", "gray", "navy", "brown", "beige", "cream", "tan", "khaki"
 ]
 
 # str to Color mappings:
@@ -49,6 +52,7 @@ NEUTRAL_COLOR_DATA: dict[str, dict] = {
     "white": {"hex": "#FFFFFF", "hsl": (0, 0, 100)},
     "gray":  {"hex": "#808080", "hsl": (0, 0, 50)},
     "navy":  {"hex": "#0B1C2D", "hsl": (210, 61, 11)},
+    "brown": {"hex": "#6F4E37", "hsl": (25, 34, 33)},
     "beige": {"hex": "#F5F5DC", "hsl": (60, 56, 91)},
     "cream": {"hex": "#FFFDD0", "hsl": (57, 100, 91)},
     "tan":   {"hex": "#D2B48C", "hsl": (34, 44, 69)},

@@ -25,6 +25,12 @@
 }
 
 :root {
+  /* Height of the sticky masthead (Headers.tsx): pt-4 (16px) + 22px wordmark
+     + pb-6 (24px). Sticky elements that pin to the viewport top must offset
+     by this so they don't slide underneath it. Below md the masthead stacks
+     into two rows (see Headers.tsx), so the height changes with it. */
+  --masthead-h: 62px;
+
   /* Spacing tokens */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
@@ -87,6 +93,13 @@
   --ring: var(--accent);
 
   --radius: 2px;
+}
+
+/* Stacked two-row masthead below md (Tailwind's max-md breakpoint). */
+@media (width < 768px) {
+  :root {
+    --masthead-h: 74px;
+  }
 }
 
 /* NOTE: plain @theme, not `@theme inline`. Inline mode does not emit the
