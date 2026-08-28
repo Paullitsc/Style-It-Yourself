@@ -140,7 +140,9 @@ export default function Home() {
                 clothes? Once the whole collection sits in one view, you
                 finally see what is actually missing. And to the fashion
                 enthusiasts: we are not against buying more clothes. We
-                just want you to buy smarter.
+                just want you to buy smarter, and a better stylist does
+                that by default. Then one day, when you have outgrown the
+                advice, the closet is still yours to keep.
               </p>
               <p className="m-0">
                 TLDR, we open sourced SIY for the love of the game.
