@@ -1,12 +1,15 @@
 'use client'
 
 import { useCallback, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   useStyleStore,
   REQUIRED_CATEGORIES,
   OPTIONAL_CATEGORIES,
 } from '@/store/styleStore'
 import { useAuth } from '@/components/AuthProvider'
+import AuthModal from '@/components/AuthModal'
+import { saveItemToCloset } from '@/lib/api'
 import OutfitSlot from './OutfitSlot'
 import TryOnModal from './TryOnModal'
 import ItemDetailModal from './ItemDetailModal'
@@ -22,9 +25,16 @@ import type {
 
 export default function BuildStep() {
   const { session } = useAuth()
+  const [savingPiece, setSavingPiece] = useState(false)
+  const [pieceError, setPieceError] = useState<string | null>(null)
+  const [showAuthModal, setShowAuthModal] = useState(false)
 
+
+  const router = useRouter()
   const {
     getBaseItem,
+    getBaseItemWithBlob,
+    reset,
     category: baseCategory,
     croppedImage: baseCroppedImage,
     recommendations,
@@ -174,6 +184,29 @@ export default function BuildStep() {
   const handleBack = useCallback(() => setStep('colors'), [setStep])
   const handleReviewOutfit = useCallback(() => setStep('summary'), [setStep])
 
+  // The second exit from this step: skip the outfit entirely and just put
+  // the base piece in the closet.
+  const handleSavePiece = useCallback(async () => {
+    if (!session) {
+      setShowAuthModal(true)
+      return
+    }
+    const base = getBaseItemWithBlob()
+    if (!base) return
+    setSavingPiece(true)
+    setPieceError(null)
+    try {
+      await saveItemToCloset(base.item, base.imageBlob, session.access_token)
+      reset()
+      router.push('/closet')
+    } catch (err) {
+      setPieceError(
+        err instanceof Error ? err.message : 'Could not save the piece.',
+      )
+      setSavingPiece(false)
+    }
+  }, [session, getBaseItemWithBlob, reset, router])
+
   const filledRequiredCount = REQUIRED_CATEGORIES.filter((cat) =>
     filledCategories.includes(cat),
   ).length
@@ -198,7 +231,25 @@ export default function BuildStep() {
             </h1>
           </div>
 
-          <div className="text-right">
+          <div className="flex items-center gap-6 max-md:gap-4 flex-wrap">
+            <div className="flex flex-col items-end gap-1">
+              <button
+                type="button"
+                onClick={handleSavePiece}
+                disabled={savingPiece}
+                className="inline-flex items-center gap-3 px-[18px] py-[12px] border border-ink bg-paper text-ink font-mono text-[11px] uppercase tracking-[0.12em] transition-colors hover:bg-ink hover:text-paper disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <span>{savingPiece ? 'Saving…' : 'Save piece to closet'}</span>
+                {!savingPiece && <span aria-hidden="true">→</span>}
+              </button>
+              {pieceError && (
+                <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-accent">
+                  {pieceError}
+                </span>
+              )}
+            </div>
+
+            <div className="text-right">
             <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 mb-1">
               Required
             </p>
@@ -215,6 +266,7 @@ export default function BuildStep() {
                 / {REQUIRED_CATEGORIES.length}
               </span>
             </div>
+            </div>
           </div>
         </div>
       </div>
@@ -230,12 +282,9 @@ export default function BuildStep() {
         >
           <div className="max-w-[1100px] mx-auto px-10 max-md:px-6 py-10 pb-24">
             <section className="mb-10">
-              <header className="grid grid-cols-[auto_auto_1fr] gap-4 items-baseline pb-[14px] mb-6 border-b border-ink">
+              <header className="grid grid-cols-[auto_1fr] gap-4 items-baseline pb-[14px] mb-6 border-b border-ink">
                 <span className="font-display text-[22px] leading-none tracking-[-0.015em]">
                   Required
-                </span>
-                <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
-                  Tops · Bottoms · Shoes
                 </span>
               </header>
 
@@ -281,12 +330,9 @@ export default function BuildStep() {
             </section>
 
             <section className="mb-10">
-              <header className="grid grid-cols-[auto_auto_1fr] gap-4 items-baseline pb-[14px] mb-6 border-b border-rule-soft">
+              <header className="grid grid-cols-[auto_1fr] gap-4 items-baseline pb-[14px] mb-6 border-b border-rule-soft">
                 <span className="font-display text-[22px] leading-none tracking-[-0.015em] text-ink-2">
                   Optional
-                </span>
-                <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
-                  Layers · accessories
                 </span>
               </header>
 
@@ -469,6 +515,11 @@ export default function BuildStep() {
           }}
         />
       )}
+
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+      />
 
       {tryingOnFromDetail && session?.access_token && (
         <TryOnModal

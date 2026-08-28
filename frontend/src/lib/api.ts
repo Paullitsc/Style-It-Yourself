@@ -294,6 +294,22 @@ async function createOutfit(
  *
  * Returns the created outfit response
  */
+/**
+ * Save a single piece to the closet without building an outfit around it.
+ * Same upload path saveOutfitWithItems uses per item.
+ */
+export async function saveItemToCloset(
+  item: ClothingItemCreate,
+  imageBlob: Blob,
+  token: string,
+) {
+  return createClothingItem(
+    item,
+    new File([imageBlob], 'item.jpg', { type: 'image/jpeg' }),
+    token,
+  )
+}
+
 export async function saveOutfitWithItems(
   name: string,
   items: Array<{
