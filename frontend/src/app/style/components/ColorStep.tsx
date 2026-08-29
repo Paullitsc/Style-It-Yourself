@@ -69,13 +69,6 @@ export default function ColorStep() {
   } | null>(null)
   const magnifierSessionRef = useRef(0)
 
-  useEffect(() => {
-    if (croppedImage && detectedColors.length === 0) {
-      extractColors()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [croppedImage])
-
   const extractColors = async () => {
     if (!croppedImage) return
     setIsExtracting(true)
@@ -89,6 +82,16 @@ export default function ColorStep() {
       setIsExtracting(false)
     }
   }
+
+  // Deferred a frame so no state is set synchronously inside the effect.
+  useEffect(() => {
+    if (!croppedImage || detectedColors.length > 0) return
+    const frame = requestAnimationFrame(() => {
+      void extractColors()
+    })
+    return () => cancelAnimationFrame(frame)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [croppedImage])
 
   const getImageMetrics = useCallback(() => {
     const imageEl = imageRef.current
@@ -310,13 +313,17 @@ export default function ColorStep() {
     }
   }, [adjustedColor, isMagnifierDragging])
 
+  const croppedUrl = croppedImage?.croppedUrl
   useEffect(() => {
-    if (!croppedImage) return
-    setMagnifierPosition(null)
-    lastCommittedMagnifierRef.current = null
-    dragStartMagnifierRef.current = null
-    magnifierSessionRef.current += 1
-  }, [croppedImage?.croppedUrl])
+    if (!croppedUrl) return
+    const frame = requestAnimationFrame(() => {
+      setMagnifierPosition(null)
+      lastCommittedMagnifierRef.current = null
+      dragStartMagnifierRef.current = null
+      magnifierSessionRef.current += 1
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [croppedUrl])
 
   useEffect(() => {
     if (!croppedImage) return

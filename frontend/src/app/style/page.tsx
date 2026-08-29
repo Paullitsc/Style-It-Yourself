@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useStyleStore } from '@/store/styleStore'
 import StepIndicator from './components/StepIndicator'
 import UploadStep from './components/UploadStep'
@@ -10,21 +10,17 @@ import BuildStep from './components/BuildStep'
 import SummaryStep from './components/SummaryStep'
 
 export default function StylePage() {
-  const { currentStep } = useStyleStore()
-  const [isReady, setIsReady] = useState(false)
+  const { currentStep: storeStep, croppedImage } = useStyleStore()
 
-  // Reset stale state on first render (post-upload step with no image)
+  // A non-upload step with no image is stale state: render as the upload
+  // step immediately and reset the store as a follow-up (external store
+  // mutation, so it does not belong in render).
+  const stale = !croppedImage && storeStep !== 'upload'
+  const currentStep = stale ? 'upload' : storeStep
+
   useEffect(() => {
-    const state = useStyleStore.getState()
-    if (!state.croppedImage && state.currentStep !== 'upload') {
-      state.reset()
-    }
-    setIsReady(true)
-  }, [])
-
-  if (!isReady) {
-    return <div className="flex-1 bg-paper" />
-  }
+    if (stale) useStyleStore.getState().reset()
+  }, [stale])
 
   const showIndicator =
     currentStep === 'upload' ||

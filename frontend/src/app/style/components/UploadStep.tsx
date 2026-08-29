@@ -18,10 +18,14 @@ export default function UploadStep() {
   const [showCropModal, setShowCropModal] = useState(false)
 
   useEffect(() => {
-    if (pendingUpload && !croppedImage) {
-      setSelectedFile(pendingUpload.file)
+    if (!pendingUpload || croppedImage) return
+    const file = pendingUpload.file
+    // Deferred a frame so no state is set synchronously inside the effect.
+    const frame = requestAnimationFrame(() => {
+      setSelectedFile(file)
       setShowCropModal(true)
-    }
+    })
+    return () => cancelAnimationFrame(frame)
   }, [pendingUpload, croppedImage])
 
   const handleFileSelect = (file: File) => {

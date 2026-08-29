@@ -36,7 +36,6 @@ export default function TryOnOutfitModal({
 
   useEffect(() => {
     if (step !== 'generating') return
-    setElapsed(0)
     const interval = setInterval(() => setElapsed((e) => e + 1), 1000)
     return () => clearInterval(interval)
   }, [step])
@@ -44,6 +43,7 @@ export default function TryOnOutfitModal({
   const handleGenerate = async () => {
     if (!userPhotoFile) return
     setStep('generating')
+    setElapsed(0)
     setError(null)
 
     try {

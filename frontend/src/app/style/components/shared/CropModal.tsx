@@ -21,6 +21,23 @@ export default function CropModal({
   const [imageSrc, setImageSrc] = useState<string>('')
   const [crop, setCrop] = useState<Crop>()
   const [completedCrop, setCompletedCrop] = useState<PixelCrop | null>(null)
+  // Computed in the crop event (refs must not be read during render).
+  const [displaySize, setDisplaySize] = useState<{
+    width: number
+    height: number
+  } | null>(null)
+
+  const measureCrop = (crop: PixelCrop | null) => {
+    const el = imageRef.current
+    if (!crop || !el) return null
+    const rect = el.getBoundingClientRect()
+    if (!rect.width || !rect.height) return null
+    return {
+      width: Math.round(crop.width * (el.naturalWidth / rect.width)),
+      height: Math.round(crop.height * (el.naturalHeight / rect.height)),
+    }
+  }
+
   const [zoom, setZoom] = useState(1)
   const [isProcessing, setIsProcessing] = useState(false)
   const imageRef = useRef<HTMLImageElement | null>(null)
@@ -58,20 +75,8 @@ export default function CropModal({
     setCrop(getDefaultCrop())
     setZoom(1)
     setCompletedCrop(null)
+    setDisplaySize(null)
   }, [getDefaultCrop])
-
-  const displayCrop = useCallback(() => {
-    if (!completedCrop || !imageRef.current) return null
-    const rect = imageRef.current.getBoundingClientRect()
-    if (!rect.width || !rect.height) return null
-    const scaleX = imageRef.current.naturalWidth / rect.width
-    const scaleY = imageRef.current.naturalHeight / rect.height
-    return {
-      width: Math.round(completedCrop.width * scaleX),
-      height: Math.round(completedCrop.height * scaleY),
-    }
-  }, [completedCrop])
-  const displaySize = displayCrop()
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -124,7 +129,10 @@ export default function CropModal({
                 <ReactCrop
                   crop={crop}
                   onChange={(_, percentCrop) => setCrop(percentCrop)}
-                  onComplete={(nextCrop) => setCompletedCrop(nextCrop)}
+                  onComplete={(nextCrop) => {
+                    setCompletedCrop(nextCrop)
+                    setDisplaySize(measureCrop(nextCrop))
+                  }}
                   minWidth={40}
                   minHeight={40}
                   keepSelection={true}
