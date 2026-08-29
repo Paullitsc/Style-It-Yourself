@@ -11,5 +11,8 @@
     "build": "npm run build --workspace frontend",
     "lint": "npm run lint --workspace frontend",
     "start": "npm run start --workspace frontend"
+  },
+  "engines": {
+    "node": ">=24"
   }
 }
