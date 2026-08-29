@@ -80,6 +80,13 @@ MAX_OUTFIT_ITEMS: int = 6
 MAX_ACCESSORIES: int = 3
 MAX_OUTERWEAR: int = 1
 
+# Request-payload ceilings. These bound the size of user-supplied lists at the
+# schema boundary so the public, unauthenticated scoring endpoints cannot be
+# handed a huge outfit and forced into unbounded O(n^2) compatibility scoring
+# (a cheap denial-of-service). Set generously above any real outfit.
+MAX_ITEMS_PER_REQUEST: int = 24
+MAX_AESTHETICS: int = len(AESTHETIC_TAGS)
+
 
 # Sizing
 STANDARD_SIZES: list[str] = ["XS", "S", "M", "L", "XL", "XXL"]

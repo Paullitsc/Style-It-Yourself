@@ -4,6 +4,8 @@ from pydantic import BaseModel, ConfigDict, Field
 from typing import Literal, Optional, Tuple
 from datetime import datetime
 
+from app.utils.constants import MAX_ITEMS_PER_REQUEST, MAX_AESTHETICS
+
 
 # ==============================================================================
 # SHARED / BASE SCHEMAS
@@ -57,7 +59,7 @@ class ClothingItemBase(BaseModel):
     color: Color
     category: Category
     formality: float = Field(..., ge=1.0, le=5.0, description="Formality level 1.0-5.0")
-    aesthetics: list[str] = Field(default_factory=list, description="Aesthetic tags")
+    aesthetics: list[str] = Field(default_factory=list, max_length=MAX_AESTHETICS, description="Aesthetic tags")
 
 
 class ClothingItemCreate(ClothingItemBase):
@@ -92,9 +94,9 @@ class RecommendationRequest(BaseModel):
     """Request body for POST /api/recommendations"""
     base_color: Color
     base_formality: float = Field(..., ge=1.0, le=5.0)
-    base_aesthetics: list[str] = Field(default_factory=list)
+    base_aesthetics: list[str] = Field(default_factory=list, max_length=MAX_AESTHETICS)
     base_category: Category
-    filled_categories: list[str] = Field(default_factory=list, description="Already filled category L1s")
+    filled_categories: list[str] = Field(default_factory=list, max_length=MAX_ITEMS_PER_REQUEST, description="Already filled category L1s")
 
 
 class RecommendedColor(BaseModel):
@@ -134,7 +136,7 @@ class ValidateItemRequest(BaseModel):
     """Request body for POST /api/validate-item"""
     new_item: ClothingItemBase
     base_item: ClothingItemBase
-    current_outfit: list[ClothingItemBase] = Field(default_factory=list)
+    current_outfit: list[ClothingItemBase] = Field(default_factory=list, max_length=MAX_ITEMS_PER_REQUEST)
 
 
 class ValidateItemResponse(BaseModel):
@@ -153,7 +155,7 @@ class ValidateItemResponse(BaseModel):
 
 class ValidateOutfitRequest(BaseModel):
     """Request body for POST /api/validate-outfit"""
-    outfit: list[ClothingItemBase]
+    outfit: list[ClothingItemBase] = Field(..., max_length=MAX_ITEMS_PER_REQUEST)
     base_item: ClothingItemBase
 
 
@@ -174,7 +176,7 @@ class ValidateOutfitResponse(BaseModel):
 class OutfitCreate(BaseModel):
     """Request body for POST /api/outfits"""
     name: str = Field(..., min_length=1, max_length=100)
-    item_ids: list[str] = Field(..., min_length=1, description="List of clothing item IDs")
+    item_ids: list[str] = Field(..., min_length=1, max_length=MAX_ITEMS_PER_REQUEST, description="List of clothing item IDs")
     generated_image_url: Optional[str] = None
 
 class OutfitResponse(BaseModel):
@@ -224,7 +226,7 @@ class TryOnSingleRequest(BaseModel):
 class TryOnOutfitRequest(BaseModel):
     """Request body for POST /api/try-on/outfit"""
     user_photo_url: str
-    item_images: list[tuple[str, ClothingItemBase]]  # [(image_url, item), ...]
+    item_images: list[tuple[str, ClothingItemBase]] = Field(..., max_length=MAX_ITEMS_PER_REQUEST)  # [(image_url, item), ...]
 
 
 class TryOnResponse(BaseModel):
@@ -252,7 +254,7 @@ class ClothingItemCreateRequest(BaseModel):
     color: Color
     category: Category
     formality: float = Field(..., ge=1.0, le=5.0)
-    aesthetics: list[str] = Field(default_factory=list)
+    aesthetics: list[str] = Field(default_factory=list, max_length=MAX_AESTHETICS)
     brand: Optional[str] = None
     sizing: Optional[Sizing] = None
     price: Optional[float] = Field(None, ge=0)
@@ -276,7 +278,7 @@ class ClothingItemUpdate(BaseModel):
     color: Optional[Color] = None
     category: Optional[Category] = None
     formality: Optional[float] = Field(None, ge=1.0, le=5.0)
-    aesthetics: Optional[list[str]] = None
+    aesthetics: Optional[list[str]] = Field(default=None, max_length=MAX_AESTHETICS)
     brand: Optional[str] = None
     sizing: Optional[Sizing] = None
     price: Optional[float] = Field(None, ge=0)
@@ -311,7 +313,7 @@ class AnalyzeProductResponse(BaseModel):
     color: Optional[Color] = Field(None, description="Suggested dominant color (None if image unreadable)")
     category: Category = Field(..., description="Best-guess category")
     formality: float = Field(..., ge=1.0, le=5.0)
-    aesthetics: list[str] = Field(default_factory=list)
+    aesthetics: list[str] = Field(default_factory=list, max_length=MAX_AESTHETICS)
     brand: Optional[str] = None
     price: Optional[float] = None
     title: Optional[str] = None

@@ -20,6 +20,8 @@ from PIL import Image
 
 from google import genai
 from google.genai import types
+
+from app.services.remote_image import fetch_remote_image
 from google.genai.errors import APIError
 
 from app.config import settings
@@ -128,18 +130,28 @@ async def _call_gemini_with_retry(call_factory, *, label: str):
 
 
 async def fetch_image_as_pil(image_url: str) -> Image.Image:
-    """Fetch an image from URL and return as PIL Image.
-    
+    """Fetch an image from a URL and return it as a PIL Image.
+
+    http(s) URLs are fetched through the SSRF-hardened ``remote_image`` guard
+    (blocks private/loopback/link-local/cloud-metadata addresses, re-validates
+    every redirect hop, caps the response size, and verifies the bytes decode
+    as a real image). ``data:`` URLs are decoded directly.
+
     Args:
-        image_url: URL of the image to fetch
-        
+        image_url: URL (or data URL) of the image to fetch
+
     Returns:
         PIL Image object
     """
-    async with httpx.AsyncClient() as http_client:
-        response = await http_client.get(image_url, timeout=30.0)
-        response.raise_for_status()
-        return Image.open(BytesIO(response.content))
+    if image_url.startswith("data:"):
+        _, _, encoded = image_url.partition(",")
+        header = image_url[: image_url.find(",")]
+        if ";base64" not in header:
+            raise ValueError("Unsupported data URL encoding (expected base64).")
+        return Image.open(BytesIO(base64.b64decode(encoded)))
+
+    image_bytes, _ = await fetch_remote_image(image_url)
+    return Image.open(BytesIO(image_bytes))
 
 
 def build_tryon_prompt(items: list[ClothingItemBase], single_item: bool = False) -> str:

@@ -78,7 +78,9 @@ app = FastAPI(
     openapi_tags=TAGS_METADATA,
     docs_url=settings.docs_url,
     redoc_url=settings.redoc_url,
-    openapi_url=settings.OPENAPI_URL,
+    # Gate the schema behind docs_enabled too, so production (docs off)
+    # does not expose /openapi.json alongside the disabled /docs and /redoc.
+    openapi_url=settings.OPENAPI_URL if settings.docs_enabled else None,
     swagger_ui_parameters={
         "persistAuthorization": True,
         "displayRequestDuration": True,
