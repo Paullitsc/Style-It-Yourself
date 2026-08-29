@@ -65,7 +65,7 @@ async def test_try_on_single_success(monkeypatch: pytest.MonkeyPatch) -> None:
         return None
     
     # 2. Mock Gemini service response
-    async def fake_generate_single(user_image_url, item_image_url, item, high_quality):
+    async def fake_generate_single(user_image_url, item_image_url, item):
         assert user_image_url == request.user_photo_url
         assert item_image_url == request.item_image_url
         return TryOnResponse(
@@ -74,22 +74,17 @@ async def test_try_on_single_success(monkeypatch: pytest.MonkeyPatch) -> None:
             processing_time=1.23
         )
 
-    # 3. Mock saving image
-    async def fake_save_image(user_id, data_url):
-        assert user_id == user.id
-        return "https://storage.example.com/result.png"
-
     # Apply patches
     monkeypatch.setattr(tryon_router, "validate_image_url", fake_validate)
     monkeypatch.setattr(tryon_router, "generate_tryon_single", fake_generate_single)
-    monkeypatch.setattr(tryon_router, "_save_generated_image", fake_save_image)
 
     # Execute
     response = await tryon_router.try_on_single(request, user)
 
-    # Assert
+    # Assert: the router returns the data URL directly. Upload to storage
+    # happens later, in create_outfit, only when the user saves the outfit.
     assert response.success is True
-    assert response.generated_image_url == "https://storage.example.com/result.png"
+    assert response.generated_image_url == "data:image/png;base64,fake_data"
     assert response.processing_time == 1.23
 
 
@@ -165,7 +160,7 @@ async def test_try_on_outfit_success(monkeypatch: pytest.MonkeyPatch) -> None:
 
     async def fake_validate(url: str): return None
 
-    async def fake_generate_outfit(user_image_url, item_images, high_quality):
+    async def fake_generate_outfit(user_image_url, item_images):
         assert len(item_images) == 2
         return TryOnResponse(
             success=True,
@@ -173,17 +168,14 @@ async def test_try_on_outfit_success(monkeypatch: pytest.MonkeyPatch) -> None:
             processing_time=2.5
         )
 
-    async def fake_save_image(user_id, data_url):
-        return "https://storage.example.com/outfit_result.png"
-
     monkeypatch.setattr(tryon_router, "validate_image_url", fake_validate)
     monkeypatch.setattr(tryon_router, "generate_tryon_outfit", fake_generate_outfit)
-    monkeypatch.setattr(tryon_router, "_save_generated_image", fake_save_image)
 
     response = await tryon_router.try_on_outfit(request, user)
 
+    # The router returns the data URL directly; persistence happens on save.
     assert response.success is True
-    assert response.generated_image_url == "https://storage.example.com/outfit_result.png"
+    assert response.generated_image_url == "data:image/png;base64,fake_outfit"
 
 
 async def test_try_on_outfit_partial_url_failure(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -214,33 +206,39 @@ async def test_try_on_outfit_partial_url_failure(monkeypatch: pytest.MonkeyPatch
 
 
 # =============================================================================
-# Internal helper: _save_generated_image
+# Data-URL persistence now lives in services.supabase.upload_data_url_image
+# and runs only when an outfit is saved (create_outfit), never in the router.
 # =============================================================================
 
-async def test_save_generated_image_handles_base64(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Test the private helper _save_generated_image logic via direct call if possible, 
-    or via a router call that triggers it."""
-    
-    # Since _save_generated_image is not an endpoint, we can test it 
-    # if it's imported, or indirectly via the endpoint tests above.
-    # However, Python allows importing/testing async internal functions too:
-    
-    async def fake_upload(user_id, image_data, outfit_id):
-        assert user_id == "user-123"
-        assert len(image_data) > 0 
+async def test_upload_data_url_image_decodes_base64(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A data: URL is decoded and uploaded to the generated-images bucket."""
+    from app.services import supabase as supabase_service
+
+    captured = {}
+
+    async def fake_upload_image(user_id, image_bytes, file_name, bucket, content_type):
+        captured.update(
+            user_id=user_id, size=len(image_bytes), bucket=bucket, content_type=content_type
+        )
         return "https://supa.link/image.png"
 
-    monkeypatch.setattr(tryon_router, "upload_generated_image", fake_upload)
+    monkeypatch.setattr(supabase_service, "upload_image", fake_upload_image)
 
-    # Valid base64 png header
     data_url = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+P+/HgAFhAJ/wlseKgAAAABJRU5ErkJggg=="
-    
-    result = await tryon_router._save_generated_image("user-123", data_url)
+    result = await supabase_service.upload_data_url_image("user-123", data_url, "outfit-1")
+
     assert result == "https://supa.link/image.png"
+    assert captured["user_id"] == "user-123"
+    assert captured["size"] > 0
+    assert captured["bucket"] == "generated-images"
+    assert captured["content_type"] == "image/png"
 
 
-async def test_save_generated_image_skips_non_data_url(monkeypatch: pytest.MonkeyPatch) -> None:
-    """If a regular URL is passed (not base64), it returns it as is."""
-    url = "https://already-hosted.com/image.jpg"
-    result = await tryon_router._save_generated_image("user-123", url)
-    assert result == url
+async def test_upload_data_url_image_rejects_non_data_url() -> None:
+    """A regular URL is a caller bug: the function refuses it loudly."""
+    from app.services import supabase as supabase_service
+
+    with pytest.raises(ValueError):
+        await supabase_service.upload_data_url_image(
+            "user-123", "https://already-hosted.com/image.jpg", "outfit-1"
+        )
