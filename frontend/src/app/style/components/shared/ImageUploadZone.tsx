@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo } from 'react'
 import { FileUploadInput } from '@siy/ui'
 
 interface ImageUploadZoneProps {
@@ -22,16 +22,14 @@ export default function ImageUploadZone({
   previewFile = null,
   onClear,
 }: ImageUploadZoneProps) {
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-
+  const previewUrl = useMemo(
+    () => (previewFile ? URL.createObjectURL(previewFile) : null),
+    [previewFile],
+  )
   useEffect(() => {
-    if (previewFile) {
-      const url = URL.createObjectURL(previewFile)
-      setPreviewUrl(url)
-      return () => URL.revokeObjectURL(url)
-    }
-    setPreviewUrl(null)
-  }, [previewFile])
+    if (!previewUrl) return
+    return () => URL.revokeObjectURL(previewUrl)
+  }, [previewUrl])
 
   if (previewUrl) {
     return (

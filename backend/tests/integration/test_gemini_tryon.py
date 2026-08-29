@@ -1,3 +1,6 @@
+"""Live Gemini integration checks: these call the real API and cost money.
+Run deliberately (pytest tests/integration) with GEMINI_API_KEY set; they do
+not belong in the unit suite."""
 import asyncio
 import sys
 import os
@@ -46,7 +49,6 @@ async def test_single_tryon():
         user_image_url=USER_IMAGE_URL,
         item_image_url=CLOTHING_IMAGE_URL,
         item=item,
-        high_quality=True,
     )
 
     if response.success and response.generated_image_url:
@@ -93,7 +95,6 @@ async def test_outfit_tryon():
     response = await generate_tryon_outfit(
         user_image_url=USER_IMAGE_URL,
         item_images=item_images,
-        high_quality=True,
     )
 
     if response.success and response.generated_image_url:

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthProvider'
 import ProtectedRoute from '@/components/ProtectedRoute'
@@ -53,23 +53,29 @@ export default function ClosetPage() {
     null,
   )
 
-  const fetchCloset = async () => {
-    if (!session?.access_token) return
+  const accessToken = session?.access_token
+  const fetchCloset = useCallback(async () => {
+    if (!accessToken) return
     setIsLoading(true)
     setError(null)
     try {
-      const data = await getCloset(session.access_token)
+      const data = await getCloset(accessToken)
       setClosetData(data)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load closet')
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [accessToken])
 
+  // Deferred a frame so no state is set synchronously inside the effect
+  // (react-hooks/set-state-in-effect).
   useEffect(() => {
-    fetchCloset()
-  }, [session?.access_token])
+    const frame = requestAnimationFrame(() => {
+      void fetchCloset()
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [fetchCloset])
 
   const handleDeleteItem = async (itemId: string) => {
     if (!session?.access_token) return

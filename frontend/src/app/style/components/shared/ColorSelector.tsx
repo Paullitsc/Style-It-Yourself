@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { buildColorFromHex, hslToHex } from '@/lib/colorUtils'
 import type { Color } from '@/types'
 import { cn } from '@siy/ui'
@@ -27,9 +27,13 @@ export default function ColorSelector({
   const [hexInput, setHexInput] = useState(adjustedColor?.hex || '')
   const [copied, setCopied] = useState(false)
 
-  useEffect(() => {
-    if (adjustedColor) setHexInput(adjustedColor.hex)
-  }, [adjustedColor])
+  // Keep the input in sync with the picked color using the documented
+  // adjust-state-during-render pattern (no effect, no extra paint).
+  const [lastHex, setLastHex] = useState(adjustedColor?.hex ?? '')
+  if (adjustedColor && adjustedColor.hex !== lastHex) {
+    setLastHex(adjustedColor.hex)
+    setHexInput(adjustedColor.hex)
+  }
 
   const handleBrightnessChange = (lightness: number) => {
     if (!adjustedColor) return

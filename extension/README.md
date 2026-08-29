@@ -62,7 +62,7 @@ service-role key here.
 
 ```bash
 SIY_API_BASE_URL=https://api.example.com \
-SIY_WEB_APP_URL=https://app.styleityourself.app \
+SIY_WEB_APP_URL=https://styleityourself.ca \
 SIY_SUPABASE_URL=https://xxxx.supabase.co \
 SIY_SUPABASE_ANON_KEY=eyJ... \
 npm run build

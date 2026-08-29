@@ -41,7 +41,6 @@ export default function TryOnModal({
 
   useEffect(() => {
     if (step !== 'generating') return
-    setElapsed(0)
     const interval = setInterval(() => setElapsed((e) => e + 1), 1000)
     return () => clearInterval(interval)
   }, [step])
@@ -49,6 +48,7 @@ export default function TryOnModal({
   const handleGenerate = async () => {
     if (!userPhotoFile) return
     setStep('generating')
+    setElapsed(0)
     setError(null)
 
     try {

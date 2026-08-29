@@ -3,7 +3,7 @@
 # and therefore cannot be reached from a frontend-scoped context.
 
 # Stage 1: Install dependencies (workspace-aware)
-FROM node:20-alpine AS deps
+FROM node:24-alpine AS deps
 WORKDIR /app
 # Copy the root manifest, lockfile, and EVERY workspace manifest before any
 # source, so `npm ci` can resolve the workspace graph and create the
@@ -15,7 +15,7 @@ COPY packages/ui/package.json ./packages/ui/
 RUN npm ci
 
 # Stage 2: Dev (all source + deps, no build step)
-FROM node:20-alpine AS dev
+FROM node:24-alpine AS dev
 WORKDIR /app
 # Bring the whole installed tree: npm keeps platform-specific packages in
 # frontend/node_modules rather than hoisting them to the root.
@@ -37,7 +37,7 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 RUN npm run build
 
 # Stage 4: Production runner
-FROM node:20-alpine AS runner
+FROM node:24-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production

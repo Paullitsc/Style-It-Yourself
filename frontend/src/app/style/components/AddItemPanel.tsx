@@ -169,12 +169,19 @@ export default function AddItemPanel({
 
   useEffect(() => {
     if (
-      currentStep === 'colors' &&
-      addingItem.croppedImage &&
-      addingItem.detectedColors.length === 0
+      !(
+        currentStep === 'colors' &&
+        addingItem.croppedImage &&
+        addingItem.detectedColors.length === 0
+      )
     ) {
+      return
+    }
+    const blob = addingItem.croppedImage.croppedBlob
+    // Deferred a frame so no state is set synchronously inside the effect.
+    const frame = requestAnimationFrame(() => {
       setIsExtracting(true)
-      extractDominantColors(addingItem.croppedImage.croppedBlob, 3)
+      extractDominantColors(blob, 3)
         .then((detectedColors) => {
           if (recommendation?.colors) {
             const suggestedToAdd = recommendation.colors
@@ -198,7 +205,8 @@ export default function AddItemPanel({
         })
         .catch((err) => console.error('Color extraction failed', err))
         .finally(() => setIsExtracting(false))
-    }
+    })
+    return () => cancelAnimationFrame(frame)
   }, [
     currentStep,
     addingItem.croppedImage,
@@ -426,13 +434,17 @@ export default function AddItemPanel({
     }
   }, [addingItem.adjustedColor, isMagnifierDragging])
 
+  const addingCroppedUrl = addingItem.croppedImage?.croppedUrl
   useEffect(() => {
-    if (!addingItem.croppedImage) return
-    setMagnifierPosition(null)
-    lastCommittedMagnifierRef.current = null
-    dragStartMagnifierRef.current = null
-    magnifierSessionRef.current += 1
-  }, [addingItem.croppedImage?.croppedUrl])
+    if (!addingCroppedUrl) return
+    const frame = requestAnimationFrame(() => {
+      setMagnifierPosition(null)
+      lastCommittedMagnifierRef.current = null
+      dragStartMagnifierRef.current = null
+      magnifierSessionRef.current += 1
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [addingCroppedUrl])
 
   useEffect(() => {
     if (!addingItem.croppedImage) return

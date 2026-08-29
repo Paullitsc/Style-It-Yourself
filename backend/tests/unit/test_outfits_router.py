@@ -70,7 +70,7 @@ async def test_create_outfit_success(monkeypatch: pytest.MonkeyPatch) -> None:
     outfit_create = OutfitCreate(name="Summer Look", item_ids=["item-1", "item-2"])
     expected = _make_outfit_response(name="Summer Look")
 
-    async def fake_create_outfit(user_id: str, outfit: OutfitCreate):
+    async def fake_create_outfit(user_id: str, outfit: OutfitCreate, generated_image_url=None):
         assert user_id == user.id
         assert outfit.name == "Summer Look"
         return expected
@@ -90,7 +90,7 @@ async def test_create_outfit_validation_error_maps_to_400(
     user = _make_user()
     outfit_create = OutfitCreate(name="Test", item_ids=["item-1"])
 
-    async def fake_create_outfit(user_id: str, outfit: OutfitCreate):
+    async def fake_create_outfit(user_id: str, outfit: OutfitCreate, generated_image_url=None):
         raise ValueError("Invalid item IDs")
 
     monkeypatch.setattr(outfits_router.supabase, "create_outfit", fake_create_outfit)
@@ -108,7 +108,7 @@ async def test_create_outfit_timeout_maps_to_503(
     user = _make_user()
     outfit_create = OutfitCreate(name="Test", item_ids=["item-1"])
 
-    async def fake_create_outfit(user_id: str, outfit: OutfitCreate):
+    async def fake_create_outfit(user_id: str, outfit: OutfitCreate, generated_image_url=None):
         raise httpx.TimeoutException(
             "timeout",
             request=httpx.Request("POST", "http://test"),
@@ -129,7 +129,7 @@ async def test_create_outfit_unexpected_error_maps_to_500(
     user = _make_user()
     outfit_create = OutfitCreate(name="Test", item_ids=["item-1"])
 
-    async def fake_create_outfit(user_id: str, outfit: OutfitCreate):
+    async def fake_create_outfit(user_id: str, outfit: OutfitCreate, generated_image_url=None):
         raise RuntimeError("Database exploded")
 
     monkeypatch.setattr(outfits_router.supabase, "create_outfit", fake_create_outfit)
