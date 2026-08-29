@@ -7,7 +7,6 @@ from collections import defaultdict, deque
 from io import BytesIO
 from time import monotonic
 
-import httpx
 from fastapi import APIRouter, Body, Depends, File, HTTPException, UploadFile, status
 from PIL import Image, UnidentifiedImageError
 
@@ -20,6 +19,8 @@ from app.models.schemas import (
     TryOnOutfitRequest,
 )
 from app.services.gemini import generate_tryon_single, generate_tryon_outfit
+from app.services import remote_image
+from app.services.remote_image import RemoteImageError
 from app.services.supabase import (
     upload_image,
     delete_user_photo,
@@ -155,43 +156,28 @@ AUTH_RESPONSES = {
 
 
 async def validate_image_url(url: str) -> None:
-    """Validate that a URL points at a reachable image.
+    """Cheap front-line check that a URL is safe to fetch server-side.
 
-    Checks:
-    - 2xx status (was previously "anything <400 plus 405")
-    - Content-Type starts with image/ when present
+    Data URLs are allowed. http(s) URLs are validated through the SSRF guard
+    (scheme allowlist + DNS resolution + blocking of private/loopback/
+    link-local/cloud-metadata addresses) WITHOUT making an HTTP request. The
+    actual download happens later in fetch_image_as_pil, which re-validates
+    the host at each redirect hop.
 
-    A 405 from the server is treated as "HEAD not supported" and lets the
-    request through; the GET inside fetch_image_as_pil will surface the
-    real failure if the URL is broken. Data URLs are exempt entirely.
+    Deliberately does not make an HTTP HEAD request and does not reflect the
+    target URL or any upstream status back to the caller: a server-side fetch
+    of an attacker-supplied URL that echoed reachability/status would be an
+    SSRF port/status oracle into the internal network.
     """
     if url.startswith("data:"):
         return
 
     try:
-        async with httpx.AsyncClient() as client:
-            response = await client.head(url, timeout=5.0)
-    except httpx.RequestError:
+        remote_image.validate_image_url(url)
+    except RemoteImageError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Could not reach image URL: {url}",
-        )
-
-    if response.status_code == 405:
-        # Server blocks HEAD; rely on the downstream GET.
-        return
-
-    if not 200 <= response.status_code < 300:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Image URL returned status {response.status_code}",
-        )
-
-    content_type = response.headers.get("content-type", "").lower()
-    if content_type and not content_type.startswith("image/"):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"URL is not an image (Content-Type: {content_type})",
+            detail="Invalid or unsupported image URL.",
         )
 
 

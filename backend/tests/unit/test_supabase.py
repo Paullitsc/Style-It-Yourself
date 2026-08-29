@@ -427,24 +427,40 @@ class TestCreateOutfit:
     
     @pytest.mark.asyncio
     async def test_create_outfit_success(self, mock_supabase, sample_user_id, sample_outfit_row, sample_db_row):
-        # 1. insert outfit -> returns data
-        # 2. insert outfit_items -> returns (ignored)
-        # 3. get_outfit -> returns data
-        # 4. get outfit items -> returns items
+        # 1. ownership check (get_clothing_items_by_ids) -> returns the owned item
+        # 2. insert outfit -> returns data
+        # 3. insert outfit_items -> returns (ignored)
+        # 4. get_outfit -> returns data
+        # 5. get outfit items -> returns items
         mock_supabase.execute.side_effect = [
+            MagicMock(data=[sample_db_row]),
             MagicMock(data=[sample_outfit_row]),
-            MagicMock(data=[]), 
+            MagicMock(data=[]),
             MagicMock(data=[sample_outfit_row]),
             MagicMock(data=[{"clothing_items": sample_db_row}])
         ]
         
         outfit_create = OutfitCreate(name="Casual", item_ids=[sample_db_row["id"]])
-        
+
         with patch("app.services.supabase.get_supabase_client", new_callable=AsyncMock) as mock_get:
             mock_get.return_value = mock_supabase
             result = await create_outfit(sample_user_id, outfit_create)
-        
+
         assert result.name == "Casual Friday"
+
+    @pytest.mark.asyncio
+    async def test_create_outfit_rejects_unowned_item(self, mock_supabase, sample_user_id, sample_db_row):
+        # Ownership check (get_clothing_items_by_ids) returns nothing: the
+        # item_id is not the caller's, so create_outfit must refuse before
+        # inserting anything (prevents linking another user's item).
+        mock_supabase.execute.side_effect = [MagicMock(data=[])]
+
+        outfit_create = OutfitCreate(name="Casual", item_ids=[sample_db_row["id"]])
+
+        with patch("app.services.supabase.get_supabase_client", new_callable=AsyncMock) as mock_get:
+            mock_get.return_value = mock_supabase
+            with pytest.raises(ValueError):
+                await create_outfit(sample_user_id, outfit_create)
 
 
 class TestGetOutfit:

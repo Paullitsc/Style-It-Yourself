@@ -9,6 +9,10 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from app.services.supabase import get_supabase_client_anon
 from app.models.schemas import User
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # Security schemes for OpenAPI documentation + request auth parsing
 security = HTTPBearer(
@@ -59,9 +63,12 @@ async def get_current_user(
     except HTTPException:
         raise
     except Exception as e:
+        # Log the underlying reason server-side, but never echo internal
+        # exception text back to the client (info disclosure).
+        logger.warning("Token validation failed: %s", e)
         raise HTTPException(
             status_code=401,
-            detail=f"Could not validate credentials: {str(e)}"
+            detail="Could not validate credentials",
         )
 
 

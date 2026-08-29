@@ -8,11 +8,23 @@ import AuthModal from '@/components/AuthModal'
 type HandoffStatus =
   | 'idle' // waiting on session / extId
   | 'no-ext-id' // page opened without an extId param
+  | 'untrusted-ext-id' // extId is not in the allowlist (refuse to hand over the session)
   | 'signed-out' // user must log in first
   | 'sending' // posting the session to the extension
   | 'done' // extension acknowledged
   | 'no-extension' // chrome.runtime not available (extension not installed)
   | 'error'
+
+// Only hand the session to extensions we published. The whole security of this
+// page rests on this: the session we send includes the refresh token, so an
+// unvalidated extId from the URL would let ANY installed extension harvest a
+// logged-in user's session via a crafted link. Set NEXT_PUBLIC_SIY_EXTENSION_ID
+// to the published extension ID(s), comma-separated (add your unpacked dev ID
+// locally). Empty = allow nothing, which is the safe default.
+const ALLOWED_EXTENSION_IDS = (process.env.NEXT_PUBLIC_SIY_EXTENSION_ID ?? '')
+  .split(',')
+  .map((id) => id.trim())
+  .filter(Boolean)
 
 interface ChromeRuntimeLike {
   runtime?: {
@@ -42,6 +54,11 @@ function ConnectFlow() {
   const performHandoff = useCallback(() => {
     if (!extId) {
       setStatus('no-ext-id')
+      return
+    }
+    if (!ALLOWED_EXTENSION_IDS.includes(extId)) {
+      // Refuse to send the session to an extension we don't recognize.
+      setStatus('untrusted-ext-id')
       return
     }
     if (!session) {
@@ -153,6 +170,15 @@ function StatusBody({
           Open this page from the extension’s{' '}
           Connect Style It Yourself button so it can
           identify itself.
+        </Note>
+      )
+
+    case 'untrusted-ext-id':
+      return (
+        <Note>
+          This link points at an extension we don’t recognize, so we won’t hand
+          it your session. Open this page from the official Style It Yourself
+          extension’s Connect button.
         </Note>
       )
 

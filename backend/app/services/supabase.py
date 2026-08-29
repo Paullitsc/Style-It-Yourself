@@ -271,6 +271,17 @@ async def create_outfit(
     """
     supabase = await get_supabase_client()
 
+    # Reject any item_ids that are not the caller's own items. Without this,
+    # a user could link another user's clothing_item_id into their outfit and
+    # then read that item's full row back through get_outfit (which joins via
+    # the service-role client, bypassing per-item RLS).
+    if outfit.item_ids:
+        owned = await get_clothing_items_by_ids(outfit.item_ids, user_id)
+        owned_ids = {item.id for item in owned}
+        missing = [item_id for item_id in outfit.item_ids if item_id not in owned_ids]
+        if missing:
+            raise ValueError("One or more item_ids do not exist or do not belong to you")
+
     final_image_url = generated_image_url or outfit.generated_image_url
     is_pending_data_url = (
         isinstance(final_image_url, str) and final_image_url.startswith("data:")
@@ -448,7 +459,16 @@ async def add_items_to_outfit(
     outfit = await get_outfit(outfit_id, user_id)
     if not outfit:
         return None
-    
+
+    # Same ownership guard as create_outfit: only the caller's own items may
+    # be linked into the outfit (see create_outfit for the rationale).
+    if item_ids:
+        owned = await get_clothing_items_by_ids(item_ids, user_id)
+        owned_ids = {item.id for item in owned}
+        missing = [item_id for item_id in item_ids if item_id not in owned_ids]
+        if missing:
+            raise ValueError("One or more item_ids do not exist or do not belong to you")
+
     existing = await (
         supabase.table("outfit_items")
         .select("position")

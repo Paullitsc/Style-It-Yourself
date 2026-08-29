@@ -10,16 +10,9 @@
   "background": {
     "service_worker": "background.js"
   },
-  "permissions": ["activeTab", "scripting", "storage", "tabs"],
+  "permissions": ["activeTab", "scripting", "storage"],
   "host_permissions": ["http://localhost:8000/*", "https://api.styleityourself.ca/*"],
   "externally_connectable": {
     "matches": ["http://localhost:3000/*", "https://styleityourself.ca/*", "https://www.styleityourself.ca/*"]
-  },
-  "content_scripts": [
-    {
-      "matches": ["http://*/*", "https://*/*"],
-      "js": ["contentScript.js"],
-      "run_at": "document_idle"
-    }
-  ]
+  }
 }
