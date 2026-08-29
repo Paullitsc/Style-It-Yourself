@@ -6,7 +6,9 @@ import path from "node:path";
 const repoRoot = path.join(process.cwd(), "..");
 
 const nextConfig: NextConfig = {
-  output: "standalone",
+  // Standalone is for the Docker image; Vercel manages its own output and
+  // breaks if standalone is on (missing next-server.js.nft.json at build end).
+  output: process.env.VERCEL ? undefined : "standalone",
   // @siy/ui ships raw TSX from src/, so Next must compile it.
   transpilePackages: ["@siy/ui"],
   // Without this, `output: standalone` traces only frontend/ and omits packages/ui.
