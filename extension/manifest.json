@@ -11,9 +11,9 @@
     "service_worker": "background.js"
   },
   "permissions": ["activeTab", "scripting", "storage", "tabs"],
-  "host_permissions": ["http://localhost:8000/*"],
+  "host_permissions": ["http://localhost:8000/*", "https://api.styleityourself.ca/*"],
   "externally_connectable": {
-    "matches": ["http://localhost:3000/*", "https://*.styleityourself.app/*"]
+    "matches": ["http://localhost:3000/*", "https://styleityourself.ca/*", "https://www.styleityourself.ca/*"]
   },
   "content_scripts": [
     {
