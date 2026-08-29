@@ -139,6 +139,14 @@ const options = {
 function copyStatic() {
   copyFileSync(resolve(__dirname, 'manifest.json'), resolve(dist, 'manifest.json'))
   copyFileSync(resolve(__dirname, 'src/popup/popup.html'), resolve(dist, 'popup.html'))
+  // Extension + store icons (manifest references icons/icon-*.png).
+  mkdirSync(resolve(dist, 'icons'), { recursive: true })
+  for (const size of [16, 32, 48, 128]) {
+    copyFileSync(
+      resolve(__dirname, `icons/icon-${size}.png`),
+      resolve(dist, `icons/icon-${size}.png`),
+    )
+  }
 }
 
 if (watch) {

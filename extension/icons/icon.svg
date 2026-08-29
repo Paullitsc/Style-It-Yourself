@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#fcfaf5"/>
+  <rect x="26" y="26" width="460" height="460" fill="none" stroke="#201c15" stroke-width="9"/>
+  <text x="256" y="300" font-family="Georgia, 'Times New Roman', serif" font-weight="600"
+        font-size="168" letter-spacing="2" fill="#201c15" text-anchor="middle">SIY</text>
+  <rect x="196" y="342" width="120" height="9" fill="#802e24"/>
+</svg>
