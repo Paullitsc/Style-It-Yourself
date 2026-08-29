@@ -16,6 +16,27 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: repoRoot,
   },
+  // Security headers applied to every route. frame-ancestors/X-Frame-Options
+  // stop the site (notably /extension/connect, which auto-posts the session)
+  // from being silently embedded in an attacker's iframe. The rest are cheap,
+  // broadly-safe hardening.
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=31536000; includeSubDomains",
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;
