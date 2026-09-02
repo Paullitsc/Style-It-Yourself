@@ -1,13 +1,17 @@
 """
 Entry point for the FastAPI application.
 """
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
+from app.middleware.rate_limit import IPRateLimitMiddleware
 from app.services.supabase import close_supabase_clients
+
+logger = logging.getLogger(__name__)
 
 # Import routers that exist
 from app.routers import validation, tryon, closet, recommendations, outfits, clothing_items, extension
@@ -64,6 +68,13 @@ async def lifespan(app: FastAPI):
     """Application lifespan events."""
     # Startup
     print(f"Starting {settings.app_name}...")
+    if not settings.is_development and settings.cors_origin_regex_is_wildcard:
+        logger.warning(
+            "CORS_ORIGIN_REGEX still allows ANY Chrome extension origin "
+            "(%s) with allow_credentials=True. Pin it to the published "
+            "extension ID: CORS_ORIGIN_REGEX=chrome-extension://<id>",
+            settings.CORS_ORIGIN_REGEX,
+        )
     yield
     # Shutdown
     await close_supabase_clients()
@@ -86,6 +97,11 @@ app = FastAPI(
         "displayRequestDuration": True,
     },
 )
+
+# Per-IP rate limiting. Registered BEFORE CORS on purpose: Starlette runs the
+# most recently added middleware outermost, so this ordering leaves CORS on the
+# outside and lets a 429 carry the CORS headers a browser needs to read it.
+app.add_middleware(IPRateLimitMiddleware)
 
 # CORS middleware. `allow_origin_regex` additionally permits the Chrome
 # extension origin (chrome-extension://<id>) without hard-coding its ID.

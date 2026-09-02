@@ -33,11 +33,37 @@ class Settings(BaseSettings):
     # specific extension ID, e.g. r"chrome-extension://abcdef...".
     CORS_ORIGIN_REGEX: str = r"chrome-extension://.*"
 
+    # Rate limiting. Counters live in Supabase so they are shared across Cloud
+    # Run instances; see app/services/rate_limit.py.
+    RATE_LIMIT_ENABLED: bool = True
+
+    # Ceiling applied per client IP before authentication runs. Generous by
+    # design: it exists to stop a junk-token flood from spending a Supabase
+    # auth round-trip per request, not to police normal use.
+    RATE_LIMIT_IP_PER_MINUTE: int = 100
+
+    # Where to read the client IP from. Behind Cloud Run the socket peer is a
+    # Google frontend, shared by every user, so limiting on it would throttle
+    # everyone at once. True reads the left-most X-Forwarded-For entry instead.
+    # Note that value is caller-supplied and therefore spoofable: the IP limit
+    # is a speed bump, and the per-user limits are the real control.
+    RATE_LIMIT_TRUST_FORWARDED_FOR: bool = True
+
     @property
     def cors_origins_list(self) -> list[str]:
         """Parse CORS_ORIGINS string into list."""
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
     
+    @property
+    def cors_origin_regex_is_wildcard(self) -> bool:
+        """Whether CORS_ORIGIN_REGEX still allows ANY Chrome extension.
+
+        Combined with allow_credentials=True that means any extension on any
+        user's machine is a permitted origin. Fine in development; in
+        production it should be pinned to the published extension ID.
+        """
+        return self.CORS_ORIGIN_REGEX.strip() == r"chrome-extension://.*"
+
     @property
     def is_development(self) -> bool:
         """Whether the app is running in a development-like environment."""
