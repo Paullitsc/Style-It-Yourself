@@ -24,3 +24,6 @@ out/
 .vercel
 .env*
 !.env.example
+
+# Other
+assignment.md
