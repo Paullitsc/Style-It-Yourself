@@ -39,6 +39,7 @@ from app.services.product_analysis import (
     guess_formality,
     make_preview_data_url,
 )
+from app.services.rate_limit import RATE_LIMIT_RESPONSES, rate_limit
 from app.services.remote_image import RemoteImageError, fetch_remote_image
 
 logger = logging.getLogger(__name__)
@@ -78,6 +79,7 @@ def _stored_filename(title: str | None, content_type: str) -> str:
 
 @router.post(
     "/analyze-product",
+    dependencies=[Depends(rate_limit("extension-analyze", 30, label="Product analysis"))],
     response_model=AnalyzeProductResponse,
     summary="Analyze a scraped product into suggested metadata",
     description=(
@@ -88,6 +90,7 @@ def _stored_filename(title: str | None, content_type: str) -> str:
     ),
     responses={
         **AUTH_RESPONSES,
+        **RATE_LIMIT_RESPONSES,
         200: {"description": "Suggestions generated."},
     },
 )
@@ -135,6 +138,7 @@ async def analyze_product(
 
 @router.post(
     "/import-item",
+    dependencies=[Depends(rate_limit("extension-import", 20, label="Item import"))],
     response_model=ClothingItemResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Import a product into the closet from a remote image URL",
@@ -144,6 +148,7 @@ async def analyze_product(
     ),
     responses={
         **AUTH_RESPONSES,
+        **RATE_LIMIT_RESPONSES,
         201: {"description": "Item imported successfully."},
         400: {
             "model": ErrorResponse,
@@ -215,6 +220,7 @@ async def import_item(
 
 @router.post(
     "/match-product",
+    dependencies=[Depends(rate_limit("extension-match", 60, label="Product match"))],
     response_model=MatchProductResponse,
     summary="Find closet pieces that pair with a product",
     description=(
@@ -224,6 +230,7 @@ async def import_item(
     ),
     responses={
         **AUTH_RESPONSES,
+        **RATE_LIMIT_RESPONSES,
         200: {"description": "Match result computed."},
         503: {
             "model": ErrorResponse,

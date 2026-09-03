@@ -218,3 +218,80 @@ CREATE POLICY "Users can delete own outfit items"
 -- generated-images bucket:
 --   - SELECT: true (public read for generated images)
 --   - INSERT: service_role only (API inserts)
+
+
+-- ============================================
+-- Rate limiting counters
+-- ============================================
+-- Shared across Cloud Run instances. The app previously kept try-on counters
+-- in a per-process dict, so the effective limit was multiplied by the instance
+-- count and reset on every cold start (--min-instances 0 means that is often).
+-- This table is the single source of truth; see app/services/rate_limit.py.
+
+CREATE TABLE IF NOT EXISTS public.rate_limit_counters (
+    bucket_key   TEXT        NOT NULL,
+    window_start TIMESTAMPTZ NOT NULL,
+    count        INTEGER     NOT NULL DEFAULT 0,
+    PRIMARY KEY (bucket_key, window_start)
+);
+
+-- Deny-all: no policies are defined, and RLS blocks every role except
+-- service_role (which bypasses RLS). Only the backend touches this table.
+ALTER TABLE public.rate_limit_counters ENABLE ROW LEVEL SECURITY;
+
+-- Fixed-window counter. Returns the decision for ONE request and records it.
+--
+-- Fixed rather than sliding: a sliding window needs a row per request, turning
+-- one write into many. The tradeoff is that a caller can spend a full budget
+-- at the end of one window and again at the start of the next (up to 2x the
+-- nominal rate across a boundary). Limits are set with that in mind.
+DROP FUNCTION IF EXISTS public.consume_rate_limit(TEXT, INTEGER, INTEGER);
+
+CREATE FUNCTION public.consume_rate_limit(
+    p_key            TEXT,
+    p_limit          INTEGER,
+    p_window_seconds INTEGER
+)
+RETURNS TABLE (allowed BOOLEAN, remaining INTEGER, retry_after INTEGER)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_window_start TIMESTAMPTZ;
+    v_count        INTEGER;
+BEGIN
+    -- Floor now() onto a window boundary so every instance agrees on the bucket.
+    v_window_start := to_timestamp(
+        floor(extract(EPOCH FROM now()) / p_window_seconds) * p_window_seconds
+    );
+
+    -- Atomic read-modify-write: concurrent callers on different instances
+    -- serialize on the primary key rather than racing.
+    INSERT INTO public.rate_limit_counters AS c (bucket_key, window_start, count)
+    VALUES (p_key, v_window_start, 1)
+    ON CONFLICT (bucket_key, window_start)
+    DO UPDATE SET count = c.count + 1
+    RETURNING c.count INTO v_count;
+
+    -- Keep the table bounded without pg_cron: each write clears its own key's
+    -- expired windows.
+    DELETE FROM public.rate_limit_counters
+    WHERE bucket_key = p_key AND window_start < v_window_start;
+
+    allowed   := v_count <= p_limit;
+    remaining := greatest(0, p_limit - v_count);
+    retry_after := CASE
+        WHEN v_count <= p_limit THEN 0
+        ELSE greatest(1, ceil(extract(
+            EPOCH FROM (v_window_start + make_interval(secs => p_window_seconds)) - now()
+        ))::INTEGER)
+    END;
+    RETURN NEXT;
+END;
+$$;
+
+-- Only the backend's service role may consume budget. A leaked anon key must
+-- not be able to burn another user's allowance or reset its own.
+REVOKE ALL ON FUNCTION public.consume_rate_limit(TEXT, INTEGER, INTEGER)
+    FROM PUBLIC, anon, authenticated;
