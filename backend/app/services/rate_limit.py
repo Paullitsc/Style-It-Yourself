@@ -86,6 +86,11 @@ class InProcessLimiter:
 
     def __init__(self) -> None:
         self._history: dict[str, deque] = defaultdict(deque)
+        # Each key's own window, so a sweep triggered by one key's check never
+        # judges another key's liveness against the wrong cutoff (a key with a
+        # longer window would otherwise have live entries swept away by a
+        # shorter-window key's cutoff).
+        self._windows: dict[str, int] = {}
         self._lock = asyncio.Lock()
         self._checks_since_sweep = 0
 
@@ -94,13 +99,14 @@ class InProcessLimiter:
         cutoff = now - window_seconds
         async with self._lock:
             history = self._history[key]
+            self._windows[key] = window_seconds
             while history and history[0] < cutoff:
                 history.popleft()
 
             self._checks_since_sweep += 1
             if self._checks_since_sweep >= _SWEEP_EVERY:
                 self._checks_since_sweep = 0
-                self._sweep(cutoff)
+                self._sweep(now)
 
             if len(history) >= limit:
                 retry_after = max(1, int(history[0] + window_seconds - now) + 1)
@@ -109,19 +115,25 @@ class InProcessLimiter:
             history.append(now)
             return Decision(allowed=True)
 
-    def _sweep(self, cutoff: float) -> None:
-        """Drop keys with no live entries. Caller holds the lock."""
+    def _sweep(self, now: float) -> None:
+        """Drop keys with no live entries. Caller holds the lock.
+
+        Uses each key's own window rather than the triggering call's, so a
+        longer-window key's still-live history is never mistaken for stale.
+        """
         stale = [
             key
             for key, history in self._history.items()
-            if not history or history[-1] < cutoff
+            if not history or history[-1] < now - self._windows.get(key, 0)
         ]
         for key in stale:
             del self._history[key]
+            self._windows.pop(key, None)
 
     def reset(self) -> None:
         """Clear all state. Test helper."""
         self._history.clear()
+        self._windows.clear()
         self._checks_since_sweep = 0
 
 
@@ -172,7 +184,9 @@ async def check(key: str, limit: int, window_seconds: int) -> Decision:
     local = await _in_process.check(key, limit, window_seconds)
 
     try:
-        return await _postgres.check(key, limit, window_seconds)
+        return await asyncio.wait_for(
+            _postgres.check(key, limit, window_seconds), timeout=2
+        )
     except Exception as exc:  # noqa: BLE001
         logger.error(
             "Rate limit RPC failed for %s; falling back to in-process counter: %r",
