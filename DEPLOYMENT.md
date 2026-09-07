@@ -22,6 +22,24 @@ Deploy straight from source (Cloud Build builds `backend/Dockerfile`). The
 container listens on 8000, so declare the port. Values for the env vars come
 from `backend/.env`; NEVER commit them.
 
+### Apply the rate limiting schema first
+
+Rate limit counters are shared across instances through Supabase, so the table
+and its RPC must exist before the revision that uses them goes live. In the
+Supabase SQL Editor, run the `Rate limiting counters` section at the bottom of
+`backend/supabase_schema.sql` (idempotent -- safe to re-run).
+
+Verify:
+
+```sql
+SELECT * FROM public.consume_rate_limit('deploy-check', 5, 60);
+-- expect: allowed = true, remaining = 4, retry_after = 0
+```
+
+Until it exists the API still serves traffic: the limiter logs an error and
+falls back to per-instance counters, which is the pre-#7 behaviour rather than
+an outage. Do not leave it that way.
+
 ```bash
 gcloud run deploy siy-api \
   --source backend \
@@ -104,7 +122,8 @@ things or the extension won't work end to end:
 - [ ] Save a piece + closet load against production API
 - [ ] Try-on generates (Gemini key valid, 120s timeout enough)
 - [ ] `NEXT_PUBLIC_SIY_EXTENSION_ID` set in Vercel; extension connects and imports an item
-- [ ] `CORS_ORIGIN_REGEX` pinned to the published extension ID
+- [ ] `CORS_ORIGIN_REGEX` pinned to the published extension ID (the API logs a startup warning while it is still the `chrome-extension://.*` wildcard)
+- [ ] `consume_rate_limit` RPC exists in Supabase; backend logs show no "Rate limit RPC failed" errors
 
 ## 6. Redeploying after code changes
 

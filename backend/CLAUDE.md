@@ -22,6 +22,35 @@ environment, and domain concepts. This file covers the FastAPI service.
   CLI) would be an upgrade.
 - `SUPABASE_SERVICE_KEY` bypasses RLS; never expose it beyond the backend.
 
+## Rate limiting
+
+`services/rate_limit.py` is the single entry point. Two enforcement points,
+deliberately different:
+
+- **Per-user, per-endpoint** — `Depends(rate_limit(name, limit))` in the route
+  decorator's `dependencies=[...]`. Counters live in Supabase
+  (`consume_rate_limit` RPC) so they are shared across Cloud Run instances;
+  a per-process dict multiplies the limit by the instance count and resets on
+  every cold start, which with `--min-instances 0` is often. Use this for
+  anything that costs money or does outbound I/O.
+- **Per-IP** — `IPRateLimitMiddleware`, registered in `main.py` *before* CORS so
+  CORS stays outermost and 429s carry the headers a browser needs. It runs
+  before `get_current_user`, which spends a Supabase round-trip on every
+  request including junk-token ones. Intentionally per-instance: a database hit
+  on every request would tax the whole API to sharpen an approximate bound.
+
+Gotchas:
+
+- Schema changes here must be applied to the live Supabase project by hand;
+  see DEPLOYMENT.md. If the RPC is missing the limiter logs an error and falls
+  back to per-instance counters rather than failing the request.
+- The window is fixed, not sliding, so a caller can spend a full budget either
+  side of a boundary (up to 2x nominal). Set limits with that in mind.
+- 429 bodies must stay human-readable: clients render `detail` verbatim and
+  do not inspect status codes, so a bare 429 surfaces as "API error: 429".
+- The suite disables rate limiting via an autouse fixture in `tests/conftest.py`;
+  tests that exercise it opt back in.
+
 ## Testing
 
 Backend tests use pytest + pytest-asyncio. Tests are in `backend/tests/unit/` and `backend/tests/integration/`. Run `pytest` from the `backend/` directory.

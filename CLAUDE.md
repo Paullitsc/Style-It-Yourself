@@ -75,7 +75,7 @@ docker compose -f docker-compose.prod.yml up --build  # Production build
 ## Environment Setup
 
 Copy `.env.example` files and fill in credentials:
-- `backend/.env` — `SUPABASE_URL`, `SUPABASE_KEY`, `SUPABASE_SERVICE_KEY`, `GEMINI_API_KEY`, `CORS_ORIGINS`
+- `backend/.env` — `SUPABASE_URL`, `SUPABASE_KEY`, `SUPABASE_SERVICE_KEY`, `GEMINI_API_KEY`, `CORS_ORIGINS`, `RATE_LIMIT_*`
 - `frontend/.env.local` — `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_API_URL`
 
 ## Code Conventions
@@ -99,6 +99,8 @@ Area-specific conventions live in the area guides; only cross-cutting rules foll
 | Business logic | `backend/app/services/` |
 | Domain constants | `backend/app/utils/constants.py` |
 | Auth middleware | `backend/app/middleware/auth.py` |
+| Rate limiter (shared counters) | `backend/app/services/rate_limit.py` |
+| Per-IP rate limit middleware | `backend/app/middleware/rate_limit.py` |
 | DB schema (SQL) | `backend/supabase_schema.sql` |
 | Frontend pages | `frontend/src/app/` |
 | Zustand store | `frontend/src/store/styleStore.ts` |
