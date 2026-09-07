@@ -19,6 +19,10 @@ python-dotenv>=1.0.0
 # JWT decoding (for Supabase auth verification)
 PyJWT>=2.9.0
 
+# Error tracking. Optional at runtime: with no SENTRY_DSN set the SDK is never
+# initialized, so local dev and tests make no network calls.
+sentry-sdk>=2.20.0
+
 # Google Generative AI (Gemini)
 google-genai>=1.51.0
 

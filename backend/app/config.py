@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 class Settings(BaseSettings):
     # App
     app_name: str = "SIY API"
+    app_version: str = "1.0.0"
     debug: bool = False
     
     # Environment
@@ -48,6 +49,25 @@ class Settings(BaseSettings):
     # Note that value is caller-supplied and therefore spoofable: the IP limit
     # is a speed bump, and the per-user limits are the real control.
     RATE_LIMIT_TRUST_FORWARDED_FOR: bool = True
+
+    # Observability. Both of these default per environment (see the log_level
+    # and log_format properties); set them explicitly only to override.
+    #
+    # LOG_LEVEL: standard level name (DEBUG, INFO, WARNING, ERROR, CRITICAL).
+    # LOG_FORMAT: "json" or "console". JSON is what Cloud Logging parses, so
+    # production wants it; console is readable in a terminal.
+    LOG_LEVEL: str = ""
+    LOG_FORMAT: str = ""
+
+    # Sentry. Unset means disabled, which is the right default for local dev
+    # and for tests -- no DSN, no network calls, no noise.
+    SENTRY_DSN: str = ""
+
+    # Fraction of requests traced for performance monitoring. 0.0 means errors
+    # only, which is what the free tier comfortably affords. Note that turning
+    # this up also starts recording Gemini call spans, since sentry-sdk
+    # auto-enables its google-genai integration.
+    SENTRY_TRACES_SAMPLE_RATE: float = 0.0
 
     @property
     def cors_origins_list(self) -> list[str]:
@@ -91,10 +111,45 @@ class Settings(BaseSettings):
         if self.docs_enabled and self.ENABLE_REDOC:
             return "/redoc"
         return None
-    
+
+    @property
+    def log_level(self) -> str:
+        """Effective log level name.
+
+        Development wants DEBUG so the prompt-building and color-extraction
+        lines are visible while working; production wants INFO so per-request
+        noise stays bounded. ``LOG_LEVEL`` overrides either.
+        """
+        if self.LOG_LEVEL.strip():
+            return self.LOG_LEVEL.strip().upper()
+        return "DEBUG" if self.is_development else "INFO"
+
+    @property
+    def log_format(self) -> str:
+        """Effective log format: ``"json"`` or ``"console"``.
+
+        JSON in production because Cloud Run forwards stdout to Cloud Logging,
+        which lifts ``severity`` and ``message`` out of a JSON line and leaves
+        anything else as an unparsed text blob at default severity.
+        """
+        chosen = self.LOG_FORMAT.strip().lower()
+        if chosen in {"json", "console"}:
+            return chosen
+        return "console" if self.is_development else "json"
+
+    @property
+    def sentry_enabled(self) -> bool:
+        """Whether error reporting should be initialized."""
+        return bool(self.SENTRY_DSN.strip())
+
     class Config:
         env_file = ".env"
         case_sensitive = False
+        # Ignore unknown keys rather than refusing to start. Deployment reads
+        # this file with `set -a; source backend/.env`, and platforms inject
+        # their own variables; a key this class does not model is not a reason
+        # to take the API down at boot.
+        extra = "ignore"
 
 load_dotenv()
 supUrl = os.getenv("SUPABASE_URL")

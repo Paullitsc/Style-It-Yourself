@@ -4,17 +4,34 @@ Entry point for the FastAPI application.
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, status
+from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app.config import settings
-from app.middleware.rate_limit import IPRateLimitMiddleware
-from app.services.supabase import close_supabase_clients
+from app.observability import configure_logging, get_request_id, init_sentry
+
+# Before anything else, and deliberately at import time rather than in the
+# lifespan hook below. Uvicorn configures its own loggers in Config.__init__
+# and only imports this module afterwards, so configuring here wins that race;
+# lifespan runs later still and would leave every record emitted while the
+# routers and services import unformatted. Sentry has a harder requirement --
+# its Starlette integration patches the framework, so it has to run before the
+# FastAPI object is built.
+configure_logging()
+init_sentry()
+
+from app.middleware.rate_limit import IPRateLimitMiddleware  # noqa: E402
+from app.middleware.request_context import (  # noqa: E402
+    REQUEST_ID_HEADER,
+    RequestContextMiddleware,
+)
+from app.services.supabase import close_supabase_clients  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
 # Import routers that exist
-from app.routers import validation, tryon, closet, recommendations, outfits, clothing_items, extension
+from app.routers import validation, tryon, closet, recommendations, outfits, clothing_items, extension  # noqa: E402
 
 
 API_DESCRIPTION = """
@@ -67,7 +84,15 @@ TAGS_METADATA = [
 async def lifespan(app: FastAPI):
     """Application lifespan events."""
     # Startup
-    print(f"Starting {settings.app_name}...")
+    logger.info(
+        "Starting %s",
+        settings.app_name,
+        extra={
+            "version": settings.app_version,
+            "environment": settings.ENVIRONMENT,
+            "log_level": settings.log_level,
+        },
+    )
     if not settings.is_development and settings.cors_origin_regex_is_wildcard:
         logger.warning(
             "CORS_ORIGIN_REGEX still allows ANY Chrome extension origin "
@@ -78,13 +103,13 @@ async def lifespan(app: FastAPI):
     yield
     # Shutdown
     await close_supabase_clients()
-    print(f"Shutting down {settings.app_name}...")
+    logger.info("Shutting down %s", settings.app_name)
 
 
 app = FastAPI(
     title=settings.app_name,
     description=API_DESCRIPTION,
-    version="1.0.0",
+    version=settings.app_version,
     lifespan=lifespan,
     openapi_tags=TAGS_METADATA,
     docs_url=settings.docs_url,
@@ -98,10 +123,20 @@ app = FastAPI(
     },
 )
 
-# Per-IP rate limiting. Registered BEFORE CORS on purpose: Starlette runs the
-# most recently added middleware outermost, so this ordering leaves CORS on the
-# outside and lets a 429 carry the CORS headers a browser needs to read it.
+# Middleware order matters, and Starlette runs the most recently added one
+# OUTERMOST. Read the three below bottom-up to get the request order:
+#
+#   CORS -> RequestContext -> IPRateLimit -> routes
+#
+# CORS stays outside everything so a 429 or a 500 still carries the headers a
+# browser needs in order to read it. RequestContext sits outside the rate
+# limiter so a rejected request is still assigned an id, still logged, and
+# still answers with X-Request-ID.
 app.add_middleware(IPRateLimitMiddleware)
+
+# Correlation id + the single access line per request. See
+# app/middleware/request_context.py.
+app.add_middleware(RequestContextMiddleware)
 
 # CORS middleware. `allow_origin_regex` additionally permits the Chrome
 # extension origin (chrome-extension://<id>) without hard-coding its ID.
@@ -112,7 +147,40 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    # Without this the browser hides X-Request-ID from page scripts, so the
+    # frontend could never show a user the reference for a failed request.
+    expose_headers=[REQUEST_ID_HEADER],
 )
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Answer an unhandled exception with something the caller can quote.
+
+    Starlette would otherwise return a bare `Internal Server Error` text body.
+    The id in `detail` is the point: the frontend renders that string verbatim,
+    so the user ends up holding the exact token that finds their request in the
+    logs and in Sentry.
+
+    Not logged here. This handler runs inside ServerErrorMiddleware, which is
+    outside RequestContextMiddleware (already logging the failed request) and
+    which re-raises afterwards so uvicorn still prints the traceback.
+    """
+    request_id = get_request_id()
+    detail = "Internal server error."
+    headers = {}
+    if request_id:
+        detail = f"{detail} Reference: {request_id}"
+        # ServerErrorMiddleware sends this response itself, bypassing the
+        # send-wrapper that would normally attach the header.
+        headers[REQUEST_ID_HEADER] = request_id
+
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"detail": detail, "request_id": request_id},
+        headers=headers,
+    )
+
 
 # Include routers
 app.include_router(validation.router)
@@ -150,7 +218,7 @@ async def root():
     """Root endpoint - health check."""
     return {
         "name": settings.app_name,
-        "version": "1.0.0",
+        "version": settings.app_version,
         "status": "healthy",
     }
 
