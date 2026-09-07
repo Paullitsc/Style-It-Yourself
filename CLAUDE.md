@@ -75,7 +75,7 @@ docker compose -f docker-compose.prod.yml up --build  # Production build
 ## Environment Setup
 
 Copy `.env.example` files and fill in credentials:
-- `backend/.env` — `SUPABASE_URL`, `SUPABASE_KEY`, `SUPABASE_SERVICE_KEY`, `GEMINI_API_KEY`, `CORS_ORIGINS`, `RATE_LIMIT_*`
+- `backend/.env` — `SUPABASE_URL`, `SUPABASE_KEY`, `SUPABASE_SERVICE_KEY`, `GEMINI_API_KEY`, `CORS_ORIGINS`, `RATE_LIMIT_*`, `LOG_LEVEL`, `LOG_FORMAT`, `SENTRY_DSN`
 - `frontend/.env.local` — `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_API_URL`
 
 ## Code Conventions
@@ -101,6 +101,10 @@ Area-specific conventions live in the area guides; only cross-cutting rules foll
 | Auth middleware | `backend/app/middleware/auth.py` |
 | Rate limiter (shared counters) | `backend/app/services/rate_limit.py` |
 | Per-IP rate limit middleware | `backend/app/middleware/rate_limit.py` |
+| Logging configuration (JSON/console) | `backend/app/observability/logging_config.py` |
+| Sentry initialization | `backend/app/observability/sentry.py` |
+| Per-request logging context | `backend/app/observability/context.py` |
+| Request ID + access log middleware | `backend/app/middleware/request_context.py` |
 | DB schema (SQL) | `backend/supabase_schema.sql` |
 | Frontend pages | `frontend/src/app/` |
 | Zustand store | `frontend/src/store/styleStore.ts` |

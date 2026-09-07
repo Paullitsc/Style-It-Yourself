@@ -6,6 +6,7 @@ Uses Supabase Auth to verify JWT tokens and extract user info.
 from fastapi import HTTPException, Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from app.observability.context import bind_user
 from app.services.supabase import get_supabase_client_anon
 from app.models.schemas import User
 
@@ -52,7 +53,13 @@ async def get_current_user(
             )
         
         user_data = response.user
-        
+
+        # Attach the user to this request's logging context and to Sentry, so
+        # every line and every issue raised downstream is attributable without
+        # a single router having to pass the id along. Id only -- no email, no
+        # IP; see send_default_pii in app/observability/sentry.py.
+        bind_user(str(user_data.id))
+
         return User(
             id=str(user_data.id),
             email=user_data.email,

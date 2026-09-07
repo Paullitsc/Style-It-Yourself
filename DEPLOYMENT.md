@@ -50,11 +50,19 @@ gcloud run deploy siy-api \
   --memory 1Gi --timeout 120 \
   --set-env-vars "SUPABASE_URL=...,SUPABASE_KEY=...,SUPABASE_SERVICE_KEY=...,GEMINI_API_KEY=...,ENVIRONMENT=production,DEBUG=false" \
   --set-env-vars "^@^CORS_ORIGINS=https://styleityourself.ca,https://www.styleityourself.ca" \
-  --set-env-vars "CORS_ORIGIN_REGEX=chrome-extension://.*"
+  --set-env-vars "CORS_ORIGIN_REGEX=chrome-extension://.*" \
+  --set-env-vars "SENTRY_DSN=..."
 ```
 
 Notes:
 - `^@^` switches the delimiter so the comma inside `CORS_ORIGINS` survives.
+- `ENVIRONMENT=production` is what selects JSON logging at INFO. Cloud Logging
+  reads the `severity` key out of each JSON line, so levels become filterable
+  and alertable. Override with `LOG_LEVEL` / `LOG_FORMAT` if you need to.
+- `SENTRY_DSN` is optional and the service runs fine without it, but then
+  nothing notifies you of a 500. Create a free project at sentry.io (platform:
+  Python / FastAPI) and paste its DSN. Leave `SENTRY_TRACES_SAMPLE_RATE` at its
+  default of 0 unless you want performance tracing, which costs quota.
 - After the extension is published with a stable ID, pin
   `CORS_ORIGIN_REGEX=chrome-extension://<the-real-id>` and redeploy.
 - Verify: `curl https://<run-url>/health` returns 200.
@@ -124,6 +132,9 @@ things or the extension won't work end to end:
 - [ ] `NEXT_PUBLIC_SIY_EXTENSION_ID` set in Vercel; extension connects and imports an item
 - [ ] `CORS_ORIGIN_REGEX` pinned to the published extension ID (the API logs a startup warning while it is still the `chrome-extension://.*` wildcard)
 - [ ] `consume_rate_limit` RPC exists in Supabase; backend logs show no "Rate limit RPC failed" errors
+- [ ] Cloud Run logs are JSON with a `severity` field, and Logs Explorer shows the level per line (not everything at INFO)
+- [ ] `curl -i` on any endpoint returns an `X-Request-ID` header, and that id appears on every log line for the request
+- [ ] `SENTRY_DSN` set, and a deliberate error shows up in Sentry tagged with its `request_id`
 
 ## 6. Redeploying after code changes
 
@@ -149,7 +160,7 @@ gcloud run deploy siy-api --source backend --region us-east1 --port 8000 \
   --project gen-lang-client-0131380129 \
   --allow-unauthenticated --min-instances 0 --max-instances 3 \
   --memory 1Gi --timeout 120 \
-  --set-env-vars "^@^SUPABASE_URL=${SUPABASE_URL}@SUPABASE_KEY=${SUPABASE_KEY}@SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}@GEMINI_API_KEY=${GEMINI_API_KEY}@ENVIRONMENT=production@DEBUG=false@CORS_ORIGINS=https://styleityourself.ca,https://www.styleityourself.ca@CORS_ORIGIN_REGEX=chrome-extension://.*"
+  --set-env-vars "^@^SUPABASE_URL=${SUPABASE_URL}@SUPABASE_KEY=${SUPABASE_KEY}@SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}@GEMINI_API_KEY=${GEMINI_API_KEY}@ENVIRONMENT=production@DEBUG=false@CORS_ORIGINS=https://styleityourself.ca,https://www.styleityourself.ca@CORS_ORIGIN_REGEX=chrome-extension://.*@SENTRY_DSN=${SENTRY_DSN}"
 ```
 Cloud Run keeps every revision, so a bad deploy rolls back instantly via
 `gcloud run services update-traffic siy-api --region us-east1 --to-revisions <prev>=100`.
@@ -169,13 +180,27 @@ them in the Vercel dashboard and redeploy the frontend.
 **Backend — Cloud Run** (`console.cloud.google.com` → Cloud Run → `siy-api`,
 project `gen-lang-client-0131380129`, region `us-east1`):
 - **Metrics** tab: request count, latency, instance count, billable time.
-- **Logs** tab: every request and Python traceback.
+- **Logs** tab: every request and Python traceback. The API emits one JSON
+  line per record, so Logs Explorer parses them: filter with
+  `jsonPayload.request_id="<id>"` to pull every line from a single request
+  (the id is the one the caller saw in the `X-Request-ID` response header, and
+  the one shown in the `detail` of a 500), or `severity>=ERROR` for failures
+  alone. `jsonPayload.user_id` narrows to one user, and `jsonPayload.path`,
+  `.status`, and `.duration_ms` come from the per-request access line.
 - Free tier (2M requests + 180k vCPU-seconds/month) covers small-scale use.
   The realistic cost is **Gemini image generation** (each try-on), which shows
   under **Billing → Reports** filtered to "Generative Language API".
 - **Set a budget alert:** Billing → Budgets & alerts → create a budget with
   email thresholds (e.g. $5 / $10 / $20) so a runaway try-on loop or a leaked
   key can't rack up a silent bill.
+
+**Backend errors — Sentry** (`sentry.io` → the project whose DSN is in
+`SENTRY_DSN`): unhandled exceptions and every `logger.error` from the API,
+grouped into issues, with the release and environment attached. Each issue
+carries a `request_id` tag that finds the same request in Cloud Logging. Free
+tier is 5k errors/month, which is far more than this service should produce;
+if it starts consuming that, the errors are the problem, not the quota. Turn
+on an alert rule for new issues so a 500 reaches you without anyone looking.
 
 **Supabase** (`supabase.com/dashboard` → project):
 - **Reports**: API requests, DB size, storage, and egress over time.
